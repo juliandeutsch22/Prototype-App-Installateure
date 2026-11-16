@@ -1,3 +1,4 @@
+import { handlung } from './handlung';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -949,15 +950,17 @@ describe('Termine in der Einsatzplanung (Runde 4)', () => {
     zeige();
     const erna = await screen.findByRole('row', { name: /Erna Beispiel/ });
     await userEvent.click(await within(erna).findByRole('button', { name: /Termin ändern$/ }));
-    const dialog = within(screen.getByRole('dialog', { name: 'Termin ändern' }));
+    const fenster = screen.getByRole('dialog', { name: 'Termin ändern' });
+    const dialog = within(fenster);
     expect(dialog.getByRole('combobox', { name: 'Art' })).toHaveValue('Lieferung');
     expect(dialog.getByLabelText('Zeitfenster von')).toHaveValue('08:00');
-    await userEvent.click(dialog.getByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* löschen/ }));
+    // Seit U4 (15.11.2026) steht das Löschen im ⋯ des Fensters; die Rückfrage bleibt.
+    await userEvent.click(handlung({ name: 'Termin löschen' }, fenster));
     const frage = screen.getByRole('dialog', { name: 'Termin löschen?' });
     // Gegenprobe: Abbrechen löscht nichts.
     await userEvent.click(within(frage).getByRole('button', { name: 'Abbrechen' }));
     expect(terminGeloescht).not.toHaveBeenCalled();
-    await userEvent.click(dialog.getByRole('button', { name: /löschen/ }));
+    await userEvent.click(handlung({ name: 'Termin löschen' }, fenster));
     termineGeladen.mockClear();
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Termin löschen?' })).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(terminGeloescht).toHaveBeenCalledWith('t1'));
@@ -1069,7 +1072,8 @@ describe('Termin anlegen aus dem Seitenkopf (20.10.2026)', () => {
 
     const erna = within(monat.getByRole('group', { name: 'Erna Beispiel' }));
     await userEvent.click(erna.getByRole('button', { name: /^Erna Beispiel, Mo\.? 14\.09\.: / }));
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Termin anlegen' }));
+    // Seit U4 (15.11.2026) im ⋯ der Vorschau.
+    await userEvent.click(handlung({ name: 'Termin anlegen' }, screen.getByRole('dialog')));
     // Die Vorschau ist zu, das Fenster „Termin anlegen“ steht mit dem Tag der Vorschau da.
     const dialog = within(screen.getByRole('dialog', { name: 'Termin anlegen' }));
     expect(dialog.getByLabelText('Tag')).toHaveValue('2026-09-14');

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { forderungsStand } from '@shared/forderungen';
 import type { AppUser, Freistellung, Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
 import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
@@ -151,7 +152,7 @@ describe('Buchhaltung', () => {
     const r = [rechnung({ id: 'RE-1' }), rechnung({ id: 'RE-2', gemahntAm: '2026-09-28', mahnstufe: 1 })];
     const lauf = mahnlauf(r, HEUTE, undefined);
     const imLauf = new Set(lauf.zeilen.map((z) => z.rechnung.id));
-    const a = ueberfaelligNichtMahnbar(r, lauf, HEUTE);
+    const a = ueberfaelligNichtMahnbar(forderungsStand(r, HEUTE, undefined, 3).ueberfaelligNichtMahnbar, HEUTE);
     for (const z of a?.zeilen ?? []) expect(imLauf.has(z.key.replace('ueber-', ''))).toBe(false);
     expect((a?.anzahl ?? 0) + lauf.zeilen.length).toBe(2);
   });
@@ -191,11 +192,11 @@ describe('Buchhaltung', () => {
 
   it('zeigt Offen, Überfällig und Bezahlt im Monat (M24) — „Nicht verrechnet“ steht unter Zu erledigen (E22)', () => {
     const s = startseite({
-      unbezahlt: [
+      forderungen: forderungsStand([
         rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' }),
         rechnung({ id: 'RE-2', totalBrutto: 300, dueDate: '2026-10-20' }),
         rechnung({ id: 'RE-3', totalBrutto: 150, dueDate: '2026-09-15' }),
-      ],
+      ], HEUTE, undefined, 3),
       unverrechnet: offen(schein('s1', 40), schein('s2', 3)),
       bezahltImMonat: { summe: 1234.5, anzahl: 4 },
     }, umfeld());
@@ -216,7 +217,7 @@ describe('Buchhaltung', () => {
   });
 
   it('Gegenprobe: ohne Überfälliges kein Rot — und ohne Recht auf Rechnungen keine Geldkennzahl (M24)', () => {
-    const daten = { unbezahlt: [rechnung({ id: 'RE-1', dueDate: '2026-10-14' })], bezahltImMonat: { summe: 0, anzahl: 0 } };
+    const daten = { forderungen: forderungsStand([rechnung({ id: 'RE-1', dueDate: '2026-10-14' })], HEUTE, undefined, 3), bezahltImMonat: { summe: 0, anzahl: 0 } };
     const ueber = startseite(daten, umfeld()).kennzahlen.find((k) => k.key === 'ueberfaellig');
     expect(ueber).toMatchObject({ wert: euro(0), zusatz: 'keine Rechnung' });
     expect(ueber?.ton).toBeUndefined();
@@ -231,7 +232,7 @@ describe('Buchhaltung', () => {
     „€ 0,00“ eine leere Arbeitsliste ist oder ein Rücklass, der noch zählt.
   */
   it('markiert leere Arbeitszahlen als leer — Bezahlt im Monat nie (E22)', () => {
-    const s = startseite({ unbezahlt: [], unverrechnet: offen(), bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
+    const s = startseite({ forderungen: forderungsStand([], HEUTE, undefined, 3), unverrechnet: offen(), bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(true);
     expect(nach.get('ueberfaellig')?.leer).toBe(true);
@@ -241,7 +242,7 @@ describe('Buchhaltung', () => {
 
   it('Gegenprobe: was offen oder überfällig ist, bleibt stehen (E22)', () => {
     const s = startseite({
-      unbezahlt: [rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })],
+      forderungen: forderungsStand([rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })], HEUTE, undefined, 3),
       unverrechnet: offen(schein('s1', 3)),
     }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
@@ -251,10 +252,10 @@ describe('Buchhaltung', () => {
 
   it('Gegenprobe: ein überfälliger Rücklass-Rest hält „Überfällig“ in der Zeile (E22)', () => {
     const s = startseite({
-      unbezahlt: [rechnung({
+      forderungen: forderungsStand([rechnung({
         id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
         ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
-      })],
+      })], HEUTE, undefined, 3),
     }, umfeld());
     expect(s.kennzahlen.find((k) => k.key === 'ueberfaellig')?.leer).toBe(false);
   });
@@ -296,10 +297,10 @@ describe('Buchhaltung', () => {
   // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
   it('ein noch nicht fälliger Rücklass zählt unter „Offen“, samt seiner Rechnung', () => {
     const s = startseite({
-      unbezahlt: [rechnung({
+      forderungen: forderungsStand([rechnung({
         id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
         ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
-      })],
+      })], HEUTE, undefined, 3),
     }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('ueberfaellig')).toMatchObject({ wert: euro(1140), zusatz: '1 Rechnung' });
@@ -415,17 +416,25 @@ describe('Projektleitung', () => {
     });
   });
 
-  it('Wartungen: überfällige zuerst und rot, eingeplante gar nicht', () => {
+  /*
+    Seit 15.11.2026 (Budget B3) wählt, ordnet und zählt die Datenbank
+    (`wartungen_faellig_stand`: nur ohne Baustelle, nach dem Fälligkeitstag;
+    geprüft in `tests/supabase/wartungenFaelligStand.test.ts`). Hier, wie die
+    Startseite die Zeilen zeigt und die Zahl über alle nennt.
+  */
+  it('Wartungen: überfällige zuerst und rot — die Zahl über alle, drei Zeilen', () => {
     const w = (teil: Partial<Wartung> & { id: string }) =>
-      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
-    const a = wartungenOhneBaustelle([
-      w({ id: 'bald', faelligAm: '2026-10-03' }),
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung & { id: string };
+    const a = wartungenOhneBaustelle({ anzahl: 240, ueberfaellig: 1, zeilen: [
       w({ id: 'weg', faelligAm: '2026-09-22' }),
-      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
-    ], HEUTE)!;
+      w({ id: 'bald', faelligAm: '2026-10-03' }),
+    ] }, HEUTE)!;
     expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-weg', 'wartung-bald']);
     expect(a.zeilen[0].status?.ton).toBe('fehl');
     expect(a.zeilen[1].status).toEqual({ text: 'diese Woche', ton: 'warn' });
+    expect(a.anzahl).toBe(240);
+    expect(a.weiter).toEqual({ to: ZIEL.wartungenOhneBaustelle });
+    expect(wartungenOhneBaustelle({ anzahl: 0, ueberfaellig: 0, zeilen: [] }, HEUTE)).toBeNull();
   });
 
   /*
@@ -434,19 +443,20 @@ describe('Projektleitung', () => {
   */
   it('eingeplante Wartungen: erst die mit Vorschlag (Sprung in „Erledigt“), dann die fälligen mit Weg zur Baustelle', () => {
     const w = (teil: Partial<Wartung> & { id: string }) =>
-      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
-    const a = wartungenEingeplant([
-      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
-      w({ id: 'erledigt', faelligAm: '2026-09-10', offeneBaustelle: 'PR-8' }),
-      w({ id: 'spaeter', faelligAm: '2027-05-01', offeneBaustelle: 'PR-7' }),
-      w({ id: 'ohne', faelligAm: '2026-09-20' }),
-    ], [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }], HEUTE)!;
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung & { id: string };
+    // Die Datenbank gibt nur die fälligen mit offener Baustelle und ohne Vorschlag.
+    const a = wartungenEingeplant(
+      { anzahl: 1, ueberfaellig: 1, zeilen: [w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' })] },
+      [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }],
+      HEUTE,
+    )!;
     expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-erledigt-erledigt', 'wartung-eingeplant-geplant']);
     expect(a.zeilen[0]).toMatchObject({
       detail: 'Schein vom 25.09.2026 auf PR-8 unterschrieben', status: { ton: 'warn' }, to: '/wartungen?erledigt=erledigt&am=2026-09-25',
     });
     expect(a.zeilen[1]).toMatchObject({ status: { text: 'überfällig', ton: 'fehl' }, to: ZIEL.baustelle('PR-9') });
-    expect(wartungenEingeplant([w({ id: 'ohne' })], [], HEUTE)).toBeNull();
+    expect(a.anzahl).toBe(2);
+    expect(wartungenEingeplant({ anzahl: 0, ueberfaellig: 0, zeilen: [] }, [], HEUTE)).toBeNull();
   });
 
   it('Auslastung: verplante durch verfügbare Personentage, ohne Feiertag und Abwesenheit', () => {
@@ -537,8 +547,8 @@ describe('Geschäftsführung und Administrator', () => {
     const viel = {
       basiszinsFehltAb: '2026-07-01',
       fehlendeTage: ['2026-09-28'],
-      unbezahlt: [{ id: 'RE-1', invoiceNumber: 'RE-1', customerName: 'K', paymentStatus: 'Offen', totalBrutto: 100,
-        invoiceDate: '2026-07-01', dueDate: '2026-07-15', mahnstufe: 0 } as Invoice & { id: string }],
+      forderungen: forderungsStand([{ id: 'RE-1', invoiceNumber: 'RE-1', customerName: 'K', paymentStatus: 'Offen', totalBrutto: 100,
+        invoiceDate: '2026-07-01', dueDate: '2026-07-15', mahnstufe: 0 } as Invoice & { id: string }], HEUTE, undefined, 3),
     };
 
     it('sperren sie jede Rechnung: ganz vorn unter „Dringend“, in Rot, mit allem, was fehlt', () => {

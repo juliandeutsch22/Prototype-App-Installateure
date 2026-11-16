@@ -9,8 +9,8 @@
  */
 import type { MaterialOrder } from '@/types';
 import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
-import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
-import { objektAlsZeile } from './felder';
+import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, kanalHalten, type WithId } from './kern';
+import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
 import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
@@ -516,4 +516,73 @@ export async function ausgegebenesMaterialGesamt(
     raus.set(z.baustelle, liste);
   }
   return raus;
+}
+
+/** „Laufend“ aus der Datenbank (`anforderungen_laufend`): je Gruppe Zahl und erste Zeilen. */
+export interface AnforderungenLaufend {
+  gruppen: { status: MaterialOrder['status']; anzahl: number; zeilen: WithId<MaterialOrder>[] }[];
+  /** Die Baustellen aller offenen Anforderungen — für die Auswahl „Baustelle“. */
+  projekte: string[];
+  /** Noch nicht bestellt auf der Einkaufsliste — die Zahl am Reiter „Einkauf“. */
+  zuBestellen: number;
+}
+
+/**
+ * NUR, WAS „LAUFEND“ ZEIGT (Durchsicht 15.11.2026, Budget B3): vorher kam
+ * jede offene Anforderung als Live-Liste (gewachsener Bestand: 160), um je
+ * Gruppe 20 zu zeigen. Die Datenbank filtert wie die Startseite, zählt je
+ * Gruppe und gibt die ersten `anzahl[Status]` (Eil zuerst, dann die älteste).
+ */
+export async function anforderungenLaufend(f: {
+  heute: string;
+  jetzt: number;
+  filter?: string | null;
+  projekt?: string | null;
+  anzahl: Record<string, number>;
+}): Promise<AnforderungenLaufend> {
+  const { data, error } = await derClient().rpc('anforderungen_laufend', {
+    p_heute: f.heute,
+    p_jetzt: new Date(f.jetzt).toISOString(),
+    p_filter: f.filter || null,
+    p_projekt: f.projekt || null,
+    p_anzahl: f.anzahl,
+  });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as { gruppen?: { status: string; anzahl: number; zeilen: Record<string, unknown>[] }[]; projekte?: string[]; zu_bestellen?: number };
+  return {
+    gruppen: (d.gruppen ?? []).map((g) => ({
+      status: g.status as MaterialOrder['status'],
+      anzahl: Number(g.anzahl),
+      zeilen: (g.zeilen ?? []).map((z) => zeileAlsObjekt<WithId<MaterialOrder>>(ANFORDERUNGEN, z)),
+    })),
+    projekte: d.projekte ?? [],
+    zuBestellen: Number(d.zu_bestellen ?? 0),
+  };
+}
+
+/**
+ * Meldet Änderungen an den Anforderungen des Betriebs — gebündelt nach einer
+ * Sekunde und nach jedem Wiederaufbau des Kanals. „Laufend“ fragt dann neu;
+ * die Zeilen kommen nicht über den Kanal.
+ */
+export function anforderungenBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      beiAenderung();
+    }, 1000);
+  };
+  const stopp = kanalHalten({
+    tabelle: ANFORDERUNGEN,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: bald,
+    beiBereit: bald,
+    client: derClient(),
+  });
+  return () => {
+    if (geplant) clearTimeout(geplant);
+    stopp();
+  };
 }

@@ -73,6 +73,13 @@ const DATEN = {
   lagerorte: { kennzeichenAusBuchungen: '[]' },
   // Die Zähllisten der Inventur (F14): eine leere Liste — der Reiter „Inventur“ zeigt dann „Keine offene Zählliste“.
   inventur: { inventurListen: '[]' },
+  /*
+    Der Arbeitstag (B7, 15.11.2026): ein gesendeter Schritt gilt als vorgemerkt —
+    sonst holte die Karte gleich danach den leeren Stand und stand wieder auf
+    „bereit“. So lässt sich Start, Pause und Stopp in der Vorschau zeigen
+    (mit `?module=zeiterfassung.timer`).
+  */
+  zeitsitzungen: { timerSenden: "'queued'" },
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
   zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
   // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).
@@ -128,7 +135,14 @@ const DATEN = {
     zaehleOffeneQuotes: "D.angebote.filter((q) => q.status === 'Entwurf' || q.status === 'Versendet').length",
   },
   // Die Ausführungen sind keine Anlagen: mit `*` bekam der Verlauf Anlagen ohne `am` und brach ab (K4, 13.10.2026).
-  wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]' },
+  /*
+    Fällige Wartungen der Startseite (15.11.2026): je Abschnitt Zahl,
+    überfällig und die ersten — als Liste geraten, stürzte die Startseite ab.
+  */
+  wartungen: {
+    '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]',
+    wartungenFaelligStand: "((h) => { const f = D.wartungen.filter((w) => w.aktiv !== false && w.faelligAm); const teil = (xs) => ({ anzahl: xs.length, ueberfaellig: xs.filter((w) => w.faelligAm < h).length, zeilen: [...xs].sort((a, b) => a.faelligAm.localeCompare(b.faelligAm)).slice(0, 3) }); return { ohne: teil(f.filter((w) => !w.offeneBaustelle)), eingeplant: teil(f.filter((w) => w.offeneBaustelle)) }; })(new Date().toISOString().slice(0, 10))",
+  },
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },
   laeufe: { ladeLauf: 'null' },
   monatsbilanzen: { bilanzMarker: 'null' },
@@ -173,9 +187,46 @@ const FEST = {
     'export const katalogSeite = () => A({ zeilen: D.materialien, gesamt: D.materialien.length });\n' +
     'export const katalogAnzahl = () => A(D.materialien.length);\n' +
     'export const sucheKatalog = () => A(D.materialien);\n' +
-    'export const katalogBeobachten = () => () => {};\n',
+    'export const katalogBeobachten = () => () => {};\n' +
+    /*
+      SEIT 15.11.2026 rechnet die Datenbank die Lagerliste (`lager_liste`):
+      die gezeigte Seite und die Zahlen über alle. Hier dieselbe Form aus den
+      Beispielartikeln — als Liste geraten, stünde das Lager leer.
+    */
+    'export const lagerListe = (f) => {\n' +
+    '  const q = (f.begriff ?? \'\').trim().toLowerCase();\n' +
+    '  const alle = D.materialien.filter((m) => m.lagerartikel !== false).map((m) => ({ ...m, reserved: 0, geplant: 0, free: m.stock ?? 0 }));\n' +
+    '  const treffer = alle.filter((m) => !q || [m.name, m.category, m.articleNumber].some((v) => (v ?? \'\').toLowerCase().includes(q)));\n' +
+    '  return A({ zeilen: treffer.slice(0, f.anzahl), treffer: treffer.length, imLager: alle.length, knapp: 0, knappBestand: 0, fehlt: 0, reserviert: 0, warengruppen: [] });\n' +
+    '};\n' +
+    'export const lagerBeobachten = () => () => {};\n',
   materialOrders:
-    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
+    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
+    /*
+      „Laufend“ seit 15.11.2026 aus der Datenbank (`anforderungen_laufend`):
+      je Gruppe Zahl und erste Zeilen, dazu ein Kanal, der Änderungen meldet
+      (eine Aufräumfunktion, kein Versprechen).
+    */
+    'export const anforderungenLaufend = (f: { anzahl: Record<string, number> }) => {\n' +
+    "  const offen = (D.bestellungen as Array<{ status: string; projectNumber?: string; transactionType?: string }>).filter((o) => o.transactionType !== 'return' && ['Offen', 'In Bearbeitung', 'Abholbereit'].includes(o.status));\n" +
+    "  return A({ gruppen: ['Offen', 'In Bearbeitung', 'Abholbereit'].map((status) => { const z = offen.filter((o) => o.status === status); return { status, anzahl: z.length, zeilen: z.slice(0, f.anzahl[status] ?? 20) }; }),\n" +
+    '    projekte: [...new Set(offen.map((o) => o.projectNumber).filter(Boolean))], zuBestellen: 0 });\n' +
+    '};\n' +
+    'export const anforderungenBeobachten = () => () => {};\n',
+  projects:
+    /* Die Baustellenliste seit 15.11.2026 aus der Datenbank (`baustellen_liste`): je Gruppe Zahl und erste Zeilen. */
+    'export const baustellenListe = (f: { anzahl: Record<string, number> }) => {\n' +
+    '  const alle = D.baustellen as Array<{ status?: string; projectNumber: string }>;\n' +
+    "  const status = [...new Set(alle.map((p) => p.status || 'Ohne Status'))];\n" +
+    "  return A({ gruppen: status.map((st) => { const z = alle.filter((p) => (p.status || 'Ohne Status') === st); return { status: st, anzahl: z.length, zeilen: z.slice(0, f.anzahl[st] ?? 20) }; }),\n" +
+    "    aktiv: alle.filter((p) => p.status === 'Aktiv').length, ende: 0, gesamt: alle.length, neuesteNummern: alle.map((p) => p.projectNumber) });\n" +
+    '};\n' +
+    'export const baustellenBudgetLage = () => A({ ueber: 0, nah: 0, nummern: [] });\n' +
+    'export const baustellenBeobachten = () => () => {};\n',
+  /* Die offenen Forderungen der Startseite (Edge Function seit 15.11.2026): dieselbe Regel über die Beispielrechnungen. */
+  forderungen:
+    "import { forderungsStand } from '@shared/forderungen';\n" +
+    "export const startseiteForderungen = (heute: string) => A(forderungsStand((D.rechnungen as never[]).filter((r: { paymentStatus?: string }) => ['Offen', 'Überfällig', 'Teilbezahlt'].includes(r.paymentStatus ?? '')), heute, undefined, 3));\n",
   quelle: 'export const nutztPostgres = () => false;\n',
   monatsbilanzen: "export const monatVon = (d: string) => d.slice(0, 7);\n",
   zeitfelder: 'export const gemerkterFeldsatz = () => null;\n',

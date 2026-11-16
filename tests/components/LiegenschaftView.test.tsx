@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handlung } from './handlung';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -98,12 +99,12 @@ describe('Tops und Beteiligte', () => {
   it('zeigt Tops mit Lage und Beteiligte mit Rolle; wer nicht mehr gilt, steht unter „Früher“', async () => {
     zeige();
     expect(await screen.findByRole('heading', { name: 'WHA Hauptstraße 12' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: /Top 2/ })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: /Muster Hausverwaltung/ })).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: /Top 2/ }))).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: /Muster Hausverwaltung/ }))).toBeInTheDocument();
     expect(screen.getByText(/Hausverwaltung · ganze Liegenschaft · Kunde/)).toBeInTheDocument();
     expect(screen.getByText(/Nutzer bzw\. Mieter · Top 2 · 0664 1/)).toBeInTheDocument();
     const frueher = screen.getByRole('region', { name: 'Früher' });
-    expect(within(frueher).getByRole('button', { name: /Alt Mieter/ })).toBeInTheDocument();
+    expect(handlung({ name: /Alt Mieter/ }, frueher)).toBeInTheDocument();
   });
 
   /*
@@ -119,13 +120,13 @@ describe('Tops und Beteiligte', () => {
     );
     zeige();
     const kuenftig = await screen.findByRole('region', { name: 'Künftig' });
-    expect(within(kuenftig).getByRole('button', { name: /Neu Mieter/ })).toBeInTheDocument();
+    expect(handlung({ name: /Neu Mieter/ }, kuenftig)).toBeInTheDocument();
     expect(within(kuenftig).queryByRole('button', { name: /Alt Mieter/ })).toBeNull();
     const frueher = screen.getByRole('region', { name: 'Früher' });
-    expect(within(frueher).getByRole('button', { name: /Alt Mieter/ })).toBeInTheDocument();
+    expect(handlung({ name: /Alt Mieter/ }, frueher)).toBeInTheDocument();
     expect(within(frueher).queryByRole('button', { name: /Neu Mieter/ })).toBeNull();
     // Wer heute gilt, steht oben, in keiner der beiden Gruppen.
-    const jetzt = screen.getByRole('button', { name: /Jetzt Eigentümer/ });
+    const jetzt = handlung({ name: /Jetzt Eigentümer/ });
     expect(kuenftig.contains(jetzt) || frueher.contains(jetzt)).toBe(false);
     // Die Reihenfolge: heute, künftig, früher.
     expect(jetzt.compareDocumentPosition(kuenftig) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -141,29 +142,30 @@ describe('Tops und Beteiligte', () => {
   it('Entfernen fragt und sagt, dass Name, Telefon und E-Mail auch aus dem Verlauf gehen', async () => {
     const ev = userEvent.setup();
     zeige();
-    await ev.click(await screen.findByRole('button', { name: /Max Mieter/ }));
-    await ev.click(await screen.findByRole('button', { name: 'Entfernen' }));
+    await ev.click(await waitFor(() => handlung({ name: /Max Mieter/ })));
+    // Das Unumkehrbare im ⋯ des Fensters (U4), die Rückfrage folgt.
+    await ev.click(await waitFor(() => handlung({ name: 'Entfernen …' })));
     const frage = await screen.findByRole('dialog', { name: 'Beteiligten entfernen?' });
     expect(frage).toHaveTextContent(/auch aus dem Änderungsverlauf/);
-    await ev.click(within(frage).getByRole('button', { name: 'Entfernen' }));
+    await ev.click(handlung({ name: 'Entfernen' }, frage));
     await waitFor(() => expect(beteiligterEntfernen).toHaveBeenCalledWith('b2'));
   });
 
   it('„Zum Kunden machen“ — ohne Namensgleichen gleich, mit ihnen erst die Rückfrage wie in der Kundenliste', async () => {
     const ev = userEvent.setup();
     zeige();
-    await ev.click(await screen.findByRole('button', { name: /Max Mieter/ }));
-    await ev.click(await screen.findByRole('button', { name: 'Zum Kunden machen' }));
+    await ev.click(await waitFor(() => handlung({ name: /Max Mieter/ })));
+    await ev.click(await waitFor(() => handlung({ name: 'Zum Kunden machen' })));
     await waitFor(() => expect(beteiligterZuKunde).toHaveBeenCalledWith('b2'));
 
     beteiligterZuKunde.mockClear();
     gleichnamige = [{ id: 'k9', companyId: 'perl', name: 'Max Mieter', address: 'Hof 3, 1020 Wien' } as Customer & { id: string }];
-    await ev.click(await screen.findByRole('button', { name: /Max Mieter/ }));
-    await ev.click(await screen.findByRole('button', { name: 'Zum Kunden machen' }));
+    await ev.click(await waitFor(() => handlung({ name: /Max Mieter/ })));
+    await ev.click(await waitFor(() => handlung({ name: 'Zum Kunden machen' })));
     const frage = await screen.findByRole('dialog', { name: 'Gleicher Name — trotzdem anlegen?' });
     expect(frage).toHaveTextContent(/Es gibt schon „Max Mieter“ \(Hof 3, 1020 Wien\)/);
     expect(beteiligterZuKunde).not.toHaveBeenCalled();
-    await ev.click(within(frage).getByRole('button', { name: 'Max Mieter (Hof 3, 1020 Wien) übernehmen' }));
+    await ev.click(handlung({ name: 'Max Mieter (Hof 3, 1020 Wien) übernehmen' }, frage));
     await waitFor(() => expect(beteiligterAendern).toHaveBeenCalledWith('b2', { customerId: 'k9', name: null, telefon: null, email: null }));
     expect(beteiligterZuKunde).not.toHaveBeenCalled();
   });

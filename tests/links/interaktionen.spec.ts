@@ -67,6 +67,8 @@ test('Wegwischen: die Abdunkelung nimmt bis zum Abbau ausschließlich ab', async
   await page.goto('./?pfad=%2F&rolle=Administrator');
   await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
   const dialog = page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true });
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = (await page.locator('.blatt-griff').boundingBox())!;
   await page.mouse.move(griff.x + griff.width / 2, griff.y + 8); await page.mouse.down();
   await page.mouse.move(griff.x + griff.width / 2, griff.y + 188, { steps: 12 });
@@ -119,6 +121,13 @@ test('Echte Touchgesten: seitlich fest, Tabelle bedienbar, vertikal scrollbar un
     const breit = document.createElement('div'); breit.style.cssText = 'width:900px;height:60px;background:linear-gradient(90deg,#ccc,#aaa)'; breit.textContent = 'Breite Tabelleninhalte bleiben erreichbar'; tabelle.append(breit);
     body.prepend(probe, tabelle);
   });
+  /*
+    ERST MESSEN, WENN DAS FENSTER STEHT (16.11.2026). Seit B1 fährt es 220 ms
+    von unten herein; gemessen mitten in der Bewegung lag die Probe tiefer,
+    als sie danach stand, und der letzte Wisch traf eine andere Stelle des
+    Bogens — das Fenster blieb offen (rot in der CI, örtlich ebenso).
+  */
+  await expect.poll(() => dialog.evaluate((d) => d.getAnimations({ subtree: true }).length)).toBe(0);
   const cdp = await page.context().newCDPSession(page);
   const box = (await page.locator('#fingerprobe').boundingBox())!;
   await finger(page, cdp, box.x + 50, box.y + 25, 180, 20);
@@ -148,7 +157,9 @@ test('Echte Touchgesten: seitlich fest, Tabelle bedienbar, vertikal scrollbar un
     el.scrollTop = 0;
     await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   });
-  await finger(page, cdp, box.x + 50, box.y + 25, 0, 180);
+  // Die Probe steht nach dem Zurückrollen wieder oben: dort neu gemessen.
+  const oben = (await page.locator('#fingerprobe').boundingBox())!;
+  await finger(page, cdp, oben.x + 50, oben.y + 25, 0, 180);
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
 });
@@ -157,6 +168,8 @@ test('Echter Touch am Griff schließt trotz nativer Pointer-Capture zuverlässig
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./?pfad=%2F&rolle=Administrator');
   await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = (await page.locator('.blatt-griff').boundingBox())!;
   const cdp = await page.context().newCDPSession(page);
   await finger(page, cdp, griff.x + griff.width / 2, griff.y + 10, 0, 180);
@@ -218,6 +231,8 @@ test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel',
 test('Speicherleiste der Firmendaten: beim Rollen sauber gezeichnet, ohne stehengebliebene Kontur', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`./?pfad=${encodeURIComponent('/settings/firma')}&rolle=Administrator`);
+  // Die Speicherleiste erscheint erst mit einer Änderung (U1).
+  await page.getByLabel('Firmenname', { exact: true }).fill('Offene Änderung');
   const leiste = page.locator('.aktionsleiste').first();
   await expect(leiste).toBeVisible();
   const bild = async () => {

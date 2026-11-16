@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { PASSWORT } from './aufbau';
 
 /**
@@ -92,4 +92,52 @@ export async function zeitFormularOeffnen(page: Page): Promise<void> {
   await expect(neu.or(feld).first()).toBeVisible({ timeout: 20_000 });
   if (await neu.isVisible()) await neu.click();
   await expect(feld).toBeVisible();
+}
+
+/**
+ * EIN EINTRAG IM ⋯ EINES FENSTERS ODER EINER AKTE (U4, Durchsicht 15.11.2026).
+ * Fenster tragen seit U4 eine Hauptaktion und höchstens eine zweite als
+ * Knopf, alles Weitere und alles Unumkehrbare steht im ⋯ (`Fensteraktionen`).
+ * Öffnet das ⋯ in `im` — es muss genau eines geben — und gibt den Eintrag
+ * zurück; der Klick darauf löst die Handlung aus. Das Menü hängt am Ende von
+ * `body`, also außerhalb des Fensters: wer es von hier aus bedient, prüft
+ * gleich mit, dass das Fenster dabei nicht zugeht.
+ */
+export async function imMenue(page: Page, im: Locator, eintrag: string | RegExp): Promise<Locator> {
+  await im.getByRole('button', { name: /^Weitere Aktionen für / }).click();
+  const menue = page.getByRole('menu');
+  await expect(menue).toBeVisible();
+  return menue.getByRole('menuitem', typeof eintrag === 'string' ? { name: eintrag, exact: true } : { name: eintrag });
+}
+
+/**
+ * AM HANDY? Nach der Breite, wie die App selbst: Handy bis 759 px
+ * (CLAUDE.md, „Breiten“). Entschieden wird nach der Regel, nicht danach,
+ * was gerade zu sehen ist: so prüft der Weg mit, dass am Handy wirklich die
+ * Handy-Bedienung steht — und ein Knopf, der zu spät kommt, wird nicht mit
+ * „steht im ⋯“ verwechselt.
+ */
+export function amHandy(page: Page): boolean {
+  return (page.viewportSize()?.width ?? 1280) < 760;
+}
+
+/**
+ * EINE AKTION DES SEITENKOPFS (U1, Durchsicht 15.11.2026): ab dem Tablet ein
+ * Knopf. Am Handy trägt eine Akte höchstens ihre eine Hauptaktion als Knopf
+ * (die Kundenakte etwa „Bearbeiten“), alles Weitere steht im ⋯ (die
+ * Baustellenakte trägt dort auch „Bearbeiten“). Gibt den Knopf bzw. den
+ * Eintrag des geöffneten Menüs zurück; der Klick darauf löst die Handlung aus.
+ * Gewartet wird auf das ⋯: es steht im selben Seitenkopf wie die Hauptaktion
+ * und erscheint mit ihr — danach ist sicher, ob es den Knopf gibt.
+ */
+export async function seitenAktion(page: Page, name: string): Promise<Locator> {
+  const knopf = page.locator('main').getByRole('button', { name, exact: true });
+  if (!amHandy(page)) return knopf;
+  const mehr = page.locator('main').getByRole('button', { name: /^Weitere Aktionen für / }).first();
+  await expect(mehr).toBeVisible({ timeout: 20_000 });
+  if (await knopf.locator('visible=true').count()) return knopf.locator('visible=true').first();
+  await mehr.click();
+  const menue = page.getByRole('menu');
+  await expect(menue).toBeVisible();
+  return menue.getByRole('menuitem', { name, exact: true });
 }

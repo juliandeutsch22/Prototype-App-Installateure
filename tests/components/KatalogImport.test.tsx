@@ -285,6 +285,10 @@ describe('Übernahme in Blöcken (10.10.2026)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
     await screen.findByText(/Was bis hierher übernommen ist, bleibt im Katalog/);
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    // Seit F15 (Nacharbeit) mit Rückfrage: das Zwischenlager wird endgültig gelöscht, ein Rückgängig gibt es nicht.
+    const frage = await screen.findByRole('dialog', { name: 'Lauf verwerfen?' });
+    expect(laufVerwerfen).not.toHaveBeenCalled();
+    await userEvent.click(within(frage).getByRole('button', { name: 'Verwerfen' }));
     expect(await screen.findByLabelText('DATANORM-Datei')).toBeInTheDocument();
     expect(laufVerwerfen).toHaveBeenCalledWith('lauf-1');
   });
@@ -296,6 +300,7 @@ describe('Übernahme in Blöcken (10.10.2026)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
     await screen.findByText(/Was bis hierher übernommen ist, bleibt im Katalog/);
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Lauf verwerfen?' })).getByRole('button', { name: 'Verwerfen' }));
     expect(await screen.findByText(/Der Lauf ließ sich nicht verwerfen: Der Lauf ist nicht mehr offen/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Weiter übernehmen' })).toBeInTheDocument();
   });

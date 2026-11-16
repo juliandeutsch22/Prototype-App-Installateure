@@ -108,9 +108,9 @@ describe('Eine Bedeutung, ein Zeichen (E74)', () => {
   });
 
   it('gleich geblieben: das Wort bleibt, wo eine Entscheidung Folgen hat oder es die Hauptaktion ist', () => {
-    // Fensterfuß und Rückfragen: Löschen bleibt der rote Wortknopf.
-    expect(quelle('src/features/worksheets/WorkSheetsListView.tsx')).toMatch(/variant="danger"[\s\S]{0,200}?>\s*Löschen\s*<\/Button>/);
-    expect(quelle('src/features/maintenance/WartungenView.tsx')).toMatch(/variant="danger" onClick=\{\(\) => setToDelete\(bearbeitet\)\}>\s*Löschen/);
+    // Fensterfuß: Löschen bleibt ein rotes Wort — seit U4 (15.11.2026) im ⋯ des Fensters, mit Rückfrage.
+    expect(quelle('src/features/worksheets/WorkSheetsListView.tsx')).toContain("[{ label: 'Löschen', danger: true, onSelect: () => { setLoeschenFuer(s); setOffen(null); } }]");
+    expect(quelle('src/features/maintenance/WartungenView.tsx')).toContain("[{ label: 'Löschen …', onSelect: () => setToDelete(bearbeitet), danger: true }]");
     // Die Hauptaktion einer Seite und eines Abschnitts.
     expect(quelle('src/features/quotes/AngebotView.tsx')).toMatch(/>\s*PDF herunterladen\s*</);
     expect(quelle('src/features/customers/KundenakteView.tsx')).toContain('<Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>');

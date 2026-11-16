@@ -495,3 +495,111 @@ export async function lagerKnapp(
     frei: Number(z.frei),
   }));
 }
+
+/** Eine Zeile der Lagerliste: der Artikel mit Reserviertem und Freiem (wie `lager_frei`). */
+export type LagerZeile = WithId<Material> & {
+  /** Zugesagte Anforderungen und Rüstlisten ab heute zusammen. */
+  reserved: number;
+  /** Davon auf Rüstlisten geplant. */
+  geplant: number;
+  /** Bestand minus Reserviertes — unter null heisst „fehlt“. */
+  free: number;
+  /** Am gefragten weiteren Ort: die Menge dort. */
+  amOrt?: number;
+};
+
+/** Was die Lagerliste zeigt: die erste Seite und die Zahlen über alle Lagerartikel. */
+export interface LagerListe {
+  zeilen: LagerZeile[];
+  /** Wie viele Artikel zu Suche, Filter und Ort passen — die Seite ist ihr Anfang. */
+  treffer: number;
+  imLager: number;
+  knapp: number;
+  /** Knapp nach dem reinen Bestand (ohne Reserviertes) — für den Kopf des Katalogs. */
+  knappBestand: number;
+  fehlt: number;
+  reserviert: number;
+  warengruppen: string[];
+}
+
+export interface LagerListeFrage {
+  begriff?: string;
+  /** Kennungen, die die Suche über Nummern der Großhändler und die EAN fand. */
+  treffer?: readonly string[];
+  filter?: 'alle' | 'knapp' | 'fehlt';
+  reihenfolge?: 'frei' | 'name';
+  anzahl: number;
+  grenze: number;
+  ort?: string | null;
+  nur?: readonly string[] | null;
+}
+
+/**
+ * DIE LAGERLISTE AUS DER DATENBANK (`lager_liste`, Durchsicht 15.11.2026,
+ * Budget B3). Bis dahin kam jeder Lagerartikel samt seinem Freien in den
+ * Browser — beim gewachsenen Bestand 2.000 und 1.000 Zeilen —, um 20 davon
+ * zu zeigen. Jetzt sucht, filtert, sortiert und zählt die Datenbank nach
+ * denselben Regeln; zurück kommt die gezeigte Seite und die Zahlen über alle.
+ */
+export async function lagerListe(f: LagerListeFrage): Promise<LagerListe> {
+  const { data, error } = await derClient().rpc('lager_liste', {
+    p_begriff: f.begriff ?? '',
+    p_treffer: (f.treffer ?? []).filter((id) => IST_UUID.test(id)),
+    p_filter: f.filter ?? 'alle',
+    p_reihenfolge: f.reihenfolge ?? 'frei',
+    p_anzahl: Math.max(0, f.anzahl),
+    p_grenze: f.grenze,
+    p_ort: f.ort || null,
+    p_nur: f.nur ? f.nur.filter((id) => IST_UUID.test(id)) : null,
+  });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  const zeilen = ((d.zeilen ?? []) as Array<Record<string, unknown>>).map((z) => {
+    const { zugesagt, geplant, frei, am_ort: amOrt, ...artikel } = z;
+    return {
+      ...zeileAlsObjekt<WithId<Material>>(MATERIAL, artikel),
+      reserved: Number(zugesagt ?? 0) + Number(geplant ?? 0),
+      geplant: Number(geplant ?? 0),
+      free: Number(frei ?? 0),
+      ...(amOrt != null ? { amOrt: Number(amOrt) } : {}),
+    };
+  });
+  return {
+    zeilen,
+    treffer: Number(d.treffer ?? 0),
+    imLager: Number(d.im_lager ?? 0),
+    knapp: Number(d.knapp ?? 0),
+    knappBestand: Number(d.knapp_bestand ?? 0),
+    fehlt: Number(d.fehlt ?? 0),
+    reserviert: Number(d.reserviert ?? 0),
+    warengruppen: (d.warengruppen ?? []) as string[],
+  };
+}
+
+/**
+ * Meldet Änderungen, die die Lagerliste betreffen — Artikel (Bestand,
+ * Mindestmenge) und Anforderungen (Zusagen) —, gebündelt nach einer Sekunde
+ * und nach jedem Wiederaufbau der Kanäle. Die Liste fragt dann neu; die
+ * Zeilen selbst kommen nicht über den Kanal.
+ */
+export function lagerBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      beiAenderung();
+    }, 1000);
+  };
+  const stopps = [MATERIAL, 'material_orders'].map((tabelle) => kanalHalten({
+    tabelle,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: bald,
+    beiBereit: bald,
+    client: derClient(),
+  }));
+  return () => {
+    if (geplant) clearTimeout(geplant);
+    for (const s of stopps) s();
+  };
+}

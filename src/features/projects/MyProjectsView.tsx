@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAktualisierungsRunde } from '@/lib/aktualisieren';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsByNumbers, listProjectsForEmployee } from '@/lib/db/projects';
 import { listUpcomingAssignments } from '@/lib/db/assignments';
@@ -58,6 +59,8 @@ export default function MyProjectsView() {
   const [gezeigt, setGezeigt] = useState(20);
   const [error, setError] = useState<string | null>(null);
 
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — die Runde lädt sie neu.
+  const runde = useAktualisierungsRunde();
   useEffect(() => {
     if (!user) return;
     /*
@@ -100,7 +103,7 @@ export default function MyProjectsView() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, runde]);
 
   // Abgeschlossene Baustellen gehören nicht in die Arbeitsliste.
   const active = useMemo(

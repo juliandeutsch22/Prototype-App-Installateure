@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import Icon from './Icon';
+import { useWischen, WischAktionen, type WischAktion } from './useWischen';
 
 /**
  * Kleine Bausteine der Linie „Lot“ (Protokoll Abschnitt 4), die es vor dem
@@ -254,6 +255,7 @@ export function Arbeitszeile({
   onWahl,
   onOeffnen,
   schritt,
+  wischen,
   children,
 }: {
   /** Für die Vorlesehilfe: wofür steht die Zeile („Anforderung 4711“). */
@@ -262,10 +264,14 @@ export function Arbeitszeile({
   onWahl?: (an: boolean) => void;
   onOeffnen: () => void;
   schritt?: { text: string; onClick: () => void; laeuft?: boolean };
+  /** Am Handy nach links wischen gibt diese Aktionen frei (F15) — derselbe Aufruf wie der Schritt. */
+  wischen?: WischAktion[];
   children: ReactNode;
 }) {
+  const zeile = useRef<HTMLLIElement>(null);
+  const wisch = useWischen(zeile, !!wischen?.length);
   return (
-    <li className="arbeitszeile">
+    <li ref={zeile} className="arbeitszeile" data-wischbar={wisch.an ? '' : undefined}>
       {/* Ohne Kästchen bleibt der Platz frei, damit alle Zeilen fluchten. */}
       {!onWahl && <span className="arbeitszeile-ohne-wahl" aria-hidden="true" />}
       {onWahl && (
@@ -293,6 +299,7 @@ export function Arbeitszeile({
           {schritt.text}
         </button>
       )}
+      {wisch.an && wischen && <WischAktionen aktionen={wischen} offen={wisch.offen} schliessen={wisch.schliessen} />}
     </li>
   );
 }

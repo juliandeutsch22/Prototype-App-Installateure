@@ -3,7 +3,7 @@ import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -32,9 +32,10 @@ export default function PapierkorbFristKarte() {
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
+  const gespeichert = company?.papierkorbFristTage ? String(company.papierkorbFristTage) : '';
   useEffect(() => {
-    setWert(company?.papierkorbFristTage ? String(company.papierkorbFristTage) : '');
-  }, [company]);
+    setWert(gespeichert);
+  }, [gespeichert]);
 
   async function speichern() {
     if (!user) return;
@@ -70,9 +71,7 @@ export default function PapierkorbFristKarte() {
           onChange={(e) => setWert(e.target.value)}
         />
         {fehler && <ErrorState message={fehler} />}
-        <div className="fuss-aktionen">
-          <Button type="button" loading={speichert} onClick={() => void speichern()}>Speichern</Button>
-        </div>
+        <Speicherleiste geaendert={wert !== gespeichert} speichert={speichert} onVerwerfen={() => { setFehler(null); setWert(gespeichert); }} onSpeichern={() => void speichern()} />
       </div>
     </Card>
   );

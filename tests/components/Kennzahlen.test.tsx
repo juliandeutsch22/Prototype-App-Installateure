@@ -34,8 +34,9 @@ describe('Stand-Zeile der Startseite', () => {
 
   it('bleibt rot, wo etwas überfällig ist — und nur dort', () => {
     zeichne([OFFEN, UEBER]);
-    expect(screen.getByText('€ 150,00')).toHaveClass('lage-wert-rot');
-    expect(screen.getByText('€ 500,00')).not.toHaveClass('lage-wert-rot');
+    // Seit B6 steht die Zahl in ihrem Rollrahmen; die Farbe trägt weiter der Wert.
+    expect(screen.getByText('€ 150,00').closest('.lage-wert')).toHaveClass('lage-wert-rot');
+    expect(screen.getByText('€ 500,00').closest('.lage-wert')).not.toHaveClass('lage-wert-rot');
   });
 
   it('lässt aus, was der Aufbau als leer meldet', () => {

@@ -1,4 +1,4 @@
-import { useContext, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useContext, useLayoutEffect, useRef, type ReactElement, type ReactNode } from 'react';
 import { Link, useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
 import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
@@ -7,6 +7,8 @@ import { gruppeVon } from '@/app/navigation';
 import { wortfugen } from '@/lib/wortfugen';
 import { mitListenAdresse } from '@/lib/listenAdresse';
 import { useKopfTitel } from './KopfTitel';
+import { aktionSymbol, useEinziehen } from './useEinziehen';
+import Icon from './Icon';
 
 /*
   DIE SKIZZE JE BEREICH (Planlinie, Seitenplan). Zentral nach der Adresse der
@@ -86,8 +88,14 @@ export default function PageHeader({
   subtitle?: ReactNode;
   /** Ortszeile über dem Titel. */
   ort?: ReactNode;
-  /** Die Hauptaktion der Seite — am Handy im Daumenbereich. */
-  action?: ReactNode;
+  /**
+   * Die EINE Hauptaktion der Seite — am Handy kompakt rechts unten im
+   * Daumenbereich (Muster 1 und 2 der Hauptaktion, U1). Ein Knopf, keine
+   * Gruppe: zwei Knöpfe im Daumenbereich wurden am Handy zu zwei halben
+   * Balken (Baustellenakte). Den Nebenweg einer Akte trägt `AktenKopf.zweit`,
+   * Seltenes das ⋯ (`mehr`). Die Wächter in `bedienregeln.test.ts` prüfen das.
+   */
+  action?: ReactElement | false | null;
   /** Das ⋯-Menü der Seite (ein `RowMenu`); das einzige ⋯ im Seitenkopf. */
   mehr?: ReactNode;
   /** Einleitung für „Hilfe zu dieser Seite“, vor den gesammelten Erklärungen. */
@@ -111,7 +119,7 @@ export default function PageHeader({
    * Daumenbereich rückt (Start: „Einsatzplanung“ — dort ist die untere Leiste
    * schon der Weg).
    */
-  nebenAktion?: ReactNode;
+  nebenAktion?: ReactElement | false | null;
   /** Der Weg zurück (Akte, Angebot) — steht als Ortszeile, nicht darüber. */
   zurueck?: { to: string; text: string };
 }) {
@@ -132,6 +140,10 @@ export default function PageHeader({
   const anmelden = useContext(UnterreiterAnmeldung);
   // Vor dem Zeichnen: sonst stünde die Leiste einen Augenblick doppelt.
   useLayoutEffect(() => anmelden?.(), [anmelden]);
+  // Am Handy zieht sich die schwebende Hauptaktion beim Rollen zum Symbol zusammen (B9).
+  const daumen = useRef<HTMLDivElement>(null);
+  const symbol = aktionSymbol(action);
+  useEinziehen(daumen, !!symbol);
   return (
     <div className="plankopf">
       <div className="seitenkopf">
@@ -159,7 +171,12 @@ export default function PageHeader({
             <SeitenHilfeKnopf seite={title} einleitung={hilfe} beschreibung={beschreibung} />
             {mehr}
             {nebenAktion}
-            {action && <div className="daumen">{action}</div>}
+            {action && (
+              <div ref={daumen} className="daumen">
+                {action}
+                {symbol && <span className="daumen-symbol" aria-hidden="true"><Icon name={symbol} size={22} /></span>}
+              </div>
+            )}
           </div>
         </div>
         {subtitle && <div className={beschreibung ? 'seitenkopf-meta seitenkopf-meta-beschreibung' : 'seitenkopf-meta'}>{subtitle}</div>}

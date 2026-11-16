@@ -34,7 +34,6 @@ import {
   tagKurz,
   ueberfaelligNichtMahnbar,
   ruecklassWirdFaellig,
-  ruecklaesseBald,
   garantieEndet,
   garantienBald,
   unbesetzteEinsaetze,
@@ -59,8 +58,7 @@ import {
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
 import { AUFFAELLIG_AB_TAGEN } from '@/features/worksheets/unverrechnet';
-import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
-import { beurteile } from '@/features/maintenance/wartungsplan';
+import { ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { euro } from '@/lib/betrag';
 import { fmtMin, getISOWeek, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -272,7 +270,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(offeneAnforderungen(orders, u.heute), u),
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
-    erlaubt(unterMindestmenge(d.knapp ?? []), u),
+    d.knapp ? erlaubt(unterMindestmenge(d.knapp), u) : null,
     urlaubAbschnitt(d, u),
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
@@ -318,10 +316,10 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
     out.push({
       key: 'knapp',
       label: 'Knappe Artikel',
-      wert: d.knapp.length,
+      wert: d.knapp.anzahl,
       zusatz: 'unter Mindestmenge',
       to: ZIEL.lagerKnapp,
-      leer: d.knapp.length === 0,
+      leer: d.knapp.anzahl === 0,
     });
   }
   return out;
@@ -348,9 +346,9 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     // Zuerst: solange die Firmendaten jede Rechnung sperren, geht hier nichts.
     erlaubt(rechnungGesperrt(d.firmaSperrt), u),
     eigeneTage(d, u),
-    d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
-    d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
-    d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
+    d.forderungen ? erlaubt(mahnungenFaellig(d.forderungen.mahnungen), u) : null,
+    d.forderungen ? erlaubt(ueberfaelligNichtMahnbar(d.forderungen.ueberfaelligNichtMahnbar, u.heute), u) : null,
+    d.forderungen ? erlaubt(ruecklassWirdFaellig(d.forderungen.ruecklassBald), u) : null,
     d.garantien ? erlaubt(garantieEndet(d.garantien, u.heute), u) : null,
     nichtVerrechnet(d, u),
     /*
@@ -390,30 +388,25 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
 /** Offen, Überfällig, Nicht verrechnet — und für die Buchhaltung „Bezahlt im Monat“. */
 function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl[] {
   const out: Kennzahl[] = [];
-  if (d.unbezahlt && u.darf(ZIEL.rechnungen)) {
-    const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, u.heute));
-    const offen = d.unbezahlt.filter((i) => !istUeberfaellig(i, u.heute));
-    const summe = (l: typeof ueber) => l.reduce((s, i) => s + offenerRest(i), 0);
-    // Überfällig ist nur, was zu mahnen ist; ein noch nicht fälliger Rücklass
-    // bleibt offen — dieselbe Rechnung zählt dann in beiden Kacheln.
-    const faellig = ueber.reduce((s, i) => s + mahnbar(i, u.heute).rest, 0);
-    const mitRuecklass = ueber.filter((i) => offenerRest(i) - mahnbar(i, u.heute).rest > 0.005).length;
+  if (d.forderungen && u.darf(ZIEL.rechnungen)) {
+    // Gezählt mit den Regeln in `shared/forderungen.ts` (Edge Function `startseite-forderungen`).
+    const k = d.forderungen.kennzahlen;
     out.push({
       key: 'offen',
       label: 'Offen',
-      wert: euro(summe(offen) + summe(ueber) - faellig),
-      zusatz: anzahl(offen.length + mitRuecklass, 'Rechnung', 'Rechnungen'),
+      wert: euro(k.offenSumme),
+      zusatz: anzahl(k.offenAnzahl, 'Rechnung', 'Rechnungen'),
       to: ZIEL.rechnungen,
-      leer: offen.length + mitRuecklass === 0,
+      leer: k.offenAnzahl === 0,
     });
     out.push({
       key: 'ueberfaellig',
       label: 'Überfällig',
-      wert: euro(faellig),
-      zusatz: ueber.length ? anzahl(ueber.length, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
+      wert: euro(k.faelligSumme),
+      zusatz: k.ueberAnzahl ? anzahl(k.ueberAnzahl, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
       to: ZIEL.rechnungenUeberfaellig,
-      ton: ueber.length ? 'danger' : undefined,
-      leer: ueber.length === 0,
+      ton: k.ueberAnzahl ? 'danger' : undefined,
+      leer: k.ueberAnzahl === 0,
     });
   }
   if (mitBezahlt && d.bezahltImMonat && u.darf(ZIEL.rechnungen)) {
@@ -449,9 +442,9 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
-    erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
+    d.wartungen ? erlaubt(wartungenOhneBaustelle(d.wartungen.ohne, u.heute), u) : null,
     // A9: eingeplante Wartungen bleiben stehen, bis jemand „Erledigt“ einträgt.
-    erlaubt(wartungenEingeplant(d.wartungen ?? [], d.wartungVorschlaege ?? [], u.heute), u),
+    erlaubt(wartungenEingeplant(d.wartungen?.eingeplant ?? { anzahl: 0, ueberfaellig: 0, zeilen: [] }, d.wartungVorschlaege ?? [], u.heute), u),
     erlaubt(eilanforderungen(d.orders ?? []), u),
     // Über den Annahme-Link angenommen (M02a): bis jemand aus der Führung das Angebot öffnet.
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
@@ -568,31 +561,27 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'nachtragen', ton: 'warn' },
     }));
   }
-  if (d.unbezahlt) {
-    const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, h));
-    if (ueber.length) {
+  if (d.forderungen) {
+    const k = d.forderungen.kennzahlen;
+    if (k.ueberAnzahl && k.aeltesteFaellig) {
       // Ab der Fälligkeit dessen, was zu mahnen ist — bei einem Rücklass seine.
-      const ab = (i: (typeof ueber)[number]) => mahnbar(i, h).faellig ?? i.dueDate;
-      const aeltester = [...ueber].sort((a, b) => ab(a).localeCompare(ab(b)))[0];
-      const mahnungen = d.lauf?.zeilen.length ?? 0;
+      const mahnungen = d.forderungen.mahnungen.anzahl;
       themen.push(wenn(ZIEL.rechnungenUeberfaellig, {
         key: 'rechnungen', wann: 'ueberfaellig',
-        titel: `${anzahl(ueber.length, 'Rechnung', 'Rechnungen')} überfällig`,
-        detail: [euro(ueber.reduce((s, i) => s + mahnbar(i, h).rest, 0)), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
+        titel: `${anzahl(k.ueberAnzahl, 'Rechnung', 'Rechnungen')} überfällig`,
+        detail: [euro(k.faelligSumme), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
           .filter(Boolean).join(' · '),
-        status: { text: tageWort(tageZwischen(ab(aeltester), h)), ton: 'fehl' },
+        status: { text: tageWort(tageZwischen(k.aeltesteFaellig, h)), ton: 'fehl' },
       }));
     }
-  }
-  if (d.unbezahlt) {
     // Rücklässe, die in den nächsten 30 Tagen fällig werden (seit 05.10.2026).
-    const bald = ruecklaesseBald(d.unbezahlt, h);
-    if (bald.length) {
+    const bald = d.forderungen.ruecklassBald;
+    if (bald.anzahl && bald.zeilen[0]) {
       themen.push(wenn(ZIEL.rechnungen, {
         key: 'ruecklass', wann: 'woche',
-        titel: `${anzahl(bald.length, 'Rücklass wird', 'Rücklässe werden')} fällig`,
-        detail: euro(bald.reduce((s, i) => s + offenerRuecklass(i), 0)),
-        status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald[0])!)}`, ton: 'warn' },
+        titel: `${anzahl(bald.anzahl, 'Rücklass wird', 'Rücklässe werden')} fällig`,
+        detail: euro(bald.summe),
+        status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald.zeilen[0])!)}`, ton: 'warn' },
       }));
     }
   }
@@ -618,16 +607,18 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: `seit ${tagKurz(d.basiszinsFehltAb)}`, ton: 'fehl' },
     }));
   }
-  const wartungen = (d.wartungen ?? [])
-    .filter((w) => w.aktiv && !w.offeneBaustelle)
-    .map((w) => ({ w, b: beurteile(w, h) }));
-  const wUeber = wartungen.filter((x) => x.b.stand === 'überfällig').sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm));
-  if (wUeber.length) {
+  /*
+    Ohne Baustelle: die Zahlen zählt die Datenbank, die Zeilen kommen nach dem
+    Fälligkeitstag — die überfälligen also zuerst, die erste ist die älteste.
+  */
+  const wOhne = d.wartungen?.ohne;
+  const wUeberErste = wOhne && wOhne.ueberfaellig > 0 ? wOhne.zeilen[0] : undefined;
+  if (wOhne && wUeberErste) {
     themen.push(wenn(ZIEL.wartungenOhneBaustelle, {
       key: 'wartung-ueber', wann: 'ueberfaellig',
-      titel: `${anzahl(wUeber.length, 'Wartung', 'Wartungen')} ohne Baustelle`,
-      detail: `${wUeber[0].w.customerName}, fällig ${tagKurz(wUeber[0].w.faelligAm)}`,
-      status: { text: tageWort(tageZwischen(wUeber[0].w.faelligAm, h)), ton: 'fehl' },
+      titel: `${anzahl(wOhne.ueberfaellig, 'Wartung', 'Wartungen')} ohne Baustelle`,
+      detail: `${wUeberErste.customerName}, fällig ${tagKurz(wUeberErste.faelligAm)}`,
+      status: { text: tageWort(tageZwischen(wUeberErste.faelligAm, h)), ton: 'fehl' },
     }));
   }
   // A9: eingeplante Wartungen, die erledigt aussehen — ein Handgriff, sonst entsteht der nächste Termin nie.
@@ -798,11 +789,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'nachfragen', ton: 'warn' },
     }));
   }
-  const wBald = wartungen.filter((x) => x.b.stand === 'fällig');
-  if (wBald.length) {
+  const wBald = wOhne ? wOhne.anzahl - wOhne.ueberfaellig : 0;
+  if (wBald > 0) {
     themen.push(wenn(ZIEL.wartungenOhneBaustelle, {
       key: 'wartung-bald', wann: 'woche',
-      titel: `${anzahl(wBald.length, 'Wartung', 'Wartungen')} demnächst fällig`,
+      titel: `${anzahl(wBald, 'Wartung', 'Wartungen')} demnächst fällig`,
       detail: 'noch ohne Baustelle',
       status: { text: 'einplanen', ton: 'leise' },
     }));
@@ -835,11 +826,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         status: { text: 'erinnern', ton: 'leise' },
       }));
     }
-    if ((d.knapp ?? []).length) {
+    if (d.knapp && d.knapp.anzahl > 0) {
       themen.push(wenn(ZIEL.lagerKnapp, {
         key: 'knapp', wann: 'woche',
-        titel: `${anzahl(d.knapp!.length, 'Artikel', 'Artikel')} unter Mindestmenge`,
-        detail: d.knapp![0].name,
+        titel: `${anzahl(d.knapp.anzahl, 'Artikel', 'Artikel')} unter Mindestmenge`,
+        detail: d.knapp.ersterNachName ?? '',
         status: { text: 'nachbestellen', ton: 'leise' },
       }));
     }

@@ -4,6 +4,12 @@ import { createPortal } from 'react-dom';
 export interface RowMenuItem {
   label: string;
   onSelect: () => void;
+  /**
+   * Ein Ziel außerhalb der App (etwa `mailto:`): der Eintrag ist dann ein
+   * Verweis, damit der Browser ihn wie jeden Link öffnet (U4: das
+   * Mailprogramm aus dem ⋯ eines Fensters). `onSelect` läuft zusätzlich.
+   */
+  href?: string;
   /** Destruktiv oder sperrend — wird rot gesetzt. */
   danger?: boolean;
 }
@@ -74,6 +80,14 @@ export default function RowMenu({ about, items }: RowMenuProps) {
     const schliessen = () => setOffen(false);
     const beiTaste = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      /*
+        NUR DAS MENÜ, NICHT DAS FENSTER DARUNTER (U4): seit Fenster ihre
+        selteneren Handlungen im ⋯ tragen, liegt das Menü über einem Fenster,
+        das selbst auf Escape hört (`BottomSheet`, die Monatsvorschau) — ein
+        Druck schloss beide. Gehört wird deshalb in der Einfangphase am
+        `window`, vor allen anderen, und die Taste geht nicht weiter.
+      */
+      e.stopPropagation();
       setOffen(false);
       // Fokus zurück auf den Auslöser — sonst steht die Tastatur nach dem
       // Schließen am Seitenanfang.
@@ -83,13 +97,13 @@ export default function RowMenu({ about, items }: RowMenuProps) {
       const z = e.target as Node;
       if (!menu.current?.contains(z) && !knopf.current?.contains(z)) setOffen(false);
     };
-    window.addEventListener('keydown', beiTaste);
+    window.addEventListener('keydown', beiTaste, true);
     document.addEventListener('mousedown', beiKlick);
     // Beim Drehen des Geräts ändert sich die Breite und damit die berechnete
     // Position; neu zu rechnen lohnt für den seltenen Fall nicht.
     window.addEventListener('resize', schliessen);
     return () => {
-      window.removeEventListener('keydown', beiTaste);
+      window.removeEventListener('keydown', beiTaste, true);
       document.removeEventListener('mousedown', beiKlick);
       window.removeEventListener('resize', schliessen);
     };
@@ -171,27 +185,35 @@ export default function RowMenu({ about, items }: RowMenuProps) {
             style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
             onKeyDown={imMenue}
           >
-            {items.map((i) => (
-              <button
-                key={i.label}
-                type="button"
-                role="menuitem"
-                // Kein eigener Tab-Stopp: im Menü wandern die Pfeiltasten.
-                tabIndex={-1}
-                onClick={() => {
-                  // Der Fokus geht vorher an „⋯" zurück — der Eintrag
-                  // verschwindet gleich, und sonst stünde er an `body`.
-                  // Öffnet die Aktion einen Dialog, holt der ihn sich.
-                  zurueckZumKnopf();
-                  i.onSelect();
-                }}
-                className={`block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-normal hover:bg-surface-2 ${
-                  i.danger ? 'text-danger' : 'text-ink'
-                }`}
-              >
-                {i.label}
-              </button>
-            ))}
+            {items.map((i) => {
+              const klassen = `block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-normal hover:bg-surface-2 ${
+                i.danger ? 'text-danger' : 'text-ink'
+              }`;
+              // Der Fokus geht vorher an „⋯" zurück — der Eintrag verschwindet
+              // gleich, und sonst stünde er an `body`. Öffnet die Aktion einen
+              // Dialog, holt der ihn sich.
+              const waehlen = () => {
+                zurueckZumKnopf();
+                i.onSelect();
+              };
+              return i.href ? (
+                <a key={i.label} href={i.href} role="menuitem" tabIndex={-1} onClick={waehlen} className={`${klassen.replace('block ', 'flex items-center ')} no-underline`}>
+                  {i.label}
+                </a>
+              ) : (
+                <button
+                  key={i.label}
+                  type="button"
+                  role="menuitem"
+                  // Kein eigener Tab-Stopp: im Menü wandern die Pfeiltasten.
+                  tabIndex={-1}
+                  onClick={waehlen}
+                  className={klassen}
+                >
+                  {i.label}
+                </button>
+              );
+            })}
           </div>,
           document.body,
         )}

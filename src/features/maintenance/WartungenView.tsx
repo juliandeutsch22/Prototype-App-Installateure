@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import Adressfilter from '@/components/Adressfilter';
@@ -25,6 +27,7 @@ import { useBaustellenVorschlag } from '@/features/projects/useBaustellenVorschl
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import { useModul } from '@/lib/useModule';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile, zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import type { Wartung } from '@/types';
@@ -260,6 +263,8 @@ export default function WartungenView() {
   const [toDelete, setToDelete] = useState<WithId<Wartung> | null>(null);
 
   const darfAendern = user ? isGF(user.role) : false;
+  // „Neue Wartung“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => formOeffnen(), darfAendern);
   const heute = todayStr();
   /** „Fällig, ohne Baustelle“ aus der Adresse — von der Startseite (Nachtest 01.10.2026). */
   const nurOhneBaustelle = adresse.get('filter') === 'faellig-ohne-baustelle';
@@ -360,6 +365,8 @@ export default function WartungenView() {
     setWartungen(w);
     if (grenze === WARTUNGEN_JE_SEITE) merken({ wartungen: w });
   };
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(neuLaden);
 
   /*
     GESUCHT WIRD SERVERSEITIG — und zwar NEBEN der geladenen Liste, nicht
@@ -962,19 +969,13 @@ export default function WartungenView() {
               {companyId && verlaufSichtbar(user?.role, 'wartung', !!einblick) &&
                 <ObjektVerlauf companyId={companyId} objektart="wartung" objektId={w.id} />}
               {darfAendern && (
-                <div className="fuss-aktionen">
-                  <Button variant="ghost" onClick={() => { setEinzelheitenId(null); formOeffnen(w); }}>
-                    Bearbeiten
-                  </Button>
-                  {kannEinplanen(w) && (
-                    <Button variant="secondary" onClick={() => { setEinzelheitenId(null); einplanenFragen(w); }}>
-                      Baustelle anlegen
-                    </Button>
-                  )}
-                  <Button onClick={() => { setEinzelheitenId(null); erledigtFragen(w); }}>
-                    Erledigt
-                  </Button>
-                </div>
+                /* U4: „Erledigt“ ist der nächste Schritt, „Bearbeiten“ daneben, das Seltene im ⋯. */
+                <Fensteraktionen
+                  about={`Wartung ${w.anlage}`}
+                  haupt={<Button onClick={() => { setEinzelheitenId(null); erledigtFragen(w); }}>Erledigt</Button>}
+                  zweit={<Button variant="secondary" onClick={() => { setEinzelheitenId(null); formOeffnen(w); }}>Bearbeiten</Button>}
+                  weitere={kannEinplanen(w) ? [{ label: 'Baustelle anlegen', onSelect: () => { setEinzelheitenId(null); einplanenFragen(w); } }] : []}
+                />
               )}
             </div>
           );
@@ -1133,19 +1134,13 @@ export default function WartungenView() {
             />
           </WeitereAngaben>
           <Pflichthinweis />
-          <div className="fuss-aktionen">
-            {bearbeitet && (
-              <Button type="button" variant="danger" onClick={() => setToDelete(bearbeitet)}>
-                Löschen
-              </Button>
-            )}
-            <Button type="button" variant="ghost" onClick={formSchliessen}>
-              Abbrechen
-            </Button>
-            <Button type="submit" disabled={speichert}>
-              {speichert ? 'Speichert …' : 'Speichern'}
-            </Button>
-          </div>
+          {/* U4: Unumkehrbares („Löschen“) im ⋯, nie neben „Speichern“. */}
+          <Fensteraktionen
+            about="Wartung"
+            haupt={<Button type="submit" disabled={speichert}>{speichert ? 'Speichert …' : 'Speichern'}</Button>}
+            zweit={<Button type="button" variant="ghost" onClick={formSchliessen}>Abbrechen</Button>}
+            weitere={bearbeitet ? [{ label: 'Löschen …', onSelect: () => setToDelete(bearbeitet), danger: true }] : []}
+          />
         </form>
       </BottomSheet>
 

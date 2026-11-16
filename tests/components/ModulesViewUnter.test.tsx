@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -66,8 +66,7 @@ function zeige() {
   );
 }
 
-const schalter = (name: string) =>
-  screen.getByRole('checkbox', { name: new RegExp(`^${name} (ein|aus)schalten$`) });
+const schalter = (name: string) => screen.getByRole('switch', { name });
 
 beforeEach(() => updateCompany.mockClear());
 
@@ -88,7 +87,7 @@ describe('Unterfähigkeiten auf der Seite „Module“', () => {
     expect(within(dialog).getByText(/Offene Umlagerungen enden/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Ausschalten' }));
 
-    expect(schalter('Lagerorte')).not.toBeChecked();
+    await waitFor(() => expect(schalter('Lagerorte')).not.toBeChecked());
     expect(schalter('Scannen')).toBeDisabled();
   });
 
@@ -96,7 +95,7 @@ describe('Unterfähigkeiten auf der Seite „Module“', () => {
     const nutzer = userEvent.setup();
     zeige();
     await nutzer.click(schalter('Scannen'));
-    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
-    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'material.scan': true } });
+    // Sofort gespeichert (U6): kein „Module speichern“ mehr.
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'material.scan': true } }));
   });
 });

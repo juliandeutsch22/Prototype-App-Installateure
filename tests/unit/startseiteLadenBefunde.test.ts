@@ -44,6 +44,9 @@ vi.mock('@/lib/db/zeitkorrekturen', () => ({
 const scheineUnverrechnetStand = vi.fn<(bis: string) => Promise<{ anzahl: number; alt: number; aeltester: string | null }>>(
   async () => ({ anzahl: 0, alt: 0, aeltester: null }),
 );
+vi.mock('@/lib/db/forderungen', () => ({
+  startseiteForderungen: vi.fn(async () => ({ mahnungen: { anzahl: 0, zeilen: [] }, ueberfaelligNichtMahnbar: { anzahl: 0, zeilen: [] }, ruecklassBald: { anzahl: 0, summe: 0, zeilen: [] }, kennzahlen: { offenSumme: 0, offenAnzahl: 0, faelligSumme: 0, ueberAnzahl: 0, aeltesteFaellig: null } })),
+}));
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => []),
   listInvoicesByIds: vi.fn(async () => []),
@@ -58,9 +61,12 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => []),
   listProjectsByNumbers: vi.fn(async () => []),
 }));
-const listFaelligeWartungen = vi.fn<(c: string, bis: string) => Promise<never[]>>(async () => []);
+// Seit 15.11.2026 zählt die Datenbank die fälligen Wartungen (`wartungen_faellig_stand`) bis zum selben Stichtag.
+const leer = { anzahl: 0, ueberfaellig: 0, zeilen: [] };
+const wartungenFaelligStand = vi.fn<(heute: string, bis: string, anzahl: number) => Promise<{ ohne: typeof leer; eingeplant: typeof leer }>>(async () => ({ ohne: leer, eingeplant: leer }));
 vi.mock('@/lib/db/wartungen', () => ({
-  listFaelligeWartungen: (c: string, bis: string) => listFaelligeWartungen(c, bis),
+  wartungenFaelligStand: (heute: string, bis: string, anzahl: number) => wartungenFaelligStand(heute, bis, anzahl),
+  wartungErledigtVorschlaege: async () => [],
 }));
 
 const { team, buchhaltung, leitung } = await import('@/features/dashboard/start/laden');
@@ -77,7 +83,7 @@ beforeEach(() => {
   unverrechneteStunden.mockClear();
   scheineUnverrechnetStand.mockClear();
   zeitkorrekturenLaden.mockClear();
-  listFaelligeWartungen.mockClear();
+  wartungenFaelligStand.mockClear();
 });
 
 describe('1 — wer sonst entscheidet', () => {
@@ -165,11 +171,11 @@ describe('7 — Wartungen bis zum Stichtag der Liste', () => {
   it('30 Tage voraus, auch wo ein Monat kürzer ist', async () => {
     await leitung(kontext({ heute: '2027-01-31' }), { einsatzplanung: false, wartung: true, budget: false });
     // Ein Kalendermonat wäre der 28.02. — die Liste nennt bis zum 02.03. „fällig“.
-    expect(listFaelligeWartungen).toHaveBeenCalledWith('perl', '2027-03-02');
+    expect(wartungenFaelligStand).toHaveBeenCalledWith('2027-01-31', '2027-03-02', 3);
   });
 
   it('Gleichbleiben: wo der Monat 30 Tage hat, derselbe Tag wie vorher', async () => {
     await leitung(kontext({ heute: '2026-06-01' }), { einsatzplanung: false, wartung: true, budget: false });
-    expect(listFaelligeWartungen).toHaveBeenCalledWith('perl', '2026-07-01');
+    expect(wartungenFaelligStand).toHaveBeenCalledWith('2026-06-01', '2026-07-01', 3);
   });
 });

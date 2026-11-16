@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -56,9 +56,8 @@ function zeige() {
   );
 }
 
-/** Der Schalter eines Moduls — heisst je nach Zustand anders. */
-const schalter = (name: string) =>
-  screen.getByRole('checkbox', { name: new RegExp(`^${name} (ein|aus)schalten$`) });
+/** Der Schalter eines Moduls (U6, E3): ein `switch` mit dem Namen des Moduls, der Zustand in `aria-checked`. */
+const schalter = (name: string) => screen.getByRole('switch', { name });
 
 beforeEach(() => {
   updateCompany.mockClear();
@@ -136,7 +135,9 @@ describe('Ein Modul abschalten', () => {
     const dialog = await screen.findByRole('dialog');
     await nutzer.click(within(dialog).getByRole('button', { name: 'Ausschalten' }));
 
-    expect(schalter('Rechnungen')).not.toBeChecked();
+    // Sofort gespeichert (U6): der Schalter springt um, wenn die Datenbank es bestätigt hat.
+    await waitFor(() => expect(schalter('Rechnungen')).not.toBeChecked());
+    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { rechnungen: false } });
     // Die Nachkalkulation ist mitgegangen und lässt sich nicht einzeln zurückholen.
     expect(schalter('Nachkalkulation')).not.toBeChecked();
     expect(schalter('Nachkalkulation')).toBeDisabled();
@@ -160,7 +161,7 @@ describe('Ein Modul abschalten', () => {
     await nutzer.click(schalter('Urlaub'));
 
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(schalter('Urlaub')).not.toBeChecked();
+    await waitFor(() => expect(schalter('Urlaub')).not.toBeChecked());
   });
 });
 
@@ -213,31 +214,47 @@ describe('Was sich nicht zurückholen lässt (M01a, E52)', () => {
   });
 });
 
-describe('Speichern', () => {
-  it('bleibt gesperrt, solange nichts geändert ist', async () => {
+/*
+  EIN SCHALTER WIRKT SOFORT (U6, E3, 15.11.2026). Vorher sammelte die Seite
+  Haken für „Module speichern“; jetzt schreibt jeder Schalter selbst.
+  Gegenprobe: mit dem alten Entwurf ohne Speichern ist `updateCompany` nach
+  dem Tipp nicht aufgerufen (rot).
+*/
+describe('Sofort gespeichert', () => {
+  it('es gibt keinen Knopf „Module speichern“ mehr', () => {
     zeige();
-    expect(screen.getByRole('button', { name: 'Module speichern' })).toBeDisabled();
-    expect(screen.getByText('Keine Änderung offen.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Module speichern' })).toBeNull();
+    expect(screen.queryByText('Keine Änderung offen.')).toBeNull();
   });
 
-  it('schreibt den ganzen Entwurf, nicht nur die Änderung', async () => {
+  it('ein Tipp schreibt den ganzen Stand, nicht nur die Änderung', async () => {
+    const nutzer = userEvent.setup();
+    firma = { id: 'perl', name: 'Perl Installationen', modules: { 'kunden.liegenschaften': true } };
+    zeige();
+    await nutzer.click(schalter('Urlaub'));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'kunden.liegenschaften': true, urlaub: false } }));
+    expect(reloadCompany).toHaveBeenCalled();
+  });
+
+  it('scheitert das Speichern, bleibt der Schalter, wo er war, und der Grund steht da', async () => {
+    updateCompany.mockRejectedValueOnce(new Error('Keine Verbindung'));
     const nutzer = userEvent.setup();
     zeige();
     await nutzer.click(schalter('Urlaub'));
-    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
-
-    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { urlaub: false } });
-  });
-
-  it('lässt den Entwurf verwerfen', async () => {
-    const nutzer = userEvent.setup();
-    zeige();
-    await nutzer.click(schalter('Urlaub'));
-    expect(schalter('Urlaub')).not.toBeChecked();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(await screen.findByText(/Keine Verbindung/)).toBeInTheDocument();
     expect(schalter('Urlaub')).toBeChecked();
-    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('während einer schreibt, sind alle gesperrt — kein Wechsel überholt den anderen', async () => {
+    let fertig: () => void = () => undefined;
+    updateCompany.mockImplementationOnce(() => new Promise<void>((r) => { fertig = r; }));
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(schalter('Urlaub'));
+    expect(schalter('Urlaub')).toHaveAttribute('aria-busy', 'true');
+    expect(schalter('Material und Lager')).toBeDisabled();
+    fertig();
+    await waitFor(() => expect(schalter('Material und Lager')).not.toBeDisabled());
   });
 });
 
@@ -256,8 +273,8 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     expect(within(kern).queryByText('Zeiterfassung')).not.toBeInTheDocument();
     expect(within(kern).getAllByText('immer an')).toHaveLength(2);
     expect(schalter('Zeiterfassung')).toBeChecked();
-    expect(screen.queryByRole('checkbox', { name: /^Baustellen (ein|aus)schalten$/ })).toBeNull();
-    expect(screen.queryByRole('checkbox', { name: /^Kunden (ein|aus)schalten$/ })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Baustellen' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Kunden' })).toBeNull();
     expect(screen.getByText(/^Eingeschaltet: \d+ von 11$/)).toBeInTheDocument();
   });
 
@@ -268,8 +285,7 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     expect(within(schalter('Freie Zeitfelder').closest('li')!).getByText('Teil von Zeiterfassung')).toBeInTheDocument();
     await nutzer.click(schalter('Freie Zeitfelder'));
     expect(screen.queryByRole('dialog')).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
-    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'zeiterfassung.freie_zeitfelder': false } });
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'zeiterfassung.freie_zeitfelder': false } }));
   });
 
   it('der Auftragseingang steht als Teil der Baustellen und wird unter seiner Kennung gespeichert', async () => {
@@ -280,8 +296,7 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     // Keine Folge, die sich nicht zurückholen ließe — also keine Rückfrage.
     await nutzer.click(schalter('Auftragseingang'));
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(schalter('Auftragseingang')).not.toBeChecked();
-    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
+    await waitFor(() => expect(schalter('Auftragseingang')).not.toBeChecked());
     expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'baustellen.auftragseingang': false } });
   });
 
@@ -306,8 +321,7 @@ describe('Liegenschaften als Teil der Kunden (M02c)', () => {
     expect(screen.getByText('Teil von Kunden')).toBeInTheDocument();
     await nutzer.click(schalter('Liegenschaften und Tops'));
     expect(screen.queryByRole('dialog')).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
-    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'kunden.liegenschaften': true } });
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'kunden.liegenschaften': true } }));
   });
 });
 
@@ -328,7 +342,7 @@ describe('Direktnachrichten einschalten', () => {
     await nutzer.click(knopf);
     // Ausschalten sagt vorher die Folgen (bisherige Gespräche bleiben).
     await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Ausschalten' }));
-    expect(schalter('Direktnachrichten und Runden')).not.toBeChecked();
+    await waitFor(() => expect(schalter('Direktnachrichten und Runden')).not.toBeChecked());
     await nutzer.click(schalter('Direktnachrichten und Runden'));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('ArbVG §§ 96, 96a');
@@ -337,6 +351,6 @@ describe('Direktnachrichten einschalten', () => {
 
     await nutzer.click(schalter('Direktnachrichten und Runden'));
     await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Einschalten' }));
-    expect(schalter('Direktnachrichten und Runden')).toBeChecked();
+    await waitFor(() => expect(schalter('Direktnachrichten und Runden')).toBeChecked());
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { scheineAufRechnung } from '@/lib/db/invoices';
 import { SCHEIN_STAND } from '@/features/worksheets/scheinStand';
@@ -54,6 +55,8 @@ export default function BaustellenScheine({
   const [fehler, setFehler] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
 
   // Übersicht und vollständige Liste verwenden denselben Bestand, auch beim Nachladen.
   useEffect(() => { onStand?.({ scheine, verrechnet, fehler }); }, [onStand, scheine, verrechnet, fehler]);

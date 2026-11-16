@@ -1,6 +1,8 @@
 import BottomSheet from '@/components/BottomSheet';
 import { positionsRabattText } from './totals';
 import Button from '@/components/Button';
+import Fensteraktionen from '@/components/Fensteraktionen';
+import { aktionenNachRang } from './aktionenNachRang';
 import { euro, euroBetrag } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
 import type { Invoice } from '@/types';
@@ -137,19 +139,25 @@ export default function RechnungDetail({
           </div>
         </dl>
 
-        {aktionen.length > 0 && (
-          <div className="rechnung-detail-aktionen">
-            {aktionen.map((a) => (
-              <Button
-                key={a.label}
-                variant={a.haupt ? 'primary' : a.danger ? 'danger' : 'secondary'}
-                onClick={a.onSelect}
-              >
-                {a.label}
-              </Button>
-            ))}
-          </div>
-        )}
+        {/*
+          DIE HANDLUNGEN NACH RANG (U4, Durchsicht 15.11.2026): der nächste
+          Schritt gefüllt, das PDF daneben, alles Weitere im ⋯ — Storno als
+          Unumkehrbares immer dort. Vorher standen bis zu fünf Knöpfe gleich
+          laut in drei Zeilen.
+        */}
+        {aktionen.length > 0 && (() => {
+          const { haupt, zweit, weitere } = aktionenNachRang(aktionen);
+          return (
+            <div className="rechnung-detail-aktionen">
+              <Fensteraktionen
+                about={name}
+                haupt={haupt && <Button onClick={haupt.onSelect}>{haupt.label}</Button>}
+                zweit={zweit && <Button variant="secondary" onClick={zweit.onSelect}>{zweit.label}</Button>}
+                weitere={weitere}
+              />
+            </div>
+          );
+        })()}
 
         <section className="rechnung-lesegruppe" aria-label="Rechnungsangaben">
           <h3 className="rechnung-lesetitel">Rechnungsangaben</h3>

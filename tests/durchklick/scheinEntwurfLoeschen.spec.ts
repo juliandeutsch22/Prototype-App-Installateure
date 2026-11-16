@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BETRIEB, CHEFIN } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * HANDWERKSSCHEINE (Auftrag 04.11.2026): „das Stunden-ohne-Buchung-Fenster
@@ -85,7 +85,8 @@ test('ein Entwurf mit Foto lässt sich löschen — Schein, Foto-Zeile und Datei
   await page.goto('/worksheets');
   await page.locator('.zeile-ziel', { hasText: KUNDEN[0] }).click();
   const fenster = page.getByRole('dialog');
-  await fenster.getByRole('button', { name: 'Löschen' }).click();
+  // U4: Unumkehrbares steht immer im ⋯ des Fensters, nie als Knopf neben „Weiterbearbeiten“.
+  await (await imMenue(page, fenster, 'Löschen')).click();
   const frage = page.getByRole('dialog', { name: 'Entwurf löschen' });
   await expect(frage).toContainText('1 Foto');
   await frage.getByRole('button', { name: 'Endgültig löschen' }).click();
@@ -107,7 +108,7 @@ test('ein verworfener Entwurf lässt sich löschen; ein unterschriebener Schein 
   await page.goto('/worksheets');
   await page.getByRole('checkbox', { name: /verworfene/ }).check();
   await page.locator('.zeile-ziel', { hasText: KUNDEN[1] }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Löschen' }).click();
+  await (await imMenue(page, page.getByRole('dialog'), 'Löschen')).click();
   await page.getByRole('dialog', { name: 'Verworfenen Entwurf löschen' }).getByRole('button', { name: 'Endgültig löschen' }).click();
   await expect(page.getByText('Entwurf gelöscht')).toBeVisible();
   expect((await admin.from('work_sheets').select('id').eq('id', verworfen.id)).data).toEqual([]);
@@ -118,6 +119,9 @@ test('ein verworfener Entwurf lässt sich löschen; ein unterschriebener Schein 
   const fenster = page.getByRole('dialog');
   await expect(fenster.getByRole('button', { name: 'PDF' })).toBeVisible();
   await expect(fenster.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
+  // Auch nicht im ⋯ (U4): dort steht für den Beleg nur das Stornieren.
+  await expect(await imMenue(page, fenster, 'Stornieren')).toBeVisible();
+  await expect(page.getByRole('menu').getByRole('menuitem', { name: 'Löschen' })).toHaveCount(0);
   expect((await admin.from('work_sheets').select('id').eq('id', beleg.id)).data).toHaveLength(1);
   await keineFehlermeldung(page);
 });

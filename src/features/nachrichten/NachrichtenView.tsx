@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -55,6 +56,8 @@ export default function NachrichtenView() {
   const [name, setName] = useState('');
   const [verlassen, setVerlassen] = useState(false);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
 
   const companyId = user?.companyId;
   const uid = user?.uid;

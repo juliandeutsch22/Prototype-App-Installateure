@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import NeuFormular from '@/components/NeuFormular';
+import Button from '@/components/Button';
+import { useAmHandy } from '@/lib/breiten';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useAuth } from '@/app/AuthContext';
 import { getUserByUid } from '@/lib/db/users';
 import { listEigeneFreistellungen } from '@/lib/db/freistellungen';
@@ -6,7 +10,7 @@ import { canEditTime } from '@/lib/permissions';
 import Card from '@/components/Card';
 import PageHeader from '@/components/PageHeader';
 import { SelectField } from '@/components/Field';
-import { ErrorState, SkeletonList } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { istArztbesuch, type FreistellungArt } from '@shared/freistellung';
 import type { AppUser, Freistellung } from '@/types';
@@ -56,8 +60,15 @@ export default function SonderurlaubView() {
   useEffect(() => {
     void laden();
   }, [laden]);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
+
+  /* U2: am Handy öffnet „Antrag stellen“ das Formular als Blatt von unten; die Seite zeigt zuerst die eigenen Anträge. */
+  const amHandy = useAmHandy();
+  const [neuOffen, setNeuOffen] = useState(false);
 
   const eigeneNeu = () => {
+    setNeuOffen(false);
     if (!user) return;
     void listEigeneFreistellungen(user.companyId, user.uid).then(setEigene).catch(() => undefined);
   };
@@ -66,7 +77,11 @@ export default function SonderurlaubView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Sonderurlaub" subtitle="Sonderurlaub, Arztbesuch, Pflegefreistellung und unbezahlter Urlaub" />
+      <PageHeader
+        title="Sonderurlaub"
+        subtitle="Sonderurlaub, Arztbesuch, Pflegefreistellung und unbezahlter Urlaub"
+        action={amHandy && eigene !== null && !fehler ? <Button onClick={() => setNeuOffen(true)}>Antrag stellen</Button> : undefined}
+      />
 
       {buero && <FreistellungenBestaetigen user={user} company={company} />}
 
@@ -76,7 +91,7 @@ export default function SonderurlaubView() {
         <SkeletonList rows={2} />
       ) : (
         <div className="zeit-raster">
-          <Card className="zeit-formularkarte" title="Antrag stellen">
+          <NeuFormular className="zeit-formularkarte" titel="Antrag stellen" offen={neuOffen} onSchliessen={() => setNeuOffen(false)}>
             <div className="mb-4">
               <SelectField
                 id="sart"
@@ -104,7 +119,13 @@ export default function SonderurlaubView() {
                 onGestellt={eigeneNeu}
               />
             )}
-          </Card>
+          </NeuFormular>
+          {/* Am Handy steht das Formular im Blatt — ohne Anträge sagt die Seite das, statt leer zu bleiben. */}
+          {eigene.length === 0 && amHandy && (
+            <Card title="Mein Sonderurlaub" buendig className="zeit-liste">
+              <EmptyState>Noch kein Antrag gestellt.</EmptyState>
+            </Card>
+          )}
           {eigene.length > 0 && (
             <Card title={eigene.some(istArztbesuch) ? 'Sonderurlaub und Arztbesuche' : 'Mein Sonderurlaub'} buendig className="zeit-liste">
               <FreistellungListe

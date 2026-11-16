@@ -16,5 +16,301 @@
     "art": "knopf",
     "text": "Alles geliefert",
     "grund": "M4 (16.11.2026): heißt jetzt „Alles geliefert …“ und fragt nach der Lieferschein-Nr.; „Alles geliefert“ ist dort der Knopf, der bucht."
+  },
+  {
+    "datei": "src/features/modules/ModulesView.tsx",
+    "art": "knopf",
+    "text": "Module speichern",
+    "grund": "U6/E3 (Durchsicht 15.11.2026): jedes Modul ist ein Schalter, der beim Tippen speichert; die Rückfrage vor dem Abschalten bleibt. Ein Sammel-Speichern gibt es deshalb nicht mehr."
+  },
+  {
+    "datei": "src/features/modules/ModulesView.tsx",
+    "art": "name",
+    "text": "{…} {…}",
+    "ziel": "input",
+    "grund": "U6/E3: das Kästchen „<Modul> ein-/ausschalten“ ist ein Schalter mit dem Namen des Moduls; den Zustand trägt aria-checked statt des Namens."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Antwort eines Kunden über den Annahme-Link",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Eilzustellung für meine Baustellen",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Eine neue Materialanforderung geht ein",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Geänderter Einsatzplan für heute und morgen",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Mein angefordertes Material ist abholbereit",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Neue Nachrichten",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Text der Nachricht im Sperrbildschirm zeigen",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Urlaub, Zeitausgleich und Krankmeldungen",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/NotificationSettings.tsx",
+    "art": "beschriftung",
+    "text": "Zeiterfassung: Timer und Korrekturanträge",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter (wirkt sofort) statt an einem Kästchen."
+  },
+  {
+    "datei": "src/features/settings/ZweiFaktorKarte.tsx",
+    "art": "beschriftung",
+    "text": "Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend",
+    "ziel": "CheckboxField",
+    "grund": "U6/E3: dieselbe Beschriftung an einem Schalter — die Pflicht gilt sofort für den Betrieb, mit der Rückfrage wie bisher."
+  },
+  {
+    "datei": "src/features/settings/FirmendatenView.tsx",
+    "art": "knopf",
+    "text": "Speichert …|Gespeichert|Speichern",
+    "grund": "U1 (Durchsicht 15.11.2026): „Speichern“, „Speichert …“ und „Gespeichert“ stehen jetzt in der gemeinsamen Speicherleiste (src/components/Speicherleiste.tsx), die erst bei einer Änderung erscheint."
+  },
+  {
+    "datei": "src/features/settings/KatalogEinstellungenKarte.tsx",
+    "art": "knopf",
+    "text": "Katalog-Einstellungen speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/KontenrahmenView.tsx",
+    "art": "knopf",
+    "text": "Kontenrahmen speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Auf Standardwerte zurücksetzen",
+    "grund": "U1: steht als „Auf Standardwerte zurücksetzen …“ im ⋯ des Seitenkopfs von „Sätze und Kosten“; es füllt nur Felder, danach erscheint die Speicherleiste."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Genehmigende speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte „Wer Urlaub genehmigt“, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Nummernkreise speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Rechnungsvorgaben speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Sätze speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Urlaubsjahr speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/StandardZeitfelder.tsx",
+    "art": "knopf",
+    "text": "Speichert …|Standardfelder speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/TimerEinstellungen.tsx",
+    "art": "knopf",
+    "text": "Erinnerung speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/accounting/PersonFenster.tsx",
+    "art": "knopf",
+    "text": "Bericht für Zeitraum",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/assignments/MonatsVorschau.tsx",
+    "art": "knopf",
+    "text": "Termin anlegen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/dashboard/start/StartseiteAnpassen.tsx",
+    "art": "knopf",
+    "text": "Vorgabe wiederherstellen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/liegenschaften/LiegenschaftView.tsx",
+    "art": "knopf",
+    "text": "Top löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Top löschen …“; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/nachrichten/NachrichtenEinstellungen.tsx",
+    "art": "knopf",
+    "text": "Meldung löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Meldung löschen …“; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Auf „{…} “ setzen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag — die freie Statuswahl (D11) bleibt vollständig."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Nicht auf Lager – auf die Einkaufsliste",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Nicht mehr eilig|Als eilig markieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag (Text je nach Stand)."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Retoure löschen …|Anforderung löschen …",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/AnforderungFenster.tsx",
+    "art": "knopf",
+    "text": "Als eilig markieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/MaterialCatalog.tsx",
+    "art": "knopf",
+    "text": "Material löschen …",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/StockView.tsx",
+    "art": "knopf",
+    "text": "Im Katalog bearbeiten",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/StockView.tsx",
+    "art": "knopf",
+    "text": "Umlagern",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/quotes/AnnahmeLink.tsx",
+    "art": "verweis",
+    "text": "Per Mail-Programm senden",
+    "ziel": "{…}",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag und öffnet das Mailprogramm wie zuvor der Verweis (mailto)."
+  },
+  {
+    "datei": "src/features/termine/TerminFenster.tsx",
+    "art": "knopf",
+    "text": "{…} am {…} löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Termin löschen …“ mit Termin und Tag im Namen des ⋯; die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/worksheets/WorkSheetsListView.tsx",
+    "art": "knopf",
+    "text": "Stornieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Stornieren …“; Unumkehrbares steht immer im ⋯, der Storno mit Pflichtgrund folgt wie bisher."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "knopf",
+    "text": "Als versendet markieren",
+    "grund": "U1/U4 (Durchsicht 15.11.2026): die Schritte am Verlauf stehen als Daten (schrittListe) — die zwei häufigsten als Knopf, der Rest im ⋯ am selben Punkt. Beschriftung und Bedingung unverändert."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "knopf",
+    "text": "Annahme-Link",
+    "grund": "U1/U4: Schritt am Verlauf, als Knopf oder im ⋯ je nach Stand (schrittListe); Bedingung unverändert (M02a)."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "verweis",
+    "text": "Bearbeiten",
+    "ziel": "/quotes?bearbeiten={…}",
+    "grund": "U1/U4: derselbe Verweis, jetzt aus der schrittListe gezeichnet (KnopfLink mit demselben Ziel)."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "verweis",
+    "text": "Neue Fassung",
+    "ziel": "/quotes?neueFassung={…}",
+    "grund": "U1/U4: derselbe Weg (M17), aus der schrittListe — als Verweis oder Eintrag im ⋯ mit demselben Ziel."
+  },
+  {
+    "datei": "src/features/users/UserMgmtView.tsx",
+    "art": "blatt",
+    "text": "Neuen Benutzer anlegen",
+    "grund": "U2 (Durchsicht 15.11.2026): dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten, ab dem Tablet wie bisher eine Karte über der Liste."
+  },
+  {
+    "datei": "src/features/vacations/SonderurlaubView.tsx",
+    "art": "blatt",
+    "text": "Antrag stellen",
+    "grund": "U2: dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Antrag stellen“), ab dem Tablet wie bisher neben den Anträgen."
+  },
+  {
+    "datei": "src/features/vacations/VacationsView.tsx",
+    "art": "blatt",
+    "text": "Krank melden|Antrag stellen",
+    "grund": "U2: dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Antrag stellen“), ab dem Tablet wie bisher neben „Meine Anträge“."
+  },
+  {
+    "datei": "src/features/vacations/BetriebsurlaubReiter.tsx",
+    "art": "blatt",
+    "text": "Betriebsurlaub anlegen",
+    "grund": "U2 (Durchsicht 15.11.2026): dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Betriebsurlaub anlegen“ im Seitenkopf), ab dem Tablet wie bisher neben der Liste."
   }
 ]

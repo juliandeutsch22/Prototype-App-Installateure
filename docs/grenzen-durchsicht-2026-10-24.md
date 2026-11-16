@@ -920,3 +920,90 @@ Ende unter „Mit Welle 3 entfallen“.
   entfallen mit den Befunden 3 und 4.
 - **L5 offen** (Welle 2, „Nicht als Grenze geführt“) — gebaut; es bleibt die
   fachliche Grenze der Monatsrechnung oben.
+
+## Durchsicht vom 15.11.2026, Paket 10 (Oberfläche und Bewegung) — begründete Grenzen
+
+- **Gefahrfarbe (U5, E4)** (liegt beim Auftraggeber): Warn- und Fehlertext
+  tragen jetzt immer ein Zeichen. Die eigene, deutlich vom Terrakotta
+  abgesetzte Gefahrfarbe steht als gemessener Vorschlag auf `/_muster`
+  (hell `#9e1c3a`, dunkel `#f28aa0`) und wird erst nach Zustimmung eingebaut.
+- **Datums- und Zeitfelder (U10, E5)** (Gerät): das Rad und die Form des
+  Felds zeichnet der Browser in der Sprache des Geräts; sie lässt sich nicht
+  ändern. Auf einem nicht deutsch eingestellten Gerät steht der Wert deshalb
+  zusätzlich deutsch unter dem Feld.
+- **„Rückgängig“ nicht überall (F15)**: gebaut, wo der alte Stand genau
+  zurückkommt (Angebot und Schein-Entwurf verwerfen, Warenkorb leeren,
+  Geburtsdatum, Urlaubsanpassung, Arbeitszeit- und Anspruchsänderung,
+  Rechtstext-Entwurf). Ohne „Rückgängig“, mit Rückfrage vorher:
+  - rechtlich: Storno einer Rechnung (der Storno ist ein Beleg),
+    Datenauskunft und Löschen einer Person (Art. 17 DSGVO);
+  - fachlich: Kunde, Baustelle, Material, Zeitbuchung, Einsatz, Termin,
+    Zahlung, Wartung, Liegenschaft, Eingang löschen — neu angelegt bekämen
+    sie eine neue Kennung, an der alten hängen Verweise, Verlauf und
+    Nummernkreis, und Meldungen gingen erneut hinaus; entschiedene Anträge
+    sind der Person schon gemeldet; eine verworfene Zählliste hielte neu
+    angelegt den heutigen Bestand fest; ein verworfener DATANORM-Lauf wird
+    neu eingelesen;
+  - Datenschutz: hochgeladene Nachweise und Pläne werden als Datei gelöscht;
+  - „endgültig löschen“ im Papierkorb: endgültig ist der Zweck.
+- **Ziehen zum Aktualisieren nur als installierte App** (fachlich): im Browser
+  hat das Ziehen von oben schon eine Bedeutung (die ganze Seite neu laden);
+  zwei Gesten auf einer Bewegung wären unberechenbar. Akten und Formulare
+  holen beim Ziehen nicht nach — ein Neuholen mitten im Bearbeiten
+  überschriebe Eingaben (P1/P10).
+- **Wischen an der Zeile nur am Handy und nur mit dem Finger** (Gerät): mit
+  Maus und Stift gibt es die Geste nicht; dieselbe Aktion steht an jeder
+  Zeile auch anders erreichbar.
+- **Bewegungen** (Gerät, Barrierefreiheit): mit „Bewegung reduzieren“ (Gerät
+  oder Mein Konto → Darstellung und Bewegung) ohne Weg, nur der Zustand.
+  Ohne Netz nach dem ersten Bild bleibt die App ohne die Bewegungen der
+  Listen (sie laden nach dem ersten Bild nach, L11).
+
+## Nacharbeit zur Durchsicht vom 15.11.2026 (Welle 4) — Grenzen und offene Punkte
+
+Aus den vier Befunden der Nacharbeit (Stand §111).
+
+- **Messbestand nur mit Eigentümerrechten** (Rechte): `tests/supabase/aufraeumen.ts`
+  lässt `ui-testbestand` nur stehen, wenn es als Eigentümer der Datenbank
+  löschen kann (lokal `supabase_admin`, sonst `SUPABASE_DB_ADMIN_URL`) — ohne
+  Auslöser und ohne Prüfung der Fremdschlüssel, sonst kostet es neben dem
+  Bestand über eine Minute. Ohne diesen Zugang leert es wie bisher, samt
+  Messbestand, und sagt es.
+- **Budget B3** — in der Nacharbeit zuerst offen gelassen, danach gebaut:
+  - *Anforderungen „Laufend“* — **erledigt** (Nacharbeit, Teil 1):
+    `anforderungen_laufend` gibt je Gruppe Zahl und gezeigte Seite, gefiltert
+    wie von der Startseite verlangt, dazu Baustellen der Auswahl und die Zahl
+    am Reiter „Einkauf“; der ganze Arbeitsstand kommt nur noch für die
+    Einkaufsliste, die jede offene Bestellung je Großhändler zusammenfasst.
+  - *Baustellen* — **erledigt** (Nacharbeit, Teil 2): `baustellen_liste` gibt
+    je Statusgruppe Zahl und gezeigte Seite über alle Baustellen (Auswahl,
+    Filter der Startseite aus der Adresse, „Nur meine“, Suche), dazu das
+    Schriftfeld; `baustellen_budget_lage` den Budgetstand über alle aktiven.
+    Es bleibt die Belegschaft (gewachsener Bestand: 51 Konten) für Namen und
+    Auswahl im Formular — **Grenze (fachlich):** sie wächst mit dem einen
+    Betrieb, nicht mit dem Bestand, und Senklot ist für Betriebe bis etwa 30
+    Mitarbeiter gedacht (Auftraggeber, 20.10.2026).
+  - *Offene Rechnungen der Startseite* — **erledigt** (Nacharbeit, Teil 3):
+    die Regeln (Zahlstand, Rücklass, „darf gemahnt werden“, Mahnkosten,
+    Mahnlauf) stehen in `shared/forderungen.ts`, `src/features/invoices`
+    reicht sie weiter; die Edge Function `startseite-forderungen` wertet mit
+    derselben Fassung aus und schickt Zahlen und die ersten drei je Abschnitt.
+    Keine zweite Fassung in SQL: die Regeln sind keine einfachen Vergleiche.
+- **Lager ohne Rechnung im Browser** (Richtigkeit): kommt die Antwort der
+  Datenbank nicht, steht ein Fehler mit „Erneut versuchen“ statt einer eigenen
+  Rechnung des Reservierten. Die eigene Rechnung griff bisher nur in diesem
+  Fall und zählte anders als die Datenbank (jede offene Anforderung, Zuordnung
+  über den Namen) — zwei Zahlen für „frei“ wären die schlechtere Auskunft.
+- **Eine schon liegende `vite.config.js`** (Altbestand): sie entsteht nicht
+  mehr, wird aber nicht automatisch gelöscht — einmal
+  `rm -f vite.config.js vite.config.d.ts`.
+- **WebKit nur in der CI** (Gerät/Umgebung): die Entwicklungsumgebung hat
+  nur Chromium. Die Handy-Ansicht prüft dort `telefon-chromium` (dieselben
+  Wege bei 390 px mit Finger); Eigenheiten von Safari selbst sieht erst die
+  CI mit `webkit-telefon`.
+- **Bewegungen Bild für Bild nur in Chromium** (Gerät): WebKit setzt den
+  Start einer Animation beim Anlegen, nicht beim ersten gemalten Bild; wie
+  weit eine Bewegung beim ersten Bild schon ist, hängt dort vom Rechner ab
+  (gemessen 30 ms lokal, bis 200 ms in der CI). Code und CSS der Bewegungen
+  sind in beiden Maschinen dieselben; WebKit prüft Endbild und reduzierte
+  Bewegung.

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * DIE E-RECHNUNG IM ECHTEN BROWSER (ebInterface 6.1, 19.10.2026).
@@ -59,7 +59,9 @@ test('Rechnung an eine Dienststelle des Bundes als E-Rechnung laden', async ({ p
   const { data: rechnung } = await admin.from('invoices').select('invoice_number, total_brutto').eq('company_id', BETRIEB).single();
 
   await page.getByRole('button', { name: new RegExp(` ${rechnung!.invoice_number}$`) }).click();
-  await page.getByRole('button', { name: 'E-Rechnung (ebInterface) …' }).click();
+  // U4: die E-Rechnung steht im ⋯ des Fensters (Hauptaktion „Zahlung erfassen“, daneben „PDF laden“).
+  const fenster = page.getByRole('dialog', { name: `Rechnung ${rechnung!.invoice_number}` });
+  await (await imMenue(page, fenster, 'E-Rechnung (ebInterface) …')).click();
   const dialog = page.getByRole('dialog', { name: `E-Rechnung — ${rechnung!.invoice_number}` });
   await dialog.getByRole('button', { name: 'Bund' }).click();
 
@@ -88,7 +90,7 @@ test('Rechnung an eine Dienststelle des Bundes als E-Rechnung laden', async ({ p
     expect(data?.lieferantennummer).toBe('50012345');
   }).toPass({ timeout: 10_000 });
   await page.getByRole('button', { name: new RegExp(` ${rechnung!.invoice_number}$`) }).click();
-  await page.getByRole('button', { name: 'E-Rechnung (ebInterface) …' }).click();
+  await (await imMenue(page, fenster, 'E-Rechnung (ebInterface) …')).click();
   await expect(page.getByRole('dialog', { name: /E-Rechnung/ }).getByLabel(/Unsere Lieferantennummer/)).toHaveValue('50012345');
   await keineFehlermeldung(page);
 });

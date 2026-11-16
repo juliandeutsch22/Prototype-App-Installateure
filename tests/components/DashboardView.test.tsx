@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung } from './handlung';
 import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -209,7 +210,21 @@ vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listLagerartikel: vi.fn(async () => []),
   lagerKnapp: vi.fn(async () => []),
+  // Seit 15.11.2026 fragt die Startseite die knappen über die Lagerliste — hier keine.
+  lagerListe: vi.fn(async () => ({ zeilen: [], treffer: 0, imLager: 0, knapp: 0, knappBestand: 0, fehlt: 0, reserviert: 0, warengruppen: [] })),
   lagerFrei: vi.fn(async () => new Map()),
+}));
+/*
+  Seit 15.11.2026 (B3) wertet die Edge Function `startseite-forderungen` die
+  offenen Forderungen aus — hier mit derselben Regel (`forderungsStand`) aus
+  den Köpfen, die `listUnpaidInvoiceKoepfe` der Nachbildung liefert.
+*/
+vi.mock('@/lib/db/forderungen', () => ({
+  startseiteForderungen: async (heute: string) => {
+    const { listUnpaidInvoiceKoepfe } = await import('@/lib/db/invoices');
+    const { forderungsStand } = await import('@shared/forderungen');
+    return forderungsStand(await listUnpaidInvoiceKoepfe('perl'), heute, undefined, 3);
+  },
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoiceKoepfe` sie liefert. */
 const offeneRechnungen: { wert: unknown[] } = { wert: [] };
@@ -998,7 +1013,7 @@ describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
     zeichne();
     const karte = await karteMit(/2 Einsätze/);
     expect(within(karte).getByRole('link', { name: 'Mein Einsatzplan' })).toHaveAttribute('href', '/my-schedule');
-    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 1 });
+    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 2 });
   });
 
   it.each(['Verwaltung', 'Buchhaltung'])('zeigt %s beides nicht', async (r) => {
@@ -1017,7 +1032,7 @@ describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
     zeichne();
     const karte = await karteMit('Dein Einsatz heute');
     expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
-    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 1 });
+    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 2 });
   });
 });
 
@@ -1123,21 +1138,25 @@ describe('Startseite — Lot mit Tageskontext', () => {
     expect(einsatz.closest('aside')).toBeNull();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).toHaveAttribute('href', '/time');
-    expect(scheinKnoepfe(einsatz)).toEqual({ breit: 2, leiste: 1 });
+    expect(scheinKnoepfe(einsatz)).toEqual({ breit: 2, leiste: 2 });
   });
 
-  it('bietet die direkte Zeitbuchung für den ersten Einsatz im bestehenden Seitenkopf an', async () => {
+  /*
+    U3 (Durchsicht 15.11.2026): der Weg zur Zeit steht am Einsatz, nicht
+    zusätzlich schwebend im Seitenkopf. Gegenprobe: mit dem alten Kopf stand
+    „Zeit erfassen“ dort (rot).
+  */
+  it('U3: kein „Zeit erfassen“ im Seitenkopf, wo „Dein Einsatz heute“ den Weg trägt — je Einsatz genau einer', async () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<MemoryRouter><DashboardView /><BuchungsZiel /></MemoryRouter>);
     await screen.findByText(/2 Einsätze/);
     const kopf = document.querySelector('.seitenkopf') as HTMLElement;
-    expect(within(kopf).getByRole('link', { name: 'Zeit erfassen' })).toHaveAttribute('href', '/time');
+    expect(within(kopf).queryByRole('link', { name: 'Zeit erfassen' })).toBeNull();
     // Der zweite Einsatz behält seinen eigenen Zeit-Einstieg; „Wie zuletzt“ bleibt am ersten.
     const danach = screen.getByRole('region', { name: 'Danach' });
-    expect(within(danach).getByRole('link', { name: 'Zeit erfassen' })).toBeInTheDocument();
-    await klick.click(within(kopf).getByRole('link', { name: 'Zeit erfassen' }));
+    expect(within(danach).getAllByRole('link', { name: /Zeit erfassen|Wie zuletzt/ })).toHaveLength(1);
+    await klick.click(within(danach).getByRole('link', { name: 'Zeit erfassen' }));
     const ziel = JSON.parse(screen.getByTestId('buchungsziel').textContent!);
-    expect(ziel).toMatchObject({ projectNumber: 'B-001' });
     expect(ziel.startTime).toBeUndefined();
     expect(ziel.endTime).toBeUndefined();
   });
@@ -1332,19 +1351,19 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await screen.findByRole('link', { name: /^Saldo/ });
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
     const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
     // Angeboten wird nur, was der Monteur sehen darf.
     expect(within(bogen).queryByLabelText('Offene Rechnungen')).not.toBeInTheDocument();
     await klick.click(within(bogen).getByLabelText('Saldo'));
     await klick.click(within(bogen).getByLabelText('Material abholbereit'));
-    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Speichern' }, bogen));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['urlaub'], aus: ['abholbereit'] }));
 
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
-    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Vorgabe wiederherstellen' }));
+    await klick.click(handlung({ name: 'Vorgabe wiederherstellen' }, await screen.findByRole('dialog', { name: 'Startseite anpassen' })));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenLastCalledWith({}));
   });
 
@@ -1352,9 +1371,9 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await screen.findByRole('link', { name: /^Saldo/ });
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
-    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Speichern' }, await screen.findByRole('dialog', { name: 'Startseite anpassen' })));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({}));
   });
 
@@ -1363,15 +1382,15 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
     const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
     // Vorgabe der Leitung: Offen, Überfällig, Aktive Baustellen — eine vierte geht noch.
     await klick.click(within(bogen).getByLabelText('Bezahlt im Monat'));
     expect(within(bogen).getByLabelText('Auslastung der Woche')).toBeDisabled();
     // Die Folge: „Bezahlt im Monat“ nach vorn.
-    await klick.click(within(bogen).getByRole('button', { name: 'Bezahlt im Monat nach vorn' }));
-    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Bezahlt im Monat nach vorn' }, bogen));
+    await klick.click(handlung({ name: 'Speichern' }, bogen));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['offen', 'ueberfaellig', 'bezahlt', 'baustellen'] }));
   });
 });
@@ -1439,47 +1458,57 @@ describe('Startseite — wer entscheidet, sieht es', () => {
   Leiste unter dem ersten Einsatz.
 */
 describe('Startseite am Handy (D7, E90)', () => {
-  // „Zeit erfassen“ des Seitenkopfs — der zweite Einsatz trägt einen eigenen.
-  const zeitImKopf = () => document.querySelector('a.start-hauptaktion[href="/time"]');
+  /*
+    Seit U3 (Durchsicht 15.11.2026) steht „Zeit erfassen“ nicht mehr im
+    Seitenkopf, wo „Dein Einsatz heute“ dasteht — jeder Einsatz trägt seinen
+    Zeitknopf. Mit Start/Stopp ist am Handy die Karte „Arbeitstag“ der Weg
+    zur Zeit; der Zeitknopf am Einsatz steht dann erst ab dem Tablet.
+  */
+  const zeitImKopf = () => document.querySelector('.seitenkopf a[href="/time"]');
   const mitTimer = () => {
     authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'zeiterfassung.timer': true } };
   };
 
-  it('mit Timer: „Zeit erfassen“ nur ab dem Tablet, „Zeit von Hand eintragen“ in der Karte mit der Baustelle des Einsatzes', async () => {
+  it('mit Timer: der Zeitknopf am Einsatz nur ab dem Tablet, „Zeit von Hand eintragen“ in der Karte mit der Baustelle des Einsatzes', async () => {
     mitTimer();
     zeichne();
     const einsatz = await karteMit(/2 Einsätze/);
-    expect(zeitImKopf()).toHaveClass('start-zeit-mit-timer');
+    expect(zeitImKopf()).toBeNull();
     const hand = await screen.findByRole('link', { name: /Zeit von Hand eintragen/ });
     expect(hand).toHaveAttribute('href', '/time');
     expect(hand).toHaveClass('arbeitstag-hand');
     expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).toHaveClass('max-md:hidden');
+    // Auch der zweite Einsatz: mit Timer am Handy kein zweiter Weg neben dem Arbeitstag.
+    const danach = screen.getByRole('region', { name: 'Danach' });
+    expect(within(danach).getByRole('link', { name: 'Zeit erfassen' })).toHaveClass('max-md:hidden');
   });
 
-  it('Gegenprobe ohne Timer: „Zeit erfassen“ bleibt unten, keine Zeile in einer Karte, der Zeitknopf am Einsatz bleibt', async () => {
+  it('Gegenprobe ohne Timer: keine Zeile in einer Karte, der Zeitknopf am Einsatz steht auch am Handy', async () => {
     zeichne();
     const einsatz = await karteMit(/2 Einsätze/);
-    expect(zeitImKopf()).not.toHaveClass('start-zeit-mit-timer');
+    expect(zeitImKopf()).toBeNull();
     expect(screen.queryByRole('link', { name: /Zeit von Hand eintragen/ })).toBeNull();
     expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).not.toHaveClass('max-md:hidden');
   });
 
-  it('ist die Karte „Arbeitstag“ ausgeblendet (E68), bleibt „Zeit erfassen“ auch mit Timer', async () => {
+  it('ist die Karte „Arbeitstag“ ausgeblendet (E68), steht der Zeitknopf am Einsatz auch mit Timer am Handy', async () => {
     mitTimer();
     startWahl.wert = { aus: ['bereich-arbeitstag'] };
     zeichne();
-    await karteMit(/2 Einsätze/);
-    expect(zeitImKopf()).not.toHaveClass('start-zeit-mit-timer');
+    const einsatz = await karteMit(/2 Einsätze/);
+    expect(zeitImKopf()).toBeNull();
+    expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).not.toHaveClass('max-md:hidden');
   });
 
-  it('die drei Wege als Leiste unter dem ersten Einsatz; Anfordern und Nachricht oben nur ab dem Tablet', async () => {
+  it('die drei Wege als Leiste unter jedem Einsatz; Anfordern und Nachricht oben nur ab dem Tablet', async () => {
     zeichne();
     const einsatz = await karteMit(/2 Einsätze/);
-    const leiste = einsatz.querySelector('.einsatz-wegeleiste') as HTMLElement;
-    expect(leiste).not.toBeNull();
-    expect(leiste).toHaveClass('md:hidden');
-    expect(within(leiste).getByRole('link', { name: 'Schein schreiben' })).toHaveAttribute('href', expect.stringMatching(/^\/worksheet\?projekt=/));
-    // Nur eine Leiste, auch bei zwei Einsätzen: der zweite steht unter „Danach“ wie bisher.
-    expect(einsatz.querySelectorAll('.einsatz-wegeleiste')).toHaveLength(1);
+    const leisten = einsatz.querySelectorAll('.einsatz-wegeleiste');
+    // U3: jeder Einsatz in derselben Form — der zweite unter „Danach“ trägt dieselbe Leiste.
+    expect(leisten).toHaveLength(2);
+    for (const leiste of leisten) {
+      expect(leiste).toHaveClass('md:hidden');
+      expect(within(leiste as HTMLElement).getByRole('link', { name: 'Schein schreiben' })).toHaveAttribute('href', expect.stringMatching(/^\/worksheet\?projekt=/));
+    }
   });
 });

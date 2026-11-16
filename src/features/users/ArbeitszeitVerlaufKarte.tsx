@@ -172,10 +172,36 @@ export default function ArbeitszeitVerlaufKarte({
 
   async function entfernenBestaetigt() {
     if (!entfernen) return;
-    if (entfernen.art === 'arbeitszeit') await arbeitszeitAenderungEntfernen(person.uid, entfernen.ab);
-    else await urlaubsanspruchAenderungEntfernen(person.uid, entfernen.jahr);
+    /*
+      RÜCKGÄNGIG (F15, Nacharbeit): dieselbe Änderung wieder anlegen, über
+      denselben Weg wie „Speichern“ — mit den Werten, die eben galten. Leere
+      Wochenstunden tragen wie beim Speichern die Vorgabe 40 (Z11).
+    */
+    let zurueck: (() => Promise<void>) | null = null;
+    let wieder = '';
+    if (entfernen.art === 'arbeitszeit') {
+      const alt = verlauf.find((x) => x.ab === entfernen.ab);
+      await arbeitszeitAenderungEntfernen(person.uid, entfernen.ab);
+      if (alt) {
+        wieder = `Arbeitszeit ab ${datumAT(alt.ab)} wieder eingetragen`;
+        zurueck = () => arbeitszeitAendern({
+          userId: person.uid, ab: alt.ab, wochenstunden: alt.wochenstunden ?? 40, arbeitstage: alt.arbeitstage, tagessoll: alt.tagessoll,
+        });
+      }
+    } else {
+      const alt = anspruchVerlauf.find((x) => x.jahr === entfernen.jahr);
+      await urlaubsanspruchAenderungEntfernen(person.uid, entfernen.jahr);
+      if (alt) {
+        wieder = `Urlaubsanspruch ab dem Urlaubsjahr ${alt.jahr} wieder eingetragen`;
+        zurueck = () => urlaubsanspruchAendern(person.uid, alt.jahr, alt.tage);
+      }
+    }
     setEntfernen(null);
-    toast.success('Änderung zurückgenommen');
+    const nochmal = zurueck;
+    toast.success('Änderung zurückgenommen', nochmal ? {
+      label: 'Rückgängig',
+      onClick: () => void nochmal().then(() => { toast.success(wieder); onGeaendert(); }, (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.'))),
+    } : undefined);
     onGeaendert();
   }
 

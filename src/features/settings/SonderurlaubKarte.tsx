@@ -5,7 +5,7 @@ import { updateCompany } from '@/lib/db/company';
 import { ANLAESSE, KUERZUNG_AB_VORGABE } from '@shared/freistellung';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { CheckboxField, InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -34,19 +34,28 @@ export default function SonderurlaubKarte() {
   const [fehler, setFehler] = useState<string | null>(null);
 
   // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
-  useInhaltUebernehmen(
-    {
-      anlaesse: company?.freistellungAnlaesse ?? {},
-      ab: company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE,
-      nachweis: company?.arztbesuchNachweis !== false,
-    },
-    (w) => {
-      const abweichend: Record<string, number | undefined> = w.anlaesse;
-      setTage(Object.fromEntries(MIT_TAGEN.map((a) => [a.schluessel, String(abweichend[a.schluessel] ?? a.tage)])));
-      setAb(String(w.ab));
-      setNachweis(w.nachweis);
-    },
-  );
+  const gespeichert = {
+    anlaesse: company?.freistellungAnlaesse ?? {},
+    ab: company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE,
+    nachweis: company?.arztbesuchNachweis !== false,
+  };
+  /** Der gespeicherte Stand, wie ihn die Felder zeigen — für Laden, Verwerfen und den Vergleich (U1). */
+  const alsEingabe = (w: typeof gespeichert) => {
+    const abweichend: Record<string, number | undefined> = w.anlaesse;
+    return {
+      tage: Object.fromEntries(MIT_TAGEN.map((a) => [a.schluessel, String(abweichend[a.schluessel] ?? a.tage)])),
+      ab: String(w.ab),
+      nachweis: w.nachweis,
+    };
+  };
+  const uebernehmen = (w: typeof gespeichert) => {
+    const e = alsEingabe(w);
+    setTage(e.tage);
+    setAb(e.ab);
+    setNachweis(e.nachweis);
+  };
+  useInhaltUebernehmen(gespeichert, uebernehmen);
+  const geaendert = JSON.stringify({ tage, ab, nachweis }) !== JSON.stringify(alsEingabe(gespeichert));
 
   async function speichern() {
     if (!user) return;
@@ -116,9 +125,7 @@ export default function SonderurlaubKarte() {
           onChange={(e) => setAb(e.target.value)}
         />
         {fehler && <ErrorState message={fehler} />}
-        <div className="fuss-aktionen">
-          <Button type="button" loading={speichert} onClick={() => void speichern()}>Speichern</Button>
-        </div>
+        <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); uebernehmen(gespeichert); }} onSpeichern={() => void speichern()} />
       </div>
     </Card>
   );

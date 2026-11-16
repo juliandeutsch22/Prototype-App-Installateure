@@ -11,8 +11,8 @@
 @layer components {
   .ue-bedienung { display: flex; flex-direction: column; gap: 0.75rem; }
   .ue-pruefung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; }
-  .ue-fehlfilter { display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; cursor: pointer; font-size: 0.8125rem; }
-  .ue-fehlfilter input { width: 1.125rem; height: 1.125rem; accent-color: var(--petrol); }
+  /* Der Filter ist ein Schalter (U6): eine Zeile, nicht über die ganze Breite gestreckt. */
+  .ue-pruefung .schalter-zeile { flex: 0 1 auto; gap: 0.75rem; }
 
   /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
   .ue-steuerung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
@@ -422,4 +422,25 @@
 @layer components {
   .mw-zelle-grenze::after, .pk-tag-grenze::after { content: ''; display: block; flex: none; width: 0.5rem; height: 0.4375rem; margin-top: 0.125rem; background: var(--danger); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
   .ue-zeile[aria-current='true'], .mw-zeile[aria-current='true'], .ue-vergleich-zeile[aria-current='true'] { border-radius: var(--radius-sm); background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
+}
+
+/*
+  AM HANDY EINE KOMPAKTE ZEILE JE PERSON (U13, Durchsicht 15.11.2026): im
+  Vergleich, mit dem die Seite beginnt, stand jede Person als hohes Blatt da
+  — Name, Stand, Saldo Monat, Gesamtsaldo, Gebucht und Soll, rund 186 px —,
+  und bei zehn Leuten rollte man über drei Bildschirme. Jetzt wie am
+  Schreibtisch eine Zeile: Name und was zu prüfen ist links, rechts der
+  Gesamtsaldo, um den es im Vergleich geht. Saldo Monat, Gebucht und Soll
+  stehen im Fenster der Person, das die Zeile öffnet. „Alle Tage
+  vergleichen“ und die Woche bleiben, wie sie sind: dort sind Streifen und
+  Tagesfelder der Inhalt der Zeile, und ein Tipp auf einen Tag öffnet ihn.
+*/
+@layer components {
+  @media (max-width: 759px) {
+    .ue-vergleich-zeile:not(.ue-summe) { grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 1rem; padding: 0.625rem 1rem; }
+    .ue-vergleich-zeile:not(.ue-summe) > .ue-person { grid-column: 1; grid-row: 1; }
+    .ue-vergleich-zeile:not(.ue-summe) > .ue-pruefstand { grid-column: 1; grid-row: 2; }
+    .ue-vergleich-zeile:not(.ue-summe) > .ue-buchungen, .ue-vergleich-zeile:not(.ue-summe) > .ue-zahl-stark:not(.ue-gesamtsaldo) { display: none; }
+    .ue-vergleich-zeile:not(.ue-summe) > .ue-gesamtsaldo { grid-column: 2; grid-row: 1 / span 2; text-align: right; }
+  }
 }

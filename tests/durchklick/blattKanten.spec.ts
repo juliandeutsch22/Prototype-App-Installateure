@@ -55,7 +55,11 @@ test('Frei auf der Seite ist die Leiste so breit wie die Spalte (Firmendaten)', 
   await handy(page);
   await anmelden(page, CHEFIN.email);
   await page.goto('/settings/firma');
+  // U1: die Speicherleiste erscheint erst, wenn etwas geändert ist.
   const leiste = page.locator('.aktionsleiste');
+  await expect(page.locator('#fd-bank')).toBeVisible({ timeout: 15_000 });
+  await expect(leiste).toHaveCount(0);
+  await page.locator('#fd-bank').fill('Raiffeisenbank Kantenprobe');
   await expect(leiste).toBeVisible();
   const m = await leiste.evaluate((l, sel) => {
     const alle = [...document.querySelectorAll(sel)];

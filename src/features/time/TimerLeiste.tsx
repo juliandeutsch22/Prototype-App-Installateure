@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -6,6 +6,7 @@ import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '@/components/Icon';
 import { dauerText, timerBaustelle, timerDauer } from '@/lib/zeitsitzung';
 import { useZeitsitzung } from './zeitsitzungStand';
+import { useZustandswechsel } from '@/lib/useZustandswechsel';
 import { useStartWahl } from '@/features/dashboard/start/useStartWahl';
 import { BEREICH_ARBEITSTAG, ausgeblendet } from '@/features/dashboard/start/einrichtung';
 
@@ -57,6 +58,9 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
       .catch(() => undefined);
     return () => { weg = true; };
   }, [zeigen, nr, user, name?.nr]);
+  // Pause und Weiter tauschen den Knopf weich (B7), wie auf der Karte.
+  const leiste = useRef<HTMLDivElement>(null);
+  useZustandswechsel(leiste, s?.stand === 'pause' ? 'pause' : 'laeuft', '.rund-knopf');
   // Ausgeschrieben, nicht zusammengesetzt: Tailwind behält nur Klassen, die wörtlich im Code stehen.
   const halter = ort === 'telefon' ? 'timer-leiste-halter timer-leiste-telefon' : 'timer-leiste-halter timer-leiste-breit';
   if (!zeigen || !s) return <div ref={ref} className={halter} />;
@@ -67,7 +71,7 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
 
   return (
     <div ref={ref} className={halter}>
-      <div className="timer-leiste" role="region" aria-label="Laufender Arbeitstag" data-stand={pause ? 'pause' : 'laeuft'}>
+      <div ref={leiste} className="timer-leiste" role="region" aria-label="Laufender Arbeitstag" data-stand={pause ? 'pause' : 'laeuft'}>
         <Link to="/" className="timer-leiste-text">
           <span className="arbeitstag-punkt" aria-hidden="true" />
           <span className="timer-leiste-uhr">{dauerText(pause ? d.pauseMs : d.arbeitMs, false)}</span>

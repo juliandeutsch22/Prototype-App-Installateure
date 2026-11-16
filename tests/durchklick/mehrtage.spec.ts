@@ -87,14 +87,15 @@ test('Auf den nächsten Werktag kopieren', async ({ page }) => {
 test('Der Monteur schaltet die Meldung zum Einsatzplan in „Mein Konto“', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await page.goto('/settings/meldungen');
-  const schalter = page.getByRole('checkbox', { name: 'Geänderter Einsatzplan für heute und morgen' });
+  // Ein Schalter, kein Kästchen (U6, E3): er wirkt beim Tippen.
+  const schalter = page.getByRole('switch', { name: 'Geänderter Einsatzplan für heute und morgen' });
   await expect(schalter).toBeChecked({ timeout: 15_000 });
-  await schalter.uncheck();
+  await schalter.click();
   await expect.poll(async () => {
     const { data } = await admin.from('user_prefs').select('notify_einsaetze').eq('user_id', await maxId()).maybeSingle();
     return (data as { notify_einsaetze: boolean } | null)?.notify_einsaetze;
   }, { timeout: 10_000 }).toBe(false);
-  await schalter.check();
+  await schalter.click();
   await expect.poll(async () => {
     const { data } = await admin.from('user_prefs').select('notify_einsaetze').eq('user_id', await maxId()).maybeSingle();
     return (data as { notify_einsaetze: boolean } | null)?.notify_einsaetze;

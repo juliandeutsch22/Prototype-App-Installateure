@@ -85,12 +85,14 @@ describe('Die Stand-Zeile', () => {
         <Metric label="Bezahlt" value="€ 4,00" tone="success" />
       </MetricRow>,
     );
-    expect([...screen.getByText('€ 2,00').classList]).toContain('lage-wert-rot');
-    expect([...screen.getByText('3').classList]).toContain('lage-wert-warn');
+    // Seit B6 steht die Zahl in ihrem Rollrahmen (`RollZahl`); die Klassen trägt weiter der Wert selbst.
+    const wert = (w: string) => screen.getByText(w).closest('.lage-wert')!;
+    expect([...wert('€ 2,00').classList]).toContain('lage-wert-rot');
+    expect([...wert('3').classList]).toContain('lage-wert-warn');
     for (const ruhig of ['€ 1,00', '€ 4,00']) {
-      expect(screen.getByText(ruhig).className).not.toMatch(/lage-wert-(rot|warn)|text-(danger|brand|success)/);
+      expect(wert(ruhig).className).not.toMatch(/lage-wert-(rot|warn)|text-(danger|brand|success)/);
     }
-    const alle = ['€ 1,00', '€ 2,00', '3', '€ 4,00'].map((w) => screen.getByText(w).className).join(' ');
+    const alle = ['€ 1,00', '€ 2,00', '3', '€ 4,00'].map((w) => `${wert(w).className} ${screen.getByText(w).className}`).join(' ');
     expect(alle).not.toMatch(/font-bold|font-extrabold|font-semibold/);
   });
 

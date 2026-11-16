@@ -4,9 +4,9 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { useAuth } from '@/app/AuthContext';
 import { isGF, isVerw } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import { listFaelligeWartungen } from '@/lib/db/wartungen';
+import { wartungenFaelligStand } from '@/lib/db/wartungen';
 import { todayStr } from '@/lib/time';
-import { beurteile, VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
+import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
 import { tageVerschoben } from './start/regeln';
 
 /**
@@ -52,10 +52,14 @@ export default function WartungHinweis() {
           Regel wie in der Liste (`beurteile`).
         */
         const bis = tageVerschoben(heute, VORLAUF_TAGE);
-        const stand = (await listFaelligeWartungen(companyId, bis)).map((w) => beurteile(w, heute).stand);
+        /*
+          Gezählt in der Datenbank (Durchsicht 15.11.2026, Budget B3): vorher
+          kam jede fällige Wartung (höchstens 200) für zwei Zahlen.
+        */
+        const stand = await wartungenFaelligStand(heute, bis, 0);
         if (weg) return;
-        setAnzahl(stand.filter((s) => s === 'überfällig' || s === 'fällig').length);
-        setUeberfaellig(stand.filter((s) => s === 'überfällig').length);
+        setAnzahl(stand.ohne.anzahl + stand.eingeplant.anzahl);
+        setUeberfaellig(stand.ohne.ueberfaellig + stand.eingeplant.ueberfaellig);
       } catch {
         /*
           Schweigen, nicht melden. Der Hinweis ist eine Zugabe auf einer

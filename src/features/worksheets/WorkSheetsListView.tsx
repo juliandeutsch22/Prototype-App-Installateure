@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import KnopfLink from '@/components/KnopfLink';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -157,7 +159,7 @@ function StornoVerrechnung({ lage }: { lage: ScheinVerrechnung | 'fehler' | null
     ? `auf ${lage.rechnungen.length === 1 ? 'der Rechnung' : 'den Rechnungen'} ${lage.rechnungen.map((r) => `${r.nummer} (${r.zahlung})`).join(', ')}`
     : lage.grund === 'rechnung' ? 'auf einer gültigen Rechnung' : 'in einer schon ausgestellten Rechnung der Baustelle';
   return (
-    <Hinweiszeile stufe="warn">
+    <Hinweiszeile stufe="warn" offenWeil="Im Fenster vor dem Storno: was der Storno an der Rechnung nicht ändert, muss vor der Bestätigung dastehen (U9)">
       <p>
         <strong>Dieser Schein ist schon verrechnet</strong> — er steht {welche}. Der Storno ändert die Rechnung nicht.
         Ein Ersatzschein übernimmt die Verrechnung und kommt nicht noch einmal auf eine Rechnung. Ändern sich Stunden
@@ -355,6 +357,23 @@ export default function WorkSheetsListView() {
     },
     [user, grenze, grenzeAnfang, merken],
   );
+  /*
+    NACH EINER ÄNDERUNG (Aktion, angekommener Schein, Ziehen zum
+    Aktualisieren) ist auch „nicht verrechnet“ neu zu fragen — eine Runde
+    weiter. Das erste Laden und „Weitere Scheine laden“ zählen nicht: die
+    Abfrage über alle hängt nicht an den jüngsten Scheinen. Vorher hing sie an
+    deren Kennungen und lief beim Öffnen zweimal (Durchsicht 15.11.2026).
+  */
+  const [verrechnungRunde, setVerrechnungRunde] = useState(0);
+  const neuLaden = useMemo(
+    () => (stehenLassen = false) => {
+      setVerrechnungRunde((r) => r + 1);
+      return laden(stehenLassen);
+    },
+    [laden],
+  );
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(neuLaden);
 
   useEffect(() => {
     // Ein gemerkter Stand bleibt beim Aufbau stehen; mit größerer Grenze lädt die Liste sichtbar.
@@ -382,7 +401,7 @@ export default function WorkSheetsListView() {
           const angekommen = wartendRef.current.some((v) => !neu.some((n) => n.id === v.id));
           wartendRef.current = neu;
           setWartend(neu);
-          if (angekommen) void laden(true);
+          if (angekommen) void neuLaden(true);
         })
         .catch(() => undefined);
     };
@@ -392,7 +411,7 @@ export default function WorkSheetsListView() {
       weg = true;
       window.removeEventListener(FACH_GELEERT, nachsehen);
     };
-  }, [laden]);
+  }, [neuLaden]);
 
   /*
     DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
@@ -626,8 +645,9 @@ export default function WorkSheetsListView() {
     die über vier Wochen immer ihr Anfang — der Filter „…-alt“ blättert in
     derselben Liste.
 
-    Neu gefragt wird, wenn sich die Liste ändert (Storno, Unterschrift,
-    Nachladen) — so weit, wie schon geholt war. `null`: noch unbekannt;
+    Gefragt wird beim Öffnen einmal und nach jeder Änderung wieder
+    (`verrechnungRunde`: Storno, angekommener Schein, Ziehen zum
+    Aktualisieren) — so weit, wie schon geholt war. `null`: noch unbekannt;
     `'fehler'`: nicht gekommen — dann steht das da, nicht „keiner
     unverrechnet“.
   */
@@ -637,7 +657,6 @@ export default function WorkSheetsListView() {
   const geholtBisher = useRef(0);
   geholtBisher.current = unverrechnetDB && unverrechnetDB !== 'fehler' ? unverrechnetDB.geholt : 0;
   const [unverrechnetLaedt, setUnverrechnetLaedt] = useState(false);
-  const scheinSchluessel = useMemo(() => scheine.map((x) => `${x.id}:${x.status}`).join('|'), [scheine]);
   useEffect(() => {
     if (!user || !mitVerrechnung) {
       setUnverrechnetDB(null);
@@ -658,7 +677,7 @@ export default function WorkSheetsListView() {
     return () => {
       weg = true;
     };
-  }, [user, mitVerrechnung, scheinSchluessel, merken]);
+  }, [user, mitVerrechnung, verrechnungRunde, merken]);
   /** Die nächsten unverrechneten Scheine — erst, wenn jemand sie sehen will. */
   async function unverrechnetWeiter() {
     if (!user || !unverrechnetDB || unverrechnetDB === 'fehler') return;
@@ -868,7 +887,7 @@ export default function WorkSheetsListView() {
     try {
       await restoreWorkSheetDraft(s.id);
       toast.success('Entwurf wieder aufgenommen');
-      await laden();
+      await neuLaden();
     } catch (err) {
       setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
     } finally {
@@ -1111,12 +1130,11 @@ export default function WorkSheetsListView() {
             </div>
           ) : pruefungFehler ? (
             <div className="px-4 pb-3 pt-3">
-              <Hinweiszeile stufe="warn" role="status">
-                <p>
-                  <strong>Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden.</strong>{' '}
-                  Geprüft wird deshalb nicht — sonst stünde jeder Schein als „ohne Buchung“ da. Bitte
-                  die Seite neu laden.
-                </p>
+              <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+                Geprüft wird deshalb nicht — sonst stünde jeder Schein als „ohne Buchung“ da. Bitte die
+                Seite neu laden.
+              </p>}>
+                <p><strong>Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden.</strong></p>
               </Hinweiszeile>
             </div>
           ) : (<>
@@ -1491,7 +1509,7 @@ export default function WorkSheetsListView() {
         {offenerSchein && (
           <ScheinEinzelheiten
             schein={offenerSchein}
-            onNeuLaden={() => void laden()}
+            onNeuLaden={() => void neuLaden()}
             aktionen={
               stornoFuer?.id === offenerSchein.id ? (
                 /*
@@ -1541,7 +1559,7 @@ export default function WorkSheetsListView() {
                           });
                           setStornoFuer(null);
                           setStornoGrund('');
-                          await laden();
+                          await neuLaden();
                         } catch (err) {
                           setError(grundAus(err, 'Der Storno ist fehlgeschlagen.'));
                         } finally {
@@ -1559,76 +1577,55 @@ export default function WorkSheetsListView() {
                 {offenerSchein.status === 'Unterschrieben' && (
                   <VerbrauchAmSchein key={offenerSchein.id} scheinId={offenerSchein.id} />
                 )}
-                <div className="fuss-aktionen">
-                  <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(offenerSchein)}>
-                    PDF
-                  </Button>
-                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Entwurf' && (
-                    <>
-                      {/*
-                        Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
-                        Grenze wie in der Datenbank (`app.schein_schreibt`): die
-                        Führung jeden Entwurf, der Monteur seinen eigenen.
-                        Das Fenster geht dabei zu: die Rückfrage steht für sich,
-                        nicht über einem zweiten Dialog.
-                      */}
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setVerwerfenFuer(offenerSchein);
-                          setOffen(null);
-                        }}
-                      >
-                        Verwerfen
-                      </Button>
-                      {weiterbearbeitenLink(offenerSchein)}
-                    </>
-                  )}
-                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Verworfen' && (
-                    <Button variant="secondary" loading={busy} onClick={() => void wiederAufnehmen(offenerSchein)}>
-                      Wieder aufnehmen
-                    </Button>
-                  )}
-                  {darfStornieren && offenerSchein.status === 'Unterschrieben' && (
-                    <Button variant="ghost" onClick={() => setStornoFuer(offenerSchein)}>
-                      Stornieren
-                    </Button>
-                  )}
-                  {/*
-                    DER ERSATZ ZUM STORNO (P4): mit Verweis auf den
-                    stornierten Schein. Er erbt dessen Verrechnung — stand der
-                    auf einer Rechnung, kommt der Ersatz nicht noch einmal auf
-                    eine. Gibt es schon einen, weist die Datenbank ab und sagt es.
-                  */}
-                  {darfSchreiben && offenerSchein.status === 'Storniert' && (
-                    <KnopfLink to={ersatzAdresse(offenerSchein)} variant="secondary">
-                      Ersatzschein anlegen
-                    </KnopfLink>
-                  )}
-                </div>
                 {/*
+                  DIE KNÖPFE DES SCHEINS (U4, Durchsicht 15.11.2026): eine
+                  gefüllte Hauptaktion je Stand, höchstens eine zweite, das
+                  Übrige im ⋯. Vorher standen „PDF · Verwerfen ·
+                  Weiterbearbeiten“ gleich laut nebeneinander und „Löschen“
+                  darunter. Unumkehrbares — Löschen, Stornieren — steht im ⋯,
+                  die Rückfrage danach bleibt.
+
+                  Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
+                  Grenze wie in der Datenbank (`app.schein_schreibt`): die
+                  Führung jeden Entwurf, der Monteur seinen eigenen. Das
+                  Fenster geht dabei zu: die Rückfrage steht für sich.
+
                   LÖSCHEN NUR VOR DER UNTERSCHRIFT (Auftrag 04.11.2026): ein
-                  Entwurf und ein verworfener Entwurf sind keine Belege. Wer
-                  darf, ist dieselbe Grenze wie beim Verwerfen; die Datenbank
-                  hält sie (`work_sheets_loeschen`). Ein unterschriebener Schein
-                  wird storniert, nie gelöscht. In einer eigenen Zeile unter
-                  einer Linie: das Endgültige steht nicht neben
-                  „Weiterbearbeiten“.
+                  Entwurf und ein verworfener Entwurf sind keine Belege; die
+                  Datenbank hält die Grenze (`work_sheets_loeschen`). Ein
+                  unterschriebener Schein wird storniert, nie gelöscht.
+
+                  DER ERSATZ ZUM STORNO (P4): mit Verweis auf den
+                  stornierten Schein; er erbt dessen Verrechnung.
                 */}
-                {darfDiesen(offenerSchein) && (offenerSchein.status === 'Entwurf' || offenerSchein.status === 'Verworfen') && (
-                  <div className="schein-loeschen">
-                    {/* Unumkehrbar: `danger` in normaler Größe wie jeder Knopf im Fenster (E72, R4). */}
-                    <Button
-                      variant="danger"
-                      onClick={() => {
-                        setLoeschenFuer(offenerSchein);
-                        setOffen(null);
-                      }}
-                    >
-                      Löschen
-                    </Button>
-                  </div>
-                )}
+                {(() => {
+                  const s = offenerSchein;
+                  const eigen = darfDiesen(s);
+                  const pdfKnopf = <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(s)}>PDF</Button>;
+                  const loeschen = eigen && (s.status === 'Entwurf' || s.status === 'Verworfen')
+                    ? [{ label: 'Löschen', danger: true, onSelect: () => { setLoeschenFuer(s); setOffen(null); } }] : [];
+                  if (eigen && s.status === 'Entwurf') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<KnopfLink to={`/worksheet?entwurf=${s.id}`}>Weiterbearbeiten</KnopfLink>}
+                      zweit={pdfKnopf}
+                      weitere={[{ label: 'Verwerfen', onSelect: () => { setVerwerfenFuer(s); setOffen(null); } }, ...loeschen]} />;
+                  }
+                  if (eigen && s.status === 'Verworfen') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<Button loading={busy} onClick={() => void wiederAufnehmen(s)}>Wieder aufnehmen</Button>}
+                      zweit={pdfKnopf}
+                      weitere={loeschen} />;
+                  }
+                  if (darfSchreiben && s.status === 'Storniert') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<KnopfLink to={ersatzAdresse(s)}>Ersatzschein anlegen</KnopfLink>}
+                      zweit={pdfKnopf} />;
+                  }
+                  return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                    zweit={pdfKnopf}
+                    weitere={darfStornieren && s.status === 'Unterschrieben'
+                      ? [{ label: 'Stornieren', danger: true, onSelect: () => setStornoFuer(s) }] : []} />;
+                })()}
                 </>
               )
             }
@@ -1661,10 +1658,22 @@ export default function WorkSheetsListView() {
         onCancel={() => setVerwerfenFuer(null)}
         onConfirm={async () => {
           if (!verwerfenFuer) return;
-          await discardWorkSheetDraft(verwerfenFuer.id, user.name);
-          toast.success('Entwurf verworfen');
+          const id = verwerfenFuer.id;
+          await discardWorkSheetDraft(id, user.name);
+          /*
+            RÜCKGÄNGIG IN DER MELDUNG (F15): derselbe Weg wie „Wiederherstellen“
+            im Papierkorb (M01d) — der Entwurf ist mit Zeiten, Material und
+            Fotos wieder in der Arbeitsliste.
+          */
+          toast.success('Entwurf verworfen', {
+            label: 'Rückgängig',
+            onClick: () => void restoreWorkSheetDraft(id).then(
+              () => { toast.success('Schein wiederhergestellt — wieder ein Entwurf'); void neuLaden(); },
+              (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.')),
+            ),
+          });
           setVerwerfenFuer(null);
-          await laden();
+          await neuLaden();
         }}
       />
 
@@ -1692,7 +1701,7 @@ export default function WorkSheetsListView() {
           await deleteWorkSheetDraft(user.companyId, loeschenFuer.id, (loeschenFuer.fotos ?? []).map((f) => f.pfad));
           toast.success('Entwurf gelöscht');
           setLoeschenFuer(null);
-          await laden();
+          await neuLaden();
         }}
       />
     </div>

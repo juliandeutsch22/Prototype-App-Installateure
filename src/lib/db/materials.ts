@@ -153,6 +153,18 @@ export function katalogNachIds(companyId: string, ids: readonly string[]): Promi
   return pg.katalogNachIds(companyId, ids);
 }
 
+export type { LagerZeile, LagerListe, LagerListeFrage } from './pg/materials';
+
+/** Die gezeigte Seite der Lagerliste und die Zahlen über alle — siehe `pg.lagerListe`. */
+export function lagerListe(f: pg.LagerListeFrage): Promise<pg.LagerListe> {
+  return pg.lagerListe(f);
+}
+
+/** Meldet Änderungen an Artikeln und Anforderungen — siehe `pg.lagerBeobachten`. */
+export function lagerBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  return pg.lagerBeobachten(companyId, beiAenderung);
+}
+
 /** Die knappen Lagerartikel samt Freiem, aus der Datenbank — siehe `pg.lagerKnapp`. */
 export function lagerKnapp(grenze: number) {
   return pg.lagerKnapp(grenze);

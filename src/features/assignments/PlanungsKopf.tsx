@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { Segmente } from '@/components/LotBausteine';
@@ -31,7 +31,7 @@ export function PlanungsSeitenkopf({
   mehr,
   stand,
 }: {
-  action?: ReactNode;
+  action?: ReactElement | false | null;
   hilfe?: ReactNode;
   mehr?: ReactNode;
   /** Das Schriftfeld des Plankopfs (Planlinie, B1) — eine `MetricRow`. */

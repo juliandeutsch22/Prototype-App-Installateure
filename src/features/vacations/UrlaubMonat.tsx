@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import type { Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { listApprovedVacationsInRange } from '@/lib/db/vacations';
@@ -45,6 +46,8 @@ export default function UrlaubMonat({
   const { von, bis } = monatsGrenzen(cursor.jahr, cursor.monat);
   const [stand, setStand] = useState<{ fuer: string; liste: WithId<Vacation>[] | 'fehler' } | null>(null);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
 
   useEffect(() => {
     let weg = false;

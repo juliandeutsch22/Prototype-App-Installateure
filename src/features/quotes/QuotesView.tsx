@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
@@ -34,7 +35,7 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
-import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
+import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
 import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
@@ -44,7 +45,8 @@ import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
-import { useToast } from '@/components/Toast';
+import { useToast, type MeldungAktion } from '@/components/Toast';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
@@ -430,6 +432,8 @@ export default function QuotesView() {
   */
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
+  // „Neues Angebot“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => setFormOffen(true), darfAendern);
 
   /*
     „OFFEN“ FRAGT DIE DATENBANK NACH DEM ZUSTAND (A6), seitenweise ab der
@@ -478,6 +482,8 @@ export default function QuotesView() {
     },
     [user, grenze, ansicht, merken],
   );
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
 
   useEffect(() => {
     void laden();
@@ -893,12 +899,12 @@ export default function QuotesView() {
     scheiterte es, geschah für den Betrachter nichts, und der Fehler landete
     unbemerkt in der Konsole.
   */
-  async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+  async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string, aktion?: MeldungAktion) {
     setBusy(true);
     setError(null);
     try {
       await updateQuote(q.id, { status: neu });
-      toast.success(meldung);
+      toast.success(meldung, aktion);
       await laden();
     } catch (err) {
       setError(grundAus(err, 'Der Status konnte nicht gespeichert werden.'));
@@ -1476,12 +1482,12 @@ export default function QuotesView() {
             </div>
 
             {stundenVorher !== null && (
-              <Hinweiszeile stufe="warn" role="status">
-                <p>
-                  Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit
-                  zählen. Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher
-                  kalkuliert: <strong className="font-semibold">{fmtStunden(stundenVorher)} h</strong>.
-                </p>
+              <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+                Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen; die
+                Haken sind aus der Einheit abgeleitet. Bisher kalkuliert:{' '}
+                <strong className="font-semibold">{fmtStunden(stundenVorher)} h</strong>.
+              </p>}>
+                <p>Welche Positionen als Arbeitszeit zählen, bitte prüfen.</p>
               </Hinweiszeile>
             )}
 
@@ -1687,7 +1693,14 @@ export default function QuotesView() {
         onConfirm={async () => {
           const q = verwerfenFragen;
           setVerwerfenFragen(null);
-          if (q) await status(q, 'Verworfen', VERWORFEN_MELDUNG);
+          /*
+            RÜCKGÄNGIG IN DER MELDUNG (F15): derselbe Weg wie „Wiederherstellen“
+            im Papierkorb — der Entwurf ist wieder ein Entwurf, nichts ging verloren.
+          */
+          if (q) await status(q, 'Verworfen', VERWORFEN_MELDUNG, {
+            label: 'Rückgängig',
+            onClick: () => void status(q, 'Entwurf', WIEDERHERGESTELLT_MELDUNG),
+          });
         }}
       />
     </div>

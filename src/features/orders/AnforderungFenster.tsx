@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import type { WithId } from '@/lib/db/core';
 import type { MaterialOrder } from '@/types';
 import ZahlFeld from '@/components/ZahlFeld';
@@ -95,18 +96,19 @@ export default function AnforderungFenster({
         )}
         {fehler && <ErrorState message={fehler} />}
         {art === 'zeigen' ? (
-          <div className="fuss-aktionen">
-            {aenderbar && (
-              <>
-                <Button variant="ghost" onClick={() => setArt('zurueck')}>Zurückziehen …</Button>
-                <Button variant="ghost" onClick={() => setArt('menge')}>Menge ändern …</Button>
-              </>
-            )}
-            {!o.isUrgent && eiligMoeglich(o) && (
-              <Button variant="ghost" onClick={onEilig}>Als eilig markieren</Button>
-            )}
-            <Button onClick={onAbgeholt}>Abgeholt</Button>
-          </div>
+          /*
+            U4: „Abgeholt“ ist der nächste Schritt; das Seltene im ⋯ —
+            „Zurückziehen …“ dort als Unumkehrbares, die Rückfrage folgt.
+          */
+          <Fensteraktionen
+            about={`Anforderung ${o.materialName}`}
+            haupt={<Button onClick={onAbgeholt}>Abgeholt</Button>}
+            weitere={[
+              ...(aenderbar ? [{ label: 'Menge ändern …', onSelect: () => setArt('menge') }] : []),
+              ...(!o.isUrgent && eiligMoeglich(o) ? [{ label: 'Als eilig markieren', onSelect: onEilig }] : []),
+              ...(aenderbar ? [{ label: 'Zurückziehen …', onSelect: () => setArt('zurueck'), danger: true }] : []),
+            ]}
+          />
         ) : (
           <div className="fuss-aktionen">
             <Button variant="ghost" onClick={() => { setArt('zeigen'); setFehler(null); }}>Abbrechen</Button>

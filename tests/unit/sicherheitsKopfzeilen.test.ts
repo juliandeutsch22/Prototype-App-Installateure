@@ -27,8 +27,8 @@ const konfig = JSON.parse(readFileSync(join(wurzel, 'firebase.json'), 'utf8')) a
 
 // Über einen Pfad in einer Variablen: `vite.config.ts` gehört zum Node-Teil
 // des Projekts (tsconfig.node.json), nicht zu dem der App — wie in
-// `appStart.test.ts`. Mit Endung, weil `tsc -b` daneben ein `.js` ablegt, das
-// sonst vorginge und einen alten Stand prüfte.
+// `appStart.test.ts`. Mit Endung, damit eine liegengebliebene `vite.config.js`
+// (bis 15.11.2026 legte `tsc -b` sie ab) nicht vorgeht und einen alten Stand prüft.
 const configPfad = '../../vite.config.ts';
 const vite = (await import(/* @vite-ignore */ configPfad)) as {
   default: { plugins: Plugin[] };

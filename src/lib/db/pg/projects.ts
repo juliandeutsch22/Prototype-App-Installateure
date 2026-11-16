@@ -7,7 +7,8 @@
 import type { Project } from '@/types';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, abonnieren, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
+import { abfragen, abonnieren, anlegen, aendern, derClient, kanalHalten, loeschen, type WithId } from './kern';
+import { zeileAlsObjekt } from './felder';
 
 const BAUSTELLEN = 'projects';
 
@@ -354,4 +355,79 @@ export async function baustelleAbschliessen(id: string): Promise<AbschlussLage> 
   const { data, error } = await derClient().rpc('baustelle_abschliessen', { p_projekt: id });
   if (error) throw new Error(error.message);
   return lageLesen((data ?? {}) as Record<string, unknown>);
+}
+
+/** Die Baustellenliste aus der Datenbank (`baustellen_liste`): je Statusgruppe Zahl und gezeigte Seite. */
+export interface BaustellenListe {
+  gruppen: { status: string; anzahl: number; zeilen: WithId<Project>[] }[];
+  aktiv: number;
+  ende: number;
+  gesamt: number;
+  /** Die Nummern der 300 jüngsten — für den Vorschlag der nächsten Nummer. */
+  neuesteNummern: string[];
+}
+
+/**
+ * NUR, WAS DIE LISTE ZEIGT (Durchsicht 15.11.2026, Budget B3): vorher die
+ * jüngsten 300 als Live-Liste und alle laufenden (zusammen 720 Zeilen), um im
+ * Browser zu filtern, zu suchen, zu gruppieren und zu zählen. Die Datenbank
+ * tut das nach denselben Regeln über alle und gibt je Gruppe die ersten
+ * `anzahl[Status]`, neueste zuerst.
+ */
+export async function baustellenListe(f: {
+  heute: string;
+  status: 'offen' | 'archiv' | 'alle';
+  filter?: string | null;
+  nummern?: readonly string[] | null;
+  meine?: boolean;
+  begriff?: string;
+  anzahl: Record<string, number>;
+}): Promise<BaustellenListe> {
+  const { data, error } = await derClient().rpc('baustellen_liste', {
+    p_heute: f.heute,
+    p_status: f.status,
+    p_filter: f.filter || null,
+    p_nummern: f.nummern ? [...f.nummern] : null,
+    p_meine: !!f.meine,
+    p_begriff: f.begriff ?? '',
+    p_anzahl: f.anzahl,
+  });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as { gruppen?: { status: string; anzahl: number; zeilen: Record<string, unknown>[] }[]; aktiv?: number; ende?: number; gesamt?: number; neueste_nummern?: string[] };
+  return {
+    gruppen: (d.gruppen ?? []).map((g) => ({
+      status: g.status,
+      anzahl: Number(g.anzahl),
+      zeilen: (g.zeilen ?? []).map((z) => zeileAlsObjekt<WithId<Project>>(BAUSTELLEN, z)),
+    })),
+    aktiv: Number(d.aktiv ?? 0),
+    ende: Number(d.ende ?? 0),
+    gesamt: Number(d.gesamt ?? 0),
+    neuesteNummern: d.neueste_nummern ?? [],
+  };
+}
+
+/** Budgetstand über alle aktiven Baustellen mit Budget (`baustellen_budget_lage`) — nur für die Leitung. */
+export async function baustellenBudgetLage(abProzent: number): Promise<{ ueber: number; nah: number; nummern: string[] }> {
+  const { data, error } = await derClient().rpc('baustellen_budget_lage', { p_ab: abProzent });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as { ueber?: number; nah?: number; nummern?: string[] };
+  return { ueber: Number(d.ueber ?? 0), nah: Number(d.nah ?? 0), nummern: d.nummern ?? [] };
+}
+
+/** Meldet Änderungen an den Baustellen — gebündelt, auch nach jedem Wiederaufbau des Kanals. */
+export function baustellenBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      beiAenderung();
+    }, 1000);
+  };
+  const stopp = kanalHalten({ tabelle: BAUSTELLEN, filter: `company_id=eq.${companyId}`, beiAenderung: bald, beiBereit: bald, client: derClient() });
+  return () => {
+    if (geplant) clearTimeout(geplant);
+    stopp();
+  };
 }

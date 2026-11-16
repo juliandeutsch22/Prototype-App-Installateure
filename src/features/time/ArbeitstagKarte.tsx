@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -15,6 +15,7 @@ import { zuletztMerken } from '@/lib/baustelleVorbelegen';
 import { useBaustellenAuswahl } from '@/features/nachrichten/useBaustellenAuswahl';
 import { useZeitsitzung } from './zeitsitzungStand';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import { useZustandswechsel } from '@/lib/useZustandswechsel';
 
 /**
  * DIE KARTE „ARBEITSTAG“ (M06a, schlanke Fassung vom 08.11.2026) — auf der
@@ -78,6 +79,10 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
     return m;
   }, [baustellen.liste, nachgeholt]);
 
+  // Fläche, Uhr und Knöpfe wechseln gemeinsam (B7) — der Zustand selbst gilt sofort.
+  const karte = useRef<HTMLElement>(null);
+  useZustandswechsel(karte, z.laeuft ? (z.laeuft.stand === 'pause' ? 'pause' : 'laeuft') : 'bereit', '.arbeitstag-knoepfe .rund-knopf, .rund-knopf-start');
+
   if (!user) return null;
   const offen = z.offen.length;
   if (!z.an && !z.laeuft && !(aufStart && offen > 0)) return null;
@@ -119,7 +124,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
       aber ohne jedes Zeichen. So sagt die Karte Vorlesehilfen und Prüfungen,
       dass sie gerade bestätigt wird; die Knöpfe bleiben dabei bedienbar.
     */
-    <section className="arbeitstag" aria-labelledby="arbeitstag-titel" aria-busy={z.unterwegs || undefined} data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
+    <section ref={karte} className="arbeitstag" aria-labelledby="arbeitstag-titel" aria-busy={z.unterwegs || undefined} data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
       <h2 id="arbeitstag-titel" className="sr-only">Arbeitstag</h2>
       <div className="arbeitstag-hilfe">
         <InfoHint about="Arbeitstag">

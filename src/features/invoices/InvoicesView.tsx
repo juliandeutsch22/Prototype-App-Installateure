@@ -1,6 +1,6 @@
 import { istAn } from '@/lib/module';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
@@ -117,12 +117,24 @@ import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import { mitBeleg } from './mitBeleg';
+/*
+  Die E-Rechnung bleibt fest eingebunden: sie teilt sich `ebinterface.ts` mit
+  dieser Ansicht. Nachgeladen bände ihr Baustein den der Ansicht ein und
+  holte beim Öffnen 131,2 KB — gespart wäre nichts (gemessen).
+*/
+import EbInterfaceDialog from './EbInterfaceDialog';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { mahnungPdfBlob, mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
-import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
-import BankgarantieDialog from './BankgarantieDialog';
-import EbInterfaceDialog from './EbInterfaceDialog';
+/*
+  SELTEN GEÖFFNETE FENSTER KOMMEN ERST BEIM ERSTEN ÖFFNEN (Nacharbeit
+  15.11.2026). Die Rechnungsansicht lag mit 134,4 KB knapp unter der Grenze
+  des Leistungswächters (135 KB je Ansicht, L11). Mail und Bankgarantie
+  braucht man selten; sie laden beim ersten Öffnen nach und bleiben danach
+  geladen (Schließen mit Bewegung wie bisher). Gemessen: 129,3 KB.
+*/
+const BelegMailDialog = lazy(() => import('@/features/belegMail/BelegMailDialog'));
+const BankgarantieDialog = lazy(() => import('./BankgarantieDialog'));
 import {
   anzahlText,
   BEREICHE,
@@ -479,6 +491,8 @@ export default function InvoicesView() {
   const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
   // Die E-Rechnung (ebInterface) — zur Rechnung oder zu ihrer Stornorechnung.
   const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
+  // Einmal geöffnet, bleiben die nachgeladenen Fenster stehen — ihr Schließen läuft wie bisher.
+  const garantieGeladen = useEinmal(!!garantieFuer);
   /** Die Rechnung, die gerade per Mail hinausgeht (F16). */
   const [mailFuer, setMailFuer] = useState<WithId<Invoice> | null>(null);
   /** Die gespeicherte Mahnung, die gerade per Mail hinausgeht — mit ihrer Rechnung (F16, Nacharbeit). */
@@ -991,8 +1005,9 @@ export default function InvoicesView() {
   */
   useEffect(() => {
     const neu = suchparameter.get('neu');
-    if (!neu || nurLesen) return;
-    baustelleWaehlen(neu);
+    // Auch ohne Baustelle (`?neu`, F15: „Neue Rechnung“ aus „Suchen oder springen“) — dann wählt man sie im Formular.
+    if (neu === null || nurLesen) return;
+    if (neu) baustelleWaehlen(neu);
     setPreview(null);
     erstellenOeffnen();
     setSuchparameter((alt) => {
@@ -3705,11 +3720,12 @@ export default function InvoicesView() {
       */}
       {basisBereit && (<>
       {!nurLesen && forderungenFehler && (
-        <Hinweiszeile stufe="warn" role="status">
+        <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+          Mahnlauf und „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt,
+          heißt nicht, dass es nichts zu tun gibt.
+        </p>}>
           <p>
-            <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
-            „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt, heißt
-            nicht, dass es nichts zu tun gibt.{' '}
+            <strong>Die offenen Forderungen konnten nicht geladen werden.</strong>{' '}
             {/* Dieselbe Nachladung, die nach jeder Änderung an einer Rechnung läuft — gelingt sie, verschwindet die Zeile. */}
             <button type="button" onClick={offeneNeuLaden} className="link-hinweis min-h-touch">
               Erneut laden
@@ -3719,10 +3735,9 @@ export default function InvoicesView() {
       )}
 
       {!forderungenFehler && abdeckungFehler && (
-        <Hinweiszeile stufe="warn" role="status">
+        <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>„Nicht verrechnete Leistung“ wird deshalb nicht angezeigt. Bitte die Seite neu laden.</p>}>
           <p>
-            <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
-            „Nicht verrechnete Leistung“ wird deshalb nicht angezeigt. Bitte die Seite neu laden.
+            <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>
           </p>
         </Hinweiszeile>
       )}
@@ -4229,12 +4244,11 @@ export default function InvoicesView() {
           */}
           {zeitraumFehlt && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Ohne Leistungszeitraum wird die Rechnung nicht erstellt: § 11 UStG verlangt Tag oder
-                  Zeitraum der Leistung, sonst wackelt beim Kunden der Vorsteuerabzug. Für einen einzelnen
-                  Tag beide Felder gleich setzen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                § 11 UStG verlangt Tag oder Zeitraum der Leistung, sonst wackelt beim Kunden der
+                Vorsteuerabzug. Für einen einzelnen Tag beide Felder gleich setzen.
+              </p>}>
+                <p>Ohne Leistungszeitraum wird die Rechnung nicht erstellt.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4254,12 +4268,11 @@ export default function InvoicesView() {
           */}
           {zeitraumVerdreht && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  „Leistung bis“ liegt vor „Leistung von“ — so stünde der Zeitraum verdreht auf der
-                  Rechnung, und zurückzunehmen wäre das nur noch mit einem Storno. Erst berichtigen, dann
-                  erstellen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                So stünde der Zeitraum verdreht auf der Rechnung, und zurückzunehmen wäre das nur noch
+                mit einem Storno.
+              </p>}>
+                <p>„Leistung bis“ liegt vor „Leistung von“ — erst berichtigen, dann erstellen.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4311,6 +4324,7 @@ export default function InvoicesView() {
           {pauschalAus === null && (abgleich.scheine > 0 || abgleich.ohneSchein.length > 0) && (
             <div className="mb-3">
               <Hinweiszeile
+                offenWeil="Abgleich Scheine gegen Buchungen vor dem Erstellen: die Zahlen je Person und Tag sind die Auskunft selbst (U9)"
                 stufe={
                   abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0 ||
                   abgleich.ohneSchein.length > 0
@@ -4433,12 +4447,11 @@ export default function InvoicesView() {
           */}
           {nachgetragen.map((n) => (
             <div key={n.scheinId} className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Der Schein vom {datumAT(n.datum)} liegt im Zeitraum, den {n.rechnung} schon abgerechnet
-                  hat, und {n.rechnung} trägt bereits {n.artikel.join(', ')}. Bitte prüfen, ob es hier ein
-                  zweites Mal hingehört — sonst die Zeile anpassen oder entfernen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {n.rechnung} trägt bereits {n.artikel.join(', ')}. Bitte prüfen, ob es hier ein zweites Mal
+                hingehört — sonst die Zeile anpassen oder entfernen.
+              </p>}>
+                <p>Der Schein vom {datumAT(n.datum)} liegt im Zeitraum, den {n.rechnung} schon abgerechnet hat.</p>
               </Hinweiszeile>
             </div>
           ))}
@@ -4450,26 +4463,24 @@ export default function InvoicesView() {
           */}
           {schonOhneSchein.map((n) => (
             <div key={`${n.scheinId}|${n.rechnung}`} className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Der Schein vom {datumAT(n.datum)} bringt{' '}
-                  {n.artikel.map((a) => `${a.name} ${fmtMenge(a.aufSchein)} ${a.einheit}`.trim()).join(', ')} —{' '}
-                  {n.rechnung} trägt davon schon{' '}
-                  {n.artikel.map((a) => `${fmtMenge(a.aufRechnung)} ${a.einheit}`.trim()).join(', ')} ohne Schein
-                  (aus dem Lager übernommen oder von Hand eingesetzt). Bitte prüfen, ob es hier ein zweites Mal
-                  hingehört — sonst die Zeile anpassen oder entfernen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Er bringt {n.artikel.map((a) => `${a.name} ${fmtMenge(a.aufSchein)} ${a.einheit}`.trim()).join(', ')} —{' '}
+                {n.rechnung} trägt davon schon{' '}
+                {n.artikel.map((a) => `${fmtMenge(a.aufRechnung)} ${a.einheit}`.trim()).join(', ')} ohne Schein
+                (aus dem Lager übernommen oder von Hand eingesetzt). Bitte prüfen, ob es hier ein zweites Mal
+                hingehört — sonst die Zeile anpassen oder entfernen.
+              </p>}>
+                <p>Material vom Schein vom {datumAT(n.datum)} steht womöglich schon auf {n.rechnung}.</p>
               </Hinweiszeile>
             </div>
           ))}
           {preview.materialOhnePreis.length > 0 && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
-                  {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
-                  entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile entfernen —
+                im Lager gepflegt, kommt er beim nächsten Mal von selbst.
+              </p>}>
+                <p>Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt: {preview.materialOhnePreis.length === 1 ? '1 Position' : `${preview.materialOhnePreis.length} Positionen`}.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4796,27 +4807,27 @@ export default function InvoicesView() {
           */}
           {entwuerfe.length > 0 && (
             <div className="mt-4">
-              <Hinweiszeile stufe="warn">
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {entwuerfe.length === 1 ? 'Sein' : 'Ihr'} Material
+                ({[...new Set(entwuerfe.flatMap((e) => e.artikel))].join(', ')}) ist vom Ausgegebenen
+                abgezogen, weil es mit dem Schein kommt. Vor der Rechnung unterschreiben oder verwerfen —
+                wird ein Entwurf danach verworfen, fehlt sein Material.
+              </p>}>
                 <p>
                   {entwuerfe.length === 1
                     ? `Der Schein vom ${datumAT(entwuerfe[0].datum)} ist noch Entwurf.`
-                    : `${entwuerfe.length} Scheine dieser Baustelle sind noch Entwurf (${entwuerfe.map((e) => datumAT(e.datum)).join(', ')}).`}{' '}
-                  {entwuerfe.length === 1 ? 'Sein' : 'Ihr'} Material
-                  ({[...new Set(entwuerfe.flatMap((e) => e.artikel))].join(', ')}) ist vom Ausgegebenen
-                  abgezogen, weil es mit dem Schein kommt. Vor der Rechnung unterschreiben oder verwerfen —
-                  wird ein Entwurf danach verworfen, fehlt sein Material.
+                    : `${entwuerfe.length} Scheine dieser Baustelle sind noch Entwurf (${entwuerfe.map((e) => datumAT(e.datum)).join(', ')}).`}
                 </p>
               </Hinweiszeile>
             </div>
           )}
           {ausgabenFehler && (
             <div className="mt-4">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Diese
-                  Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag der
-                  nächsten. Wer es auf dieser haben will, stellt neu zusammen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Diese Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag
+                der nächsten. Wer es auf dieser haben will, stellt neu zusammen.
+              </p>}>
+                <p>Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4884,12 +4895,12 @@ export default function InvoicesView() {
           */}
           {gutschriften.length > 0 && (
             <div className="mt-4 border-t border-line pt-4">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Zurückgegeben, aber schon verrechnet: der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift
-                  — oder sie wird mit ihm auf dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht
-                  der Hinweis nicht mehr da.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift — oder sie wird mit ihm auf
+                dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht der Hinweis nicht
+                mehr da.
+              </p>}>
+                <p>Zurückgegeben, aber schon verrechnet.</p>
               </Hinweiszeile>
               <List>
                 {gutschriften.map((v) => (
@@ -5697,12 +5708,13 @@ export default function InvoicesView() {
               */}
               {ohneAbzug.length > 0 && (
                 <div className="mt-3">
-                  <Hinweiszeile stufe="warn">
+                  <Hinweiszeile stufe="warn" einzelheiten={<p>
+                    Die Umsatzsteuer der Anzahlung steht damit zweimal auf den Belegen. Berichtigt wird
+                    über Storno und eine neue Schlussrechnung — am besten vor der Übergabe an die Kanzlei.
+                  </p>}>
                     <p>
                       <strong>Schlussrechnung ohne Abzug der Anzahlung:</strong>{' '}
                       {ohneAbzug.map((o) => `${o.invoiceNumber} (nicht abgezogen: ${o.fehlend})`).join('; ')}.
-                      Die Umsatzsteuer der Anzahlung steht damit zweimal auf den Belegen. Berichtigt wird
-                      über Storno und eine neue Schlussrechnung — am besten vor der Übergabe an die Kanzlei.
                     </p>
                   </Hinweiszeile>
                 </div>
@@ -5720,12 +5732,12 @@ export default function InvoicesView() {
               )}
               {e.ohneStornorechnung.length > 0 && (
                 <div className="mt-3">
-                  <Hinweiszeile stufe="warn">
+                  <Hinweiszeile stufe="warn" einzelheiten={<p>
+                    Die Gegenbuchung steht am Tag des Stornos. Wird die Stornorechnung später ausgestellt,
+                    trägt sie das Datum ihrer Ausstellung — bitte vor der Übergabe an die Kanzlei ausstellen.
+                  </p>}>
                     <p>
-                      <strong>Storno ohne Stornorechnung:</strong> {e.ohneStornorechnung.join(', ')}. Die
-                      Gegenbuchung steht am Tag des Stornos. Wird die Stornorechnung später ausgestellt,
-                      trägt sie das Datum ihrer Ausstellung — bitte vor der Übergabe an die Kanzlei
-                      ausstellen.
+                      <strong>Storno ohne Stornorechnung:</strong> {e.ohneStornorechnung.join(', ')}.
                     </p>
                   </Hinweiszeile>
                 </div>
@@ -6014,7 +6026,8 @@ export default function InvoicesView() {
           />
         );
       })()}
-      <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />
+      <Suspense fallback={null}>
+      {garantieGeladen && <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />}
       <EbInterfaceDialog
         inv={eRechnungFuer?.inv ?? null}
         storno={eRechnungFuer?.storno ?? false}
@@ -6063,6 +6076,7 @@ export default function InvoicesView() {
           onClose={() => setMahnMail(null)}
         />
       )}
+      </Suspense>
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
@@ -6482,4 +6496,11 @@ export default function InvoicesView() {
       </ConfirmDialog>
     </div>
   );
+}
+
+/** Wird `wahr`, sobald die Bedingung einmal galt, und bleibt es. */
+function useEinmal(bedingung: boolean): boolean {
+  const [war, setWar] = useState(bedingung);
+  if (bedingung && !war) setWar(true);
+  return war || bedingung;
 }

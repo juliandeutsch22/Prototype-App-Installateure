@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung } from './handlung';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -8,6 +9,8 @@ import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
 import { listGrosshaendler, lieferungenFuerArtikel } from '@/lib/db/einkauf';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
+import type { LagerListeFrage } from '@/lib/db/materials';
+import { lagerListeNachgebildet } from './lagerListeNachbildung';
 
 /**
  * Lager — der dritte Schritt des Materialablaufs.
@@ -37,34 +40,30 @@ function anforderung(p: Partial<MaterialOrder> & { id: string }): WithId<Materia
 let materialien: WithId<Material>[] = [];
 let anforderungen: WithId<MaterialOrder>[] = [];
 let katalogFehler: string | null = null;
-let anforderungsFehler = false;
-/** Hält den Katalog zurück, bis der Test ihn schickt — wie die Live-Liste, die einen Augenblick nach dem Aufbau kommt. */
-let katalogSenden: (() => void) | null = null;
-let katalogHalten = false;
-/** Wie oft die Ansicht die Lagerartikel abonniert hat. */
-let lagerAbos = 0;
+/** Was die Ansicht `lager_liste` gefragt hat — je Aufruf eine Frage. */
+const listeFragen: LagerListeFrage[] = [];
 /** Meldet eine Änderung im Katalog, wie es der Live-Kanal täte. */
 let katalogGeaendert: () => void = () => undefined;
+/** Meldet eine Änderung im Lager (Artikel, Anforderungen), wie es der Kanal täte. */
+let lagerGeaendert: () => void = () => undefined;
 
 const bestandAendern = vi.fn();
 
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   /*
-    Wie der Server seit dem 18.10.2026: nur die im Lager geführten Artikel.
-    Ein Datensatz ohne Angabe gilt als geführt (`imLager`) — die Muster
-    hier tragen das Feld meist nicht.
+    Die Lagerliste rechnet seit 15.11.2026 die Datenbank (`lager_liste`):
+    hier nachgebildet aus den Mustern — nur die im Lager geführten Artikel
+    (ein Datensatz ohne Angabe gilt als geführt; die Muster tragen das Feld
+    meist nicht) und das Reservierte, wie `lagerStand` es nennt.
   */
-  subscribeLagerartikel: (
-    _c: string,
-    cb: (rows: WithId<Material>[]) => void,
-    onError: (e: Error) => void,
-  ) => {
-    lagerAbos += 1;
-    const geführt = () => materialien.filter((m) => m.lagerartikel !== false);
-    if (katalogFehler) onError(new Error(katalogFehler));
-    else if (katalogHalten) katalogSenden = () => cb(geführt());
-    else cb(geführt());
+  lagerListe: async (f: LagerListeFrage) => {
+    listeFragen.push(f);
+    if (katalogFehler) throw new Error(katalogFehler);
+    return lagerListeNachgebildet(f, { materialien, stand: (ids) => lagerStand(ids) });
+  },
+  lagerBeobachten: (_c: string, melde: () => void) => {
+    lagerGeaendert = melde;
     return () => undefined;
   },
   katalogAnzahl: async () => materialien.length,
@@ -75,7 +74,6 @@ vi.mock('@/lib/db/materials', () => ({
   lagerEingang: (...a: unknown[]) => bestandAendern(...a),
   lagerInventur: (...a: unknown[]) => inventurBuchen(...a),
   listLagerbewegungen: (...a: unknown[]) => bewegungenLaden(...a),
-  lagerFrei: (ids: readonly string[]) => lagerStand(ids),
   // M03a: die Suche über Nummern der Großhändler — der Server nennt die Artikel.
   NUMMER_AB: 3,
   nummernTreffer: (begriff: string) => nummernSuche(begriff),
@@ -86,8 +84,21 @@ const kommissionAufruf = vi.fn<(ids?: readonly string[]) => Promise<Array<{ id: 
   async (ids) => (ids ? ids.map((id) => ({ id, name: 'Sonderfitting' })) : [{ id: 'k9', name: 'Sonderfitting' }]),
 );
 const nummernSuche = vi.fn<(begriff: string) => Promise<Map<string, unknown>>>(async () => new Map());
-// Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
-const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
+/*
+  WAS DIE DATENBANK RESERVIERT (wie `lager_frei`; die genauen Regeln prüfen
+  die Prüfungen gegen die Datenbank) — ohne eigene Vorgabe für die Muster
+  hier: offene Anforderungen mit Verweis auf den Artikel, keine erledigten,
+  keine Retouren.
+*/
+async function standAusAnforderungen(ids?: readonly string[]): Promise<Map<string, unknown>> {
+  return new Map((ids ?? []).map((id) => {
+    const zugesagt = anforderungen
+      .filter((o) => o.materialId === id && o.transactionType !== 'return' && o.status !== 'Erledigt')
+      .reduce((n, o) => n + (o.quantity ?? 0), 0);
+    return [id, { zugesagt, geplant: 0 }];
+  }));
+}
+const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(standAusAnforderungen);
 const inventurBuchen = vi.fn();
 const bewegungenLaden = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 vi.mock('@/lib/db/einkauf', () => ({
@@ -95,19 +106,6 @@ vi.mock('@/lib/db/einkauf', () => ({
   // M12: was von diesem Artikel noch kommt — ohne eigene Vorgabe nichts.
   lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
   GELIEFERT_ZURUECK_TAGE: 14,
-}));
-
-vi.mock('@/lib/db/materialOrders', () => ({
-  subscribeAllOrders: (
-    _c: string,
-    _max: number,
-    cb: (rows: WithId<MaterialOrder>[]) => void,
-    onError: (e: Error) => void,
-  ) => {
-    if (anforderungsFehler) onError(new Error('nicht lesbar'));
-    else cb(anforderungen);
-    return () => undefined;
-  },
 }));
 
 // Der Katalogreiter hat einen eigenen Test; hier steht er nur im Weg.
@@ -189,7 +187,7 @@ beforeEach(() => {
   materialien = [];
   anforderungen = [];
   katalogFehler = null;
-  anforderungsFehler = false;
+  listeFragen.length = 0;
   authWert = VERWALTUNG;
   bestandAendern.mockReset();
   bestandAendern.mockResolvedValue(undefined);
@@ -197,52 +195,30 @@ beforeEach(() => {
 });
 
 describe('Lager — was ist wirklich frei?', () => {
-  it('zieht offene Anforderungen vom Lagerstand ab', async () => {
+  /*
+    WAS RESERVIERT IST, RECHNET DIE DATENBANK (`lager_frei`, seit 15.11.2026
+    auch die ganze Liste, `lager_liste`): zugesagte Anforderungen und
+    Rüstlisten, keine erledigten, keine Retouren — geprüft gegen die
+    Datenbank (`tests/supabase/lagerListe.test.ts` und die Prüfungen von
+    `lager_frei`). Die Ansicht zeigt Lagerstand, Reserviertes und Freies, wie
+    die Datenbank sie nennt. Der Rückfall auf eine eigene Rechnung im Browser
+    (samt Zuordnung über den Namen) griff nur, wenn die Datenbank nicht
+    antwortete; seitdem steht dann ein Fehler mit „Erneut versuchen“.
+  */
+  it('zeigt frei als Lagerstand minus das Reservierte der Datenbank', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
-    anforderungen = [
-      anforderung({ id: 'o1', materialId: 'm1', quantity: 8 }),
-      anforderung({ id: 'o2', materialId: 'm1', quantity: 10, status: 'Abholbereit' }),
-    ];
-    zeige();
-
-    expect(await screen.findByText('2 m frei')).toBeInTheDocument();
-    // Lagerstand und Reservierung stehen seit dem Umbau als Kennzahlen im Seitenfenster.
-    const fenster = await artikelOeffnen();
-    expect(kennzahl(fenster, 'im Lager')).toHaveTextContent('20 m');
-    expect(kennzahl(fenster, 'reserviert')).toHaveTextContent('18');
-    expect(kennzahl(fenster, 'frei')).toHaveTextContent('2');
-  });
-
-  it('zählt Erledigtes und Retouren NICHT als reserviert', async () => {
-    // Erledigtes ist bereits vom Bestand abgezogen — noch einmal als
-    // Reservierung gerechnet, zählte es doppelt und das Lager sähe leerer
-    // aus, als es ist.
-    materialien = [material({ id: 'm1', stock: 20 })];
-    anforderungen = [
-      anforderung({ id: 'o1', materialId: 'm1', quantity: 5, status: 'Erledigt' }),
-      anforderung({ id: 'o2', materialId: 'm1', quantity: 7, transactionType: 'return' }),
-      anforderung({ id: 'o3', materialId: 'm1', quantity: 3 }),
-    ];
-    zeige();
-
-    expect(await screen.findByText('17 m frei')).toBeInTheDocument();
-  });
-
-  it('erkennt eine Anforderung ohne Verweis über den Namen', async () => {
-    /**
-     * Nicht jede Anforderung trägt eine `materialId` — der Altbestand kennt
-     * Positionen ohne Verweis, und auch eine per Sprache erfasste Zeile kann
-     * sie verlieren. Ohne diesen Rückfall zählte die Reservierung
-     * stillschweigend zu niedrig, und eine falsche Zahl im Lager ist
-     * schlimmer als gar keine.
-     */
-    materialien = [material({ id: 'm1', name: 'Kupferrohr 15mm', stock: 20 })];
-    anforderungen = [
-      anforderung({ id: 'o1', materialId: undefined, materialName: ' kupferrohr 15MM ', quantity: 6 }),
-    ];
-    zeige();
-
-    expect(await screen.findByText('14 m frei')).toBeInTheDocument();
+    lagerStand.mockImplementation(async () => new Map([['m1', { zugesagt: 10, geplant: 8 }]]));
+    try {
+      zeige();
+      expect(await screen.findByText('2 m frei')).toBeInTheDocument();
+      // Lagerstand und Reservierung stehen seit dem Umbau als Kennzahlen im Seitenfenster.
+      const fenster = await artikelOeffnen();
+      expect(kennzahl(fenster, 'im Lager')).toHaveTextContent('20 m');
+      expect(kennzahl(fenster, 'reserviert')).toHaveTextContent('18');
+      expect(kennzahl(fenster, 'frei')).toHaveTextContent('2');
+    } finally {
+      lagerStand.mockImplementation(standAusAnforderungen);
+    }
   });
 
   it('stellt das Knappe an den Anfang', async () => {
@@ -283,9 +259,9 @@ describe('Lager — was ist wirklich frei?', () => {
     zeige();
 
     // Die Kennzahl „Knapp" steht auf 1 — und die Zeile zeigt 2 m frei.
-    const kachel = (await screen.findByText('Knapp')).parentElement!;
+    expect(await screen.findByText('2 m frei')).toBeInTheDocument();
+    const kachel = screen.getByText('Knapp').parentElement!;
     expect(within(kachel).getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('2 m frei')).toBeInTheDocument();
   });
 });
 
@@ -294,7 +270,9 @@ describe('Lager — der Stand im Seitenkopf (E24)', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 18 })];
     zeige();
-    const knapp = await screen.findByText('Knapp');
+    // Die Liste kommt aus der Datenbank: erst mit ihr steht der Kopf fertig da.
+    await screen.findByText('2 m frei');
+    const knapp = screen.getByText('Knapp');
     expect(knapp.closest('.plankopf')).not.toBeNull();
     expect(screen.getByText('Reserviert').closest('.plankopf')).not.toBeNull();
     expect(screen.queryByText(/unter Mindestmenge/)).toBeNull();
@@ -308,25 +286,49 @@ describe('Lager — der Stand im Seitenkopf (E24)', () => {
   });
 });
 
-describe('Lager — das Freie aus der Datenbank', () => {
-  it('fragt es für die geladenen Artikel, nicht ohne Liste', async () => {
-    // Ohne Liste endete `lager_frei()` bei 1.000 Zeilen; mit großem Katalog fehlte das Zugesagte still.
-    materialien = [material({ id: 'm1', stock: 20 }), material({ id: 'm2', name: 'Bogen', stock: 4 })];
-    anforderungen = [];
-    const stand = new Map([
-      ['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }],
-      ['m2', { bestand: 4, zugesagt: 0, geplant: 0, frei: 4 }],
-    ]);
-    lagerStand.mockClear();
-    lagerStand.mockImplementation(async (ids) => new Map([...stand].filter(([id]) => ids?.includes(id))));
-    try {
-      zeige();
-      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
-      expect(lagerStand.mock.calls[lagerStand.mock.calls.length - 1]).toEqual([['m1', 'm2']]);
-      expect(lagerStand.mock.calls.every(([ids]) => Array.isArray(ids))).toBe(true);
-    } finally {
-      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
-    }
+/*
+  NUR, WAS GEZEIGT WIRD (Durchsicht 15.11.2026, Budget B3: höchstens 50
+  Zeilen je Anfrage). Vorher kam jeder Lagerartikel samt seinem Freien in
+  den Browser (gewachsener Bestand: 2.000 und 1.000 Zeilen), um 20 zu
+  zeigen. Jetzt fragt die Ansicht die Datenbank nach der gezeigten Seite;
+  Zahlen, Suche und Filter gelten trotzdem über alle. Gegenprobe: mit dem
+  Stand davor gibt es keine Frage nach einer Seite (rot).
+*/
+describe('Lager — nur die gezeigte Seite aus der Datenbank', () => {
+  const viele = () => Array.from({ length: 45 }, (_, i) =>
+    material({ id: `m${String(i).padStart(2, '0')}`, name: `Artikel ${String(i).padStart(2, '0')}`, stock: 20 + i }));
+
+  it('fragt 20 Zeilen, zählt über alle und holt mit „weitere anzeigen“ die nächsten', async () => {
+    materialien = viele();
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Artikel 00' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Artikel 20' })).not.toBeInTheDocument();
+    expect(listeFragen.every((f) => f.anzahl <= 20)).toBe(true);
+    const imLager = screen.getAllByText('Im Lager').find((e) => e.classList.contains('lage-name'))!.parentElement!;
+    expect(imLager).toHaveTextContent('45');
+
+    await userEvent.click(screen.getByRole('button', { name: 'und 25 weitere anzeigen' }));
+    expect(await screen.findByRole('button', { name: 'Artikel 39' })).toBeInTheDocument();
+    expect(listeFragen[listeFragen.length - 1]).toMatchObject({ anzahl: 40, filter: 'alle', reihenfolge: 'frei' });
+  });
+
+  it('sucht über alle — auch, was nicht auf der ersten Seite stand', async () => {
+    materialien = viele();
+    zeige();
+    await screen.findByRole('button', { name: 'Artikel 00' });
+    await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'Artikel 44');
+    expect(await screen.findByRole('button', { name: 'Artikel 44' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Artikel 00' })).not.toBeInTheDocument());
+    expect(listeFragen[listeFragen.length - 1]).toMatchObject({ begriff: 'Artikel 44', anzahl: 20 });
+  });
+
+  it('eine Änderung im Lager (Kanal) fragt die Liste neu', async () => {
+    materialien = [material({ id: 'm1', stock: 40 })];
+    zeige();
+    expect(await screen.findByText('40 m frei')).toBeInTheDocument();
+    materialien = [material({ id: 'm1', stock: 38 })];
+    await act(async () => lagerGeaendert());
+    expect(await screen.findByText('38 m frei')).toBeInTheDocument();
   });
 });
 
@@ -356,7 +358,7 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
       expect(screen.queryByText(/20 m frei/)).not.toBeInTheDocument();
     } finally {
-      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+      lagerStand.mockImplementation(standAusAnforderungen);
     }
   });
 
@@ -379,38 +381,16 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       expect(within(knapp).queryByRole('status')).toBeNull();
       await waitFor(() => expect(lagerStand.mock.calls.length).toBeGreaterThan(vorher));
     } finally {
-      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+      lagerStand.mockImplementation(standAusAnforderungen);
     }
   });
 
-  // Kam der Katalog einen Augenblick nach dem Aufbau, überschrieb eine Antwort über die leere Liste den gemerkten Stand mit Nullen.
-  it('beim zweiten Besuch bleibt der gemerkte Stand, bis der Katalog da ist', async () => {
-    zwischenspeicherFuer('v1', 'perl');
-    materialien = [material({ id: 'm1', stock: 20 })];
-    anforderungen = [];
-    lagerStand.mockImplementation(async () => new Map([['m1', { bestand: 20, zugesagt: 0, geplant: 17, frei: 3 }]]));
-    try {
-      const erster = zeige();
-      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
-      erster.unmount();
-
-      const vorher = lagerStand.mock.calls.length;
-      lagerStand.mockImplementation(() => new Promise(() => undefined));
-      katalogHalten = true;
-      zeige();
-      await new Promise((r) => setTimeout(r, 20));
-      // Ohne Katalog keine Frage an die Datenbank — ihre Antwort wäre keine über den Bestand.
-      expect(lagerStand.mock.calls.length).toBe(vorher);
-      await act(async () => katalogSenden?.());
-      expect(await screen.findByText(/3 m frei/)).toBeInTheDocument();
-      expect(screen.getByText(/17 reserviert/)).toBeInTheDocument();
-    } finally {
-      katalogHalten = false;
-      katalogSenden = null;
-      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
-    }
-  });
-
+  /*
+    Bis 15.11.2026 stand hier „bleibt der gemerkte Stand, bis der Katalog da
+    ist“: eine Antwort über eine noch leere Artikelliste überschrieb den
+    gemerkten Stand mit Nullen. Seit die Datenbank die ganze Liste rechnet,
+    gibt es diese halbe Antwort nicht mehr — gemerkt wird nur eine ganze.
+  */
   // Unter dem kürzeren Platzhalter schob die eintreffende Liste sie nach unten (Messung 11.10.2026).
   it('„weitere anzeigen“ steht erst mit der Liste da', async () => {
     materialien = Array.from({ length: 25 }, (_, i) => material({ id: `m${i}`, name: `Artikel ${i}`, stock: 20 }));
@@ -425,7 +405,7 @@ describe('Lager — frei und reserviert erst mit der Datenbank', () => {
       await act(async () => liefern(new Map()));
       expect(await screen.findByRole('button', { name: /5 weitere anzeigen/ })).toBeInTheDocument();
     } finally {
-      lagerStand.mockImplementation(async () => { throw new Error('nicht geladen'); });
+      lagerStand.mockImplementation(standAusAnforderungen);
     }
   });
 });
@@ -438,7 +418,7 @@ describe('Lager — Wareneingang', () => {
   */
   /** Der Wareneingang aus dem Seitenfenster des Artikels (Linie „Lot“, E3). */
   async function eingangOeffnen() {
-    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Wareneingang' }));
+    await userEvent.click(handlung({ name: 'Wareneingang' }, await artikelOeffnen()));
     return screen.findByRole('dialog', { name: /^Wareneingang: / });
   }
 
@@ -451,7 +431,7 @@ describe('Lager — Wareneingang', () => {
     const auswahl = await within(dialog).findByRole('combobox', { name: /^Lieferant/ });
     if (lieferant) await userEvent.selectOptions(auswahl, lieferant);
     await userEvent.type(within(dialog).getByLabelText(/^Lieferschein/), 'LS-4711');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     return dialog;
   }
 
@@ -478,7 +458,7 @@ describe('Lager — Wareneingang', () => {
     zeige();
     const dialog = await eingangMit('12');
     expect(await within(dialog).findByText(/Netzwerkfehler/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(2));
     const [erst, zweit] = bestandAendern.mock.calls.map((c) => (c[0] as { vorgang: string }).vorgang);
     expect(erst).toMatch(/^[0-9a-f-]{36}$/);
@@ -495,9 +475,9 @@ describe('Lager — Wareneingang', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
     const wahl = await screen.findByRole('dialog', { name: 'Artikel wählen' });
     await userEvent.type(within(wahl).getByRole('searchbox', { name: 'Artikel suchen' }), 'press');
-    // Gegenprobe: die Suche lässt nur den passenden stehen.
-    expect(within(wahl).queryByRole('button', { name: /Kupferrohr/ })).toBeNull();
-    await userEvent.click(within(wahl).getByRole('button', { name: /Pressfitting/ }));
+    // Gegenprobe: die Suche lässt nur den passenden stehen (gesucht in der Datenbank, kurz nach dem Tippen).
+    await waitFor(() => expect(within(wahl).queryByRole('button', { name: /Kupferrohr/ })).toBeNull());
+    await userEvent.click(handlung({ name: /Pressfitting/ }, wahl));
     expect(await screen.findByRole('dialog', { name: 'Wareneingang: Pressfitting' })).toBeInTheDocument();
   });
 
@@ -521,7 +501,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.type(feld, '2');
     await userEvent.selectOptions(await within(dialog).findByRole('combobox', { name: /^Lieferant/ }), 'Anderer Lieferant …');
     await userEvent.type(within(dialog).getByLabelText(/Name des Lieferanten/), 'Baumarkt Mödling');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 2, lieferant: 'Baumarkt Mödling', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -596,7 +576,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.type(feld, '25');
     expect(within(dialog).getByText('1 Bestellung ist damit geliefert; eine teilweise (15 von 20), der Rest bleibt bestellt.'))
       .toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 25, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/), bestellungen: ['a1', 'p1'],
@@ -611,7 +591,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.click(await within(dialog).findByRole('checkbox', { name: /Max Mustermann/ }));
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /fürs Lager/ }));
     expect(within(dialog).getByText(/Keine Bestellung gewählt/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 1, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -634,7 +614,7 @@ describe('Lager — Wareneingang', () => {
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(within(await eingangOeffnen()).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Abbrechen' }, await eingangOeffnen()));
     expect(bestandAendern).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument();
     // Das Seitenfenster des Artikels kommt danach wieder.
@@ -658,13 +638,13 @@ describe('Lager — Inventur und Bewegungen', () => {
     inventurBuchen.mockResolvedValueOnce(18);
     zeige();
     // Seit dem Umbau im Seitenfenster des Artikels (vorher im Zeilenmenü, U12).
-    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Inventur' }));
+    await userEvent.click(handlung({ name: 'Inventur' }, await artikelOeffnen()));
     const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
     const feld = within(dialog).getByLabelText(/^Gezählter Bestand/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '18');
     await userEvent.type(within(dialog).getByLabelText(/^Grund/), 'Inventur 30.09.');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
+    await userEvent.click(handlung({ name: 'Bestand buchen' }, dialog));
     await waitFor(() => expect(inventurBuchen).toHaveBeenCalledWith('m1', 18, 'Inventur 30.09.'));
   });
 
@@ -675,9 +655,9 @@ describe('Lager — Inventur und Bewegungen', () => {
     // Aus dem „⋯“ des Seitenkopfs: erst den Artikel wählen.
     await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur …' }));
-    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Artikel wählen' })).getByRole('button', { name: /Kupferrohr/ }));
+    await userEvent.click(handlung({ name: /Kupferrohr/ }, await screen.findByRole('dialog', { name: 'Artikel wählen' })));
     const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
+    await userEvent.click(handlung({ name: 'Bestand buchen' }, dialog));
     expect(await within(dialog).findByText(/Ohne Grund keine Korrektur/)).toBeInTheDocument();
     expect(inventurBuchen).not.toHaveBeenCalled();
   });
@@ -712,27 +692,18 @@ describe('Lager — Inventur und Bewegungen', () => {
     expect(within(lot).getAllByRole('listitem')[0]).toHaveTextContent(/^Inventur/);
     // „Schließen“ schliesst das Fenster (Runde 3, G20: Lesen ohne „Abbrechen“).
     expect(within(dialog).queryByRole('button', { name: 'Abbrechen' })).toBeNull();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Schließen' }));
+    await userEvent.click(handlung({ name: 'Schließen' }, dialog));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
 
 describe('Lager — wenn ein Ladevorgang scheitert', () => {
-  it('nennt die fehlenden Anforderungen, statt „nichts reserviert“ zu zeigen', async () => {
-    /**
-     * Der Fehlerweg war einmal `() => undefined`. Scheiterte die Abfrage,
-     * blieb die Liste leer und die Ansicht meldete null Reservierungen — die
-     * Zahl war falsch, sah aber vollkommen normal aus.
-     */
-    materialien = [material({ id: 'm1', stock: 20 })];
-    anforderungsFehler = true;
-    zeige();
-
-    expect(await screen.findByText(/Die Anforderungen/)).toBeInTheDocument();
-    // Der Bestand steht trotzdem — nur eben ohne Reservierungen.
-    expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument();
-  });
-
+  /*
+    Bis 15.11.2026 auch „nennt die fehlenden Anforderungen“: die Liste holte
+    sie für eine eigene Rechnung des Reservierten. Die rechnet jetzt die
+    Datenbank in derselben Antwort wie die Liste — scheitert sie, steht der
+    Fehler (unten), nie „nichts reserviert“.
+  */
   it('zeigt den Fehler des Katalogs selbst', async () => {
     katalogFehler = 'Fehlende Berechtigung';
     zeige();
@@ -757,14 +728,14 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     Katalogs wird gezählt, nicht geholt, und neu gezählt, wenn er sich ändert.
   */
   it('fragt den Server nur nach den Lagerartikeln und zählt den Katalog neu, wenn er sich ändert', async () => {
-    lagerAbos = 0;
     materialien = [
       material({ id: 'l1', name: 'Kupferrohr 15', lagerartikel: true }),
       material({ id: 'k1', name: 'Kugelhahn aus dem Katalog', stock: 0, lagerartikel: false }),
     ];
     zeige();
     expect(await screen.findByText('von 2 im Katalog')).toBeInTheDocument();
-    expect(lagerAbos).toBe(1);
+    // Beim Öffnen genau eine Frage an die Lagerliste.
+    expect(listeFragen).toHaveLength(1);
 
     materialien = [...materialien, material({ id: 'k2', name: 'Eckventil', stock: 0, lagerartikel: false })];
     await act(async () => katalogGeaendert());
@@ -952,7 +923,7 @@ describe('Reiter in der Adresse', () => {
 
 // Testbericht 30.09.2026, M32 — die Rüstliste reserviert; die Zahlen kommen aus der Datenbank.
 describe('Lager — Reservierung durch Rüstlisten', () => {
-  afterEach(() => lagerStand.mockReset().mockImplementation(async () => { throw new Error('nicht geladen'); }));
+  afterEach(() => lagerStand.mockReset().mockImplementation(standAusAnforderungen));
 
   it('zeigt Freies und Geplantes nach der Rechnung der Datenbank', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
@@ -1031,28 +1002,10 @@ describe('Lager — Filter', () => {
 
 /*
   LADEZEIT (19.10.2026): die Frei-Mengen hingen an der Identität der
-  Live-Listen. Jede Meldung — auch das Nachfassen mit denselben Zeilen —
-  holte sie für alle Lagerartikel neu; gemessen dreimal beim Öffnen.
+  Live-Listen und wurden bei jeder Meldung neu geholt. Seit 15.11.2026
+  kommen Liste und Freies in einer Antwort der Datenbank; neu gefragt wird
+  auf eine Meldung des Kanals hin (oben: „eine Änderung im Lager …“).
 */
-describe('Frei und reserviert: neu geholt, wenn sich etwas ändert — nicht bei jeder Meldung', () => {
-  it('dieselben Zeilen ein zweites Mal holen nichts neu; ein geänderter Bestand schon', async () => {
-    materialien = [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', stock: 40, unit: 'm' } as WithId<Material>];
-    katalogHalten = true;
-    lagerStand.mockClear();
-    zeige();
-    act(() => katalogSenden!());
-    await waitFor(() => expect(lagerStand).toHaveBeenCalledTimes(1));
-    // Das Nachfassen: dieselben Zeilen, ein neues Array.
-    act(() => katalogSenden!());
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    expect(lagerStand).toHaveBeenCalledTimes(1);
-    // Gegenprobe: ein Abgang ändert den Bestand — dann wird neu geholt.
-    materialien = [{ ...materialien[0], stock: 38 }];
-    act(() => katalogSenden!());
-    await waitFor(() => expect(lagerStand).toHaveBeenCalledTimes(2));
-    katalogHalten = false;
-  });
-});
 
 /*
   OFFENE LIEFERANTENARTIKEL (M03a): erreichbar über das „⋯“ des Lagers für
@@ -1110,9 +1063,11 @@ describe('Suche über die Nummer eines Großhändlers (M03a)', () => {
     zeige();
     await screen.findByText('Kugelhahn');
     await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'B-7788');
+    await waitFor(() => expect(nummernSuche).toHaveBeenLastCalledWith('B-7788'));
+    // Die Lagerliste fragt danach mit den Treffern der Nummernsuche.
+    await waitFor(() => expect(listeFragen[listeFragen.length - 1]).toMatchObject({ begriff: 'B-7788', treffer: ['m2'] }));
     expect(await screen.findByText('Eckventil')).toBeInTheDocument();
     expect(screen.queryByText('Kugelhahn')).toBeNull();
-    expect(nummernSuche).toHaveBeenLastCalledWith('B-7788');
   });
 
   it('unter drei Zeichen fragt sie den Server nicht', async () => {
@@ -1177,7 +1132,7 @@ describe('Kommissionsware aus dem Lager nehmen (M6)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' });
     expect(within(dialog).getByText('Sonderfitting')).toBeInTheDocument();
     expect(kommissionAufruf).toHaveBeenCalledWith(undefined);
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager nehmen' }));
+    await userEvent.click(handlung({ name: 'Aus dem Lager nehmen' }, dialog));
     await waitFor(() => expect(kommissionAufruf).toHaveBeenLastCalledWith(['k9']));
   });
 
@@ -1202,7 +1157,7 @@ describe('Lager — Reiter „Inventur“ (F14)', () => {
 
   it('der Reiter ist von „Bestand“ aus erreichbar', async () => {
     zeige();
-    await userEvent.click(within(await screen.findByRole('group', { name: 'Bereich' })).getByRole('button', { name: /Inventur/ }));
+    await userEvent.click(handlung({ name: /Inventur/ }, await screen.findByRole('group', { name: 'Bereich' })));
     expect(screen.getByTestId('adresse').textContent).toBe('/lager?reiter=inventur');
   });
 

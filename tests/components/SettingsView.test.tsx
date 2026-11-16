@@ -47,6 +47,7 @@ vi.mock('@/lib/db/company', () => ({
   rechnungsvorgabenSpeichern: (v: Record<string, unknown>) => rechnungsvorgabenSpeichern(v),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
+const { listUsers } = await import('@/lib/db/users');
 // Der zentrale Basiszinssatz (seit 05.10.2026) — hier leer, wie vor ihm.
 vi.mock('@/lib/db/basiszins', () => ({ listBasiszinssaetze: vi.fn(async () => []) }));
 /*
@@ -173,6 +174,9 @@ describe('Interne Kostensätze', () => {
     */
     const nutzer = userEvent.setup();
     zeige();
+    // Gespeichert wird nach einer Änderung (Speicherleiste, U1) — hier am Stundensatz.
+    await nutzer.clear(feld('Monteur / Facharbeiter (€/h)'));
+    await nutzer.type(feld('Monteur / Facharbeiter (€/h)'), '80');
     await nutzer.click(screen.getByRole('button', { name: 'Sätze speichern' }));
 
     expect(updateCompany).toHaveBeenCalled();
@@ -482,8 +486,11 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     // Vorher stand jede Meldung unter „Sätze speichern" — auch die der
     // Genehmigenden, drei Karten weiter unten.
     updateCompany.mockRejectedValueOnce(new Error('Dafür fehlt die Berechtigung.'));
+    vi.mocked(listUsers).mockResolvedValueOnce([{ uid: 'anna', name: 'Anna Berger', role: 'Mitarbeiter', active: true } as never]);
     const nutzer = userEvent.setup();
     zeige('personal');
+    // Erst eine Änderung, dann erscheint die Speicherleiste der Karte (U1).
+    await nutzer.click(await screen.findByRole('checkbox', { name: /Anna Berger/ }));
     await nutzer.click(screen.getByRole('button', { name: 'Genehmigende speichern' }));
     const karte = screen.getByText('Wer Urlaub genehmigt').closest('section') as HTMLElement;
     expect(await within(karte).findByText(/Dafür fehlt die Berechtigung/)).toBeInTheDocument();
@@ -500,8 +507,9 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(within(karte).queryByText(/Bleibt die Auswahl leer/)).toBeNull();
     await nutzer.click(within(karte).getByRole('button', { name: 'Was bedeutet Wer Urlaub genehmigt?' }));
     expect(within(karte).getByText(/Bleibt die Auswahl leer, entscheidet zusätzlich die/)).toBeInTheDocument();
-    // Gegenprobe: Auswahl und Speichern bleiben sichtbar.
-    expect(within(karte).getByRole('button', { name: 'Genehmigende speichern' })).toBeInTheDocument();
+    // Gegenprobe: die Auswahl bleibt sichtbar; „Speichern“ kommt erst mit einer Änderung (U1).
+    expect(within(karte).getByText('Zusätzlich genehmigungsberechtigt')).toBeInTheDocument();
+    expect(within(karte).queryByRole('button', { name: 'Genehmigende speichern' })).toBeNull();
   });
 });
 
@@ -598,7 +606,9 @@ describe('Auf Standardwerte zurücksetzen', () => {
   it('fragt erst und meldet dann „noch nicht gespeichert“', async () => {
     const nutzer = userEvent.setup();
     zeige('saetze');
-    await nutzer.click(await screen.findByRole('button', { name: 'Auf Standardwerte zurücksetzen' }));
+    // Selten und ohne Speichern: im ⋯ des Seitenkopfs (U1).
+    await nutzer.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Sätze und Kosten' }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Auf Standardwerte zurücksetzen …' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/Gespeichert wird erst mit „Sätze speichern“/);
     await nutzer.click(within(dialog).getByRole('button', { name: 'Zurücksetzen' }));

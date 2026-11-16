@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { imLager, istKnapp } from './lagerartikel';
 import { aufschlagFuer, verkaufspreisVorschlag } from '@/lib/aufschlag';
 import { useAuth } from '@/app/AuthContext';
@@ -110,13 +111,13 @@ const empty = {
 export default function MaterialCatalog({
   zuBearbeiten,
   onUebernommen,
-  lagerartikel = [],
+  knappImLager = 0,
   suche,
 }: {
   zuBearbeiten?: WithId<Material> | null;
   onUebernommen?: () => void;
-  /** Die im Lager geführten Artikel (aus dem Lager) — für „N knapp“ im Kopf. */
-  lagerartikel?: readonly WithId<Material>[];
+  /** Wie viele Lagerartikel nach ihrem Bestand knapp sind (gezählt in der Datenbank, `lager_liste`) — für „N knapp“ im Kopf. */
+  knappImLager?: number;
   /** Ein Suchbegriff aus der Adresse (`?suche=`, „Suchen oder springen“, E91). */
   suche?: string;
 } = {}) {
@@ -243,11 +244,8 @@ export default function MaterialCatalog({
   const visible = seite.zeilen;
   const leererKatalog = imKatalog === 0;
 
-  // Knapp aus den Lagerartikeln, nicht aus der gezeigten Seite: die kennt nur zwanzig.
-  const lowStock = useMemo(
-    () => lagerartikel.filter((m) => imLager(m) && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD)).length,
-    [lagerartikel],
-  );
+  // Knapp über alle Lagerartikel, nicht aus der gezeigten Seite: die kennt nur zwanzig.
+  const lowStock = knappImLager;
 
   useEffect(() => {
     if (!toDelete) return;
@@ -745,30 +743,24 @@ export default function MaterialCatalog({
             </WeitereAngaben>
             <Pflichthinweis />
             {error && <ErrorState message={error} />}
-            <div className="fuss-aktionen">
-              {editId && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => {
-                    const m = offenesMaterial;
-                    // Die Rückfrage steht allein, nicht hinter dem Fenster.
-                    if (m) {
-                      reset();
-                      setToDelete(m);
-                    }
-                  }}
-                >
-                  Material löschen …
-                </Button>
-              )}
-              <Button type="button" variant="ghost" onClick={reset}>
-                Abbrechen
-              </Button>
-              <Button type="submit" loading={saving}>
-                {editId ? 'Änderungen speichern' : 'Material anlegen'}
-              </Button>
-            </div>
+            {/* U4: Unumkehrbares („Material löschen …“) im ⋯, nicht neben „Speichern“. */}
+            <Fensteraktionen
+              about="Material"
+              haupt={<Button type="submit" loading={saving}>{editId ? 'Änderungen speichern' : 'Material anlegen'}</Button>}
+              zweit={<Button type="button" variant="ghost" onClick={reset}>Abbrechen</Button>}
+              weitere={editId ? [{
+                label: 'Material löschen …',
+                danger: true,
+                onSelect: () => {
+                  const m = offenesMaterial;
+                  // Die Rückfrage steht allein, nicht hinter dem Fenster.
+                  if (m) {
+                    reset();
+                    setToDelete(m);
+                  }
+                },
+              }] : []}
+            />
           </form>
           {editId && darfKosten && vergleichAn && (
             <div className="mt-6 border-t border-line pt-4">

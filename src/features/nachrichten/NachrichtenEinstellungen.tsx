@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { useAuth } from '@/app/AuthContext';
 import {
   aufbewahrungSetzen, meldungen, meldungErledigen, meldungLoeschen, type Meldung,
@@ -211,9 +212,8 @@ export default function NachrichtenEinstellungen() {
                   Erledigt {offen.erledigtAm ? zeitText(offen.erledigtAm) : ''}{offen.erledigtVonName ? ` von ${offen.erledigtVonName}` : ''}.
                   {offen.vermerk ? ` Vermerk: ${offen.vermerk}` : ''}
                 </p>
-                <div className="fuss-aktionen">
-                  <Button variant="danger" onClick={() => { setLoeschen(offen); setOffen(null); }}>Meldung löschen</Button>
-                </div>
+                {/* U4: Unumkehrbares steht im ⋯ — die Rückfrage danach bleibt. */}
+                <Fensteraktionen about="Meldung" weitere={[{ label: 'Meldung löschen …', onSelect: () => { setLoeschen(offen); setOffen(null); }, danger: true }]} />
               </>
             )}
           </div>

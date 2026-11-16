@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handlung } from './handlung';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -125,9 +126,9 @@ describe('Der Dialog „Annahme-Link“', () => {
   it('ohne Abrechnungsart kein Link — mit ihr, dem Vorsatz des Betriebs und der Gültigkeit', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Annahme-Link' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Annahme-Link' })));
     const fenster = await screen.findByRole('dialog', { name: 'Annahme-Link' });
-    const knopf = within(fenster).getByRole('button', { name: 'Link erzeugen' });
+    const knopf = handlung({ name: 'Link erzeugen' }, fenster);
     expect(knopf).toBeDisabled();
     expect(within(fenster).getByText(/Ohne Abrechnungsart gibt es keinen Link/)).toBeInTheDocument();
     await nutzer.click(knopf);
@@ -149,34 +150,35 @@ describe('Der Dialog „Annahme-Link“', () => {
     // Der Link steht einmal da — mit Kopieren und dem Mailprogramm.
     const adresse = await within(fenster).findByLabelText(/Link für den Kunden — nur jetzt sichtbar/);
     expect(adresse).toHaveValue(`${window.location.origin}/angebot/annehmen#${'S'.repeat(43)}`);
-    const mail = within(fenster).getByRole('link', { name: 'Per Mail-Programm senden' });
+    // Seit U4 im ⋯ des Fensters — ein Verweis wie vorher.
+    const mail = handlung({ name: 'Per Mail-Programm senden' }, fenster);
     const href = mail.getAttribute('href')!;
     expect(href.startsWith('mailto:amt@neudorf.at?subject=')).toBe(true);
     expect(decodeURIComponent(href)).toContain('Angebot AN-2026-0007 von Perl Installationen');
     expect(decodeURIComponent(href)).toContain(`/angebot/annehmen#${'S'.repeat(43)}`);
     expect(decodeURIComponent(href)).toContain('Der Link gilt bis 31.12.2026.');
-    expect(within(fenster).getByRole('button', { name: 'Kopieren' })).toBeInTheDocument();
+    expect(handlung({ name: 'Kopieren' }, fenster)).toBeInTheDocument();
 
     // Erst beim Schließen lädt die Seite neu: vorher wäre der Link mit ihr verschwunden.
     const geladen = getQuote.mock.calls.length;
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Fertig' }));
+    await nutzer.click(handlung({ name: 'Fertig' }, fenster));
     await waitFor(() => expect(getQuote.mock.calls.length).toBeGreaterThan(geladen));
   });
 
   it('F16: der eben erzeugte Link geht mit dem PDF aus der App — im Text, als „mit Link“; danach lädt die Seite neu', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Annahme-Link' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Annahme-Link' })));
     const fenster = await screen.findByRole('dialog', { name: 'Annahme-Link' });
     await nutzer.selectOptions(within(fenster).getByLabelText(/Abrechnung der Baustelle/), 'Pauschal');
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Link erzeugen' }));
-    await nutzer.click(await within(fenster).findByRole('button', { name: 'Mit PDF aus der App senden' }));
+    await nutzer.click(handlung({ name: 'Link erzeugen' }, fenster));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Mit PDF aus der App senden' }, fenster)));
     const mail = await screen.findByRole('dialog', { name: 'Angebot per Mail' });
     expect(within(mail).getByLabelText(/^An/)).toHaveValue('amt@neudorf.at');
     const adresse = `${window.location.origin}/angebot/annehmen#${'S'.repeat(43)}`;
     expect((within(mail).getByLabelText(/^Text/) as HTMLTextAreaElement).value).toContain(adresse);
     const geladen = getQuote.mock.calls.length;
-    await nutzer.click(await within(mail).findByRole('button', { name: 'Senden' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Senden' }, mail)));
     await waitFor(() => expect(belegPerMail).toHaveBeenCalled());
     expect(belegPerMail.mock.calls[0][0]).toMatchObject({ mitLink: true });
     await waitFor(() => expect(getQuote.mock.calls.length).toBeGreaterThan(geladen));
@@ -185,10 +187,10 @@ describe('Der Dialog „Annahme-Link“', () => {
   it('ein Vorsatz in falscher Form und eine Gültigkeit über ein Jahr sperren das Erzeugen', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Annahme-Link' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Annahme-Link' })));
     const fenster = await screen.findByRole('dialog', { name: 'Annahme-Link' });
     await nutzer.selectOptions(within(fenster).getByLabelText(/Abrechnung der Baustelle/), 'Regie');
-    const knopf = within(fenster).getByRole('button', { name: 'Link erzeugen' });
+    const knopf = handlung({ name: 'Link erzeugen' }, fenster);
     expect(knopf).toBeEnabled();
     const vorsatz = within(fenster).getByLabelText('Vorsatz der Baustellennummer');
     await nutzer.clear(vorsatz);
@@ -208,7 +210,7 @@ describe('Der Dialog „Annahme-Link“', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     links = [LINK];
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Annahme-Link' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Annahme-Link' })));
     const fenster = await screen.findByRole('dialog', { name: 'Annahme-Link' });
     expect(within(fenster).getByText(/gilt damit als versendet/)).toBeInTheDocument();
     expect(within(fenster).getByText(/bisherige Link hört damit auf/)).toBeInTheDocument();
@@ -216,7 +218,7 @@ describe('Der Dialog „Annahme-Link“', () => {
 
   it('nur die Führung, nur mit eingeschalteter Annahme per Link, nur für ein offenes Angebot, nicht im Einblick', async () => {
     const { unmount } = zeige();
-    expect(await screen.findByRole('button', { name: 'Annahme-Link' })).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: 'Annahme-Link' }))).toBeInTheDocument();
     unmount();
     for (const fall of [
       () => { rolle.wert = 'Buchhaltung'; },
@@ -267,9 +269,9 @@ describe('Der Abschnitt „Annahme per Link“', () => {
     const leiste = screen.getByRole('navigation', { name: 'Auf dieser Seite' });
     expect(within(leiste).getByRole('link', { name: 'Annahme per Link' })).toHaveAttribute('href', '#angebot-annahmelink');
 
-    await nutzer.click(within(karte).getByRole('button', { name: 'Widerrufen' }));
+    await nutzer.click(handlung({ name: 'Widerrufen' }, karte));
     const frage = await screen.findByRole('dialog', { name: 'Annahme-Link widerrufen?' });
-    await nutzer.click(within(frage).getByRole('button', { name: 'Widerrufen' }));
+    await nutzer.click(handlung({ name: 'Widerrufen' }, frage));
     await waitFor(() => expect(angebotLinkWiderrufen).toHaveBeenCalledWith('l1'));
     expect(await screen.findByText('Annahme-Link widerrufen')).toBeInTheDocument();
   });
@@ -298,7 +300,7 @@ describe('Der Abschnitt „Annahme per Link“', () => {
     const karte = (await screen.findByRole('heading', { name: 'Annahme per Link' })).closest('section')!;
     expect(within(karte).getByText(/Widerrufen von Carla Chefin am 06\.11\.2026, 09:00/)).toBeInTheDocument();
     expect(within(karte).getByText(/Abgelaufen am 01\.11\.2026/)).toBeInTheDocument();
-    expect(within(karte).getByRole('button', { name: 'Neuer Link' })).toBeInTheDocument();
+    expect(handlung({ name: 'Neuer Link' }, karte)).toBeInTheDocument();
   });
 
   it('öffnet die Führung ein über den Link angenommenes Angebot, geht der Hinweis auf der Startseite (gesehen)', async () => {
@@ -370,8 +372,8 @@ describe('Überholt durch eine neuere Fassung (A4)', () => {
     links = [{ ...LINK }];
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Widerrufen' }));
-    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Widerrufen' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Widerrufen' })));
+    await nutzer.click(handlung({ name: 'Widerrufen' }, await screen.findByRole('dialog')));
     await waitFor(() => expect(angebotLinkWiderrufen).toHaveBeenCalledWith('l1'));
   });
 });

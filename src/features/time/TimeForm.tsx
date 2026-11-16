@@ -1,5 +1,5 @@
 import { standardZeitfeldAktiv, standardZeitwerteErhalten } from '@/lib/standardZeitfelder';
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useModul } from '@/lib/useModule';
 import { canWriteWorkSheet } from '@/lib/permissions';
@@ -73,6 +73,12 @@ interface Props {
   entry?: WithId<TimeEntry>;
   onCancel?: () => void;
   /**
+   * Ein Löschen über dem Fuß des Fensters (U7, am Handy): die Zeile trägt
+   * dort keinen Papierkorb mehr. Der Aufrufer entscheidet, ob gelöscht
+   * werden darf, und fragt wie bisher nach.
+   */
+  loeschen?: ReactNode;
+  /**
    * Bereits belegte Tage (YYYY-MM-DD) für die Doppelbuchungs-Warnung.
    *
    * Nur noch eine Abkürzung für Tage, die die aufrufende Ansicht ohnehin
@@ -136,6 +142,7 @@ export default function TimeForm({
   onSaved,
   entry,
   onCancel,
+  loeschen,
   ownerRole,
   staff,
   lastEntry,
@@ -1833,6 +1840,9 @@ export default function TimeForm({
       )}
 
       {error && <ErrorState message={error} />}
+
+      {/* Über dem Fuß, nicht darunter (E72): der Fuß klebt unten. */}
+      {loeschen && <div>{loeschen}</div>}
 
       {/*
         DIE KNÖPFE KLEBEN AM TELEFON UNTEN (Designlinie „Fassung 3"): das

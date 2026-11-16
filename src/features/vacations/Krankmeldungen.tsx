@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useAktualisierungsRunde } from '@/lib/aktualisieren';
 import type { AppUser, Krankmeldung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import type { KrankmeldungErgebnis } from '@/lib/db/abwesenheiten';
@@ -444,6 +445,8 @@ export function KrankenstaendeReiter({ companyId, meinName, planung }: {
   const [laden, setLaden] = useState(true);
   const [fehler, setFehler] = useState<string | null>(null);
   const [stand, setStand] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — die Runde lädt sie neu.
+  const runde = useAktualisierungsRunde();
 
   const [wer, setWer] = useState('');
   const [von, setVon] = useState(todayStr());
@@ -487,7 +490,7 @@ export function KrankenstaendeReiter({ companyId, meinName, planung }: {
     return () => {
       weg = true;
     };
-  }, [companyId, ab, stand]);
+  }, [companyId, ab, stand, runde]);
 
   async function erfassen(e: FormEvent) {
     e.preventDefault();

@@ -109,6 +109,21 @@ export default defineConfig({
       testMatch: MONTEUR_WEGE,
       use: { ...devices['iPhone 13'] },
     },
+    /*
+      DAS TELEFON OHNE WEBKIT (16.11.2026). In der Entwicklungsumgebung gibt
+      es nur Chromium; das Projekt `webkit-telefon` lief dort nie, und die
+      Handy-Ansicht (390 px, Finger, mobiler Seitenkopf) sah erst die CI —
+      PR #464 wurde so mit sechs Wegen rot, die lokal alle grün waren. Dieses
+      Projekt zeigt dieselbe Ansicht in Chromium: dieselbe Breite, derselbe
+      Finger, dieselben Wege. Es ersetzt WebKit nicht (Eigenheiten von Safari
+      prüft weiter nur die CI) und läuft nur, wo `CHROMIUM_PFAD` gesetzt ist —
+      in der CI steht dort das echte WebKit.
+    */
+    ...(process.env.CHROMIUM_PFAD ? [{
+      name: 'telefon-chromium',
+      testMatch: MONTEUR_WEGE,
+      use: { ...devices['iPhone 13'], browserName: 'chromium' as const, launchOptions: CHROMIUM_START },
+    }] : []),
     {
       name: 'tablet-834',
       testMatch: MONTEUR_WEGE,

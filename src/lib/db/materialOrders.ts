@@ -185,3 +185,15 @@ export function ausgegebenesMaterial(projectNumber: string) {
 export function ausgegebenesMaterialGesamt(projectNumbers: readonly string[]) {
   return pg.ausgegebenesMaterialGesamt(projectNumbers);
 }
+
+export type { AnforderungenLaufend } from './pg/materialOrders';
+
+/** „Laufend“: je Gruppe Zahl und erste Zeilen — siehe `pg.anforderungenLaufend`. */
+export function anforderungenLaufend(f: Parameters<typeof pg.anforderungenLaufend>[0]): Promise<pg.AnforderungenLaufend> {
+  return pg.anforderungenLaufend(f);
+}
+
+/** Meldet Änderungen an den Anforderungen — siehe `pg.anforderungenBeobachten`. */
+export function anforderungenBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  return pg.anforderungenBeobachten(companyId, beiAenderung);
+}

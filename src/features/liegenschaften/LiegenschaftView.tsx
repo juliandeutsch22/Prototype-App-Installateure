@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
@@ -432,12 +433,14 @@ export default function LiegenschaftView() {
               Unumkehrbare (R4); die Rückfrage folgt wie bisher.
             */
             zusatz={offenesTop && (
-              <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-                <Button type="button" variant="secondary" onClick={() => {
+              // U4: das Unumkehrbare („Top löschen …“) im ⋯, die Rückfrage folgt.
+              <Fensteraktionen
+                about={`Top ${offenesTop.bezeichnung}`}
+                zweit={<Button type="button" variant="secondary" onClick={() => {
                   setFenster({ art: 'beteiligter', vorgabeTopId: offenesTop.id });
-                }}>Beteiligten an diesem Top eintragen</Button>
-                <Button type="button" variant="danger" onClick={() => setFrage({ art: 'top', top: offenesTop })}>Top löschen</Button>
-              </div>
+                }}>Beteiligten an diesem Top eintragen</Button>}
+                weitere={[{ label: 'Top löschen …', danger: true, onSelect: () => setFrage({ art: 'top', top: offenesTop }) }]}
+              />
             )} />
         )}
       </BottomSheet>
@@ -453,12 +456,12 @@ export default function LiegenschaftView() {
               onGespeichert={() => { setFenster(null); neuLaden(); }} onAbbrechen={() => setFenster(null)}
               // Über dem Fensterfuß (E72, wie beim Top); Entfernen rot wie jedes Unumkehrbare (R4).
               zusatz={offenerBeteiligter && (
-                <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-                  {!offenerBeteiligter.customerId && (
-                    <Button type="button" variant="secondary" loading={busy} onClick={() => void zuKunde(offenerBeteiligter)}>Zum Kunden machen</Button>
-                  )}
-                  <Button type="button" variant="danger" onClick={() => setFrage({ art: 'beteiligter', beteiligter: offenerBeteiligter })}>Entfernen</Button>
-                </div>
+                // U4: das Unumkehrbare („Entfernen …“) im ⋯, die Rückfrage folgt.
+                <Fensteraktionen
+                  about="Beteiligter"
+                  zweit={!offenerBeteiligter.customerId ? <Button type="button" variant="secondary" loading={busy} onClick={() => void zuKunde(offenerBeteiligter)}>Zum Kunden machen</Button> : null}
+                  weitere={[{ label: 'Entfernen …', danger: true, onSelect: () => setFrage({ art: 'beteiligter', beteiligter: offenerBeteiligter }) }]}
+                />
               )} />
           </div>
         )}

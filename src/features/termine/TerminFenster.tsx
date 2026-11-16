@@ -1,11 +1,11 @@
 import { useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { useAuth } from '@/app/AuthContext';
 import { darfTermineSchreiben } from '@/lib/permissions';
 import { terminLoeschen } from '@/lib/db/termine';
 import { todayStr } from '@/lib/time';
 import type { AppUser, Termin } from '@/types';
 import BottomSheet from '@/components/BottomSheet';
-import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AdresseLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
@@ -69,19 +69,13 @@ export default function TerminFenster({
             termin && (
               /*
                 ÜBER DEM FENSTERFUSS, NICHT DARUNTER (E72): der Fuß klebt
-                unten und reicht bis an die Kante. Rot wie jedes
-                Unumkehrbare (R4); die Rückfrage folgt wie bisher.
+                unten und reicht bis an die Kante. Das Unumkehrbare steht im ⋯
+                (U4), nicht als roter Knopf; die Rückfrage folgt wie bisher.
               */
-              <div>
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => setLoeschFrage(true)}
-                  aria-label={`${terminKopf(termin)} am ${datumKurz(termin.datum)} löschen`}
-                >
-                  Termin löschen
-                </Button>
-              </div>
+              <Fensteraktionen
+                about={`${terminKopf(termin)} am ${datumKurz(termin.datum)}`}
+                weitere={[{ label: 'Termin löschen', danger: true, onSelect: () => setLoeschFrage(true) }]}
+              />
             )
           }
         />

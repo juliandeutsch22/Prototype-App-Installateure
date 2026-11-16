@@ -65,7 +65,7 @@ Grenze, keine Annahme über „den“ Betrieb.
    - `npx tsc --noEmit -p .` und `npm run -s lint`
    - `TZ=Europe/Vienna ./node_modules/.bin/vitest run`
    - Bei Migrationen: lokaler Supabase-Stack, `node scripts/edge-shared-uebernehmen.mjs`, `supabase functions serve`, dann `NO_PROXY=127.0.0.1,localhost npx vitest run --config vitest.supabase.config.ts`
-   - Browser: `CHROMIUM_PFAD=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1) NO_PROXY=127.0.0.1,localhost npx playwright test --project=chromium --project=tablet-834`
+   - Browser: `CHROMIUM_PFAD=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1) NO_PROXY=127.0.0.1,localhost npx playwright test --project=chromium --project=telefon-chromium --project=tablet-834` (`telefon-chromium` zeigt die Handy-Ansicht in Chromium; WebKit selbst prüft die CI)
    - Links: `CHROMIUM_PFAD=… npm run -s pruefen:links`
 4. Den eigenen Diff kritisch gegenlesen: Was könnte dadurch kaputtgehen?
 5. Nachziehen:

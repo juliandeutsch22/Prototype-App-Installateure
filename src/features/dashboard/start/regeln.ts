@@ -1,4 +1,4 @@
-import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, Vacation } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { canEditTime, darfUrlaubEntscheiden, isTopLevel } from '@/lib/permissions';
@@ -6,14 +6,14 @@ import type { Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import { grenzText, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
-import type { Mahnlauf } from '@/features/invoices/mahnlauf';
-import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
+import { ruecklaesseBald, RUECKLASS_VORLAUF_TAGE, type ForderungsStand } from '@shared/forderungen';
+import { mahnbar, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
 import { fmtDauer, fmtStunden, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
-import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
+import { abschnitt, JE_ABSCHNITT, type Abschnitt, type Zeile } from './abschnitte';
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from '@/features/orders/anforderungStand';
 import { BUDGET_AB_PROZENT, endeVorbei, ohneProjektleiter, type BudgetZeile } from '@/features/projects/baustellenLage';
 
@@ -23,7 +23,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
-import type { WartungErledigtVorschlag } from '@/lib/db/wartungen';
+import type { WartungErledigtVorschlag, WartungenStand } from '@/lib/db/wartungen';
 import type { OffeneEingaenge } from './laden';
 
 /**
@@ -198,9 +198,26 @@ export interface KnapperArtikel {
   mindestmenge?: number | null;
 }
 
-export function unterMindestmenge(artikel: KnapperArtikel[]): Abschnitt | null {
-  const zeilen: Zeile[] = [...artikel]
+/**
+ * Die knappen Lagerartikel der Startseite (Durchsicht 15.11.2026, Budget B3):
+ * die Zahl über alle und nur die, die gezeigt werden — die dringendsten
+ * (nach dem Freien) und der erste nach dem Namen für den Wochenhinweis.
+ * Vorher kam jeder knappe Artikel (gewachsener Bestand: 192), um drei zu
+ * zeigen.
+ */
+export interface KnappStand {
+  anzahl: number;
+  /** Die dringendsten, nach dem Freien und dem Namen — höchstens ein Abschnitt voll. */
+  zeilen: KnapperArtikel[];
+  /** Der erste nach dem Namen (wie bisher im Wochenhinweis). */
+  ersterNachName: string | null;
+}
+
+export function unterMindestmenge(stand: KnappStand): Abschnitt | null {
+  if (stand.anzahl === 0) return null;
+  const zeilen: Zeile[] = [...stand.zeilen]
     .sort((a, b) => a.frei - b.frei || a.name.localeCompare(b.name, 'de'))
+    .slice(0, JE_ABSCHNITT)
     .map((m) => ({
       key: `knapp-${m.id}`,
       titel: m.name,
@@ -218,7 +235,14 @@ export function unterMindestmenge(artikel: KnapperArtikel[]): Abschnitt | null {
       status: m.frei <= 0 ? { text: 'leer', ton: 'fehl' } : { text: 'knapp', ton: 'warn' },
       to: ZIEL.lagerKnapp,
     }));
-  return abschnitt('knapp', 'Unter Mindestmenge', zeilen, ZIEL.lagerKnapp);
+  // Wie `abschnitt`: die Zahl über alle, „und N weitere →“ auf die gefilterte Lagerliste.
+  return {
+    key: 'knapp',
+    titel: 'Unter Mindestmenge',
+    anzahl: stand.anzahl,
+    zeilen,
+    weiter: stand.anzahl > zeilen.length ? { to: ZIEL.lagerKnapp } : undefined,
+  };
 }
 
 /** Bestellt, heute erwartet — Anforderungen und eigene Posten des Büros. */
@@ -258,60 +282,42 @@ export function lieferungenHeute(
 
 // ──────────────────────────────────────────────────────────── Buchhaltung ──
 
-export function mahnungenFaellig(lauf: Mahnlauf): Abschnitt | null {
-  const zeilen: Zeile[] = lauf.zeilen.map((z) => ({
+export function mahnungenFaellig(mahnungen: ForderungsStand['mahnungen']): Abschnitt | null {
+  const zeilen: Zeile[] = mahnungen.zeilen.map((z) => ({
     key: `mahn-${z.rechnung.id}`,
     titel: z.rechnung.customerName,
     detail: `${z.rechnung.invoiceNumber} · ${z.stufe}. Mahnung`,
     status: { text: tageWort(z.tageUeberfaellig), ton: 'fehl' },
     to: ZIEL.rechnung(z.rechnung.invoiceNumber),
   }));
-  return abschnitt('mahnung', 'Mahnungen fällig', zeilen, ZIEL.rechnungenSicht('mahnung-faellig'));
+  return abschnittMitZahl('mahnung', 'Mahnungen fällig', zeilen, mahnungen.anzahl, ZIEL.rechnungenSicht('mahnung-faellig'));
 }
 
-/** Überfällig, aber (noch) nicht zu mahnen — sonst stünde dieselbe Rechnung zweimal da. */
+/**
+ * Überfällig, aber (noch) nicht zu mahnen — sonst stünde dieselbe Rechnung
+ * zweimal da. Ausgewählt und geordnet nach den Regeln in
+ * `shared/forderungen.ts` (`forderungsStand`); hier nur die Zeilen.
+ */
 export function ueberfaelligNichtMahnbar(
-  rechnungen: (RechnungsKopf & { id: string })[],
-  lauf: Mahnlauf,
+  ueber: ForderungsStand['ueberfaelligNichtMahnbar'],
   heute: string,
 ): Abschnitt | null {
-  const imLauf = new Set(lauf.zeilen.map((z) => z.rechnung.id));
-  const ausgereizt = new Set(lauf.ausgereizt.map((r) => r.id));
-  const zeilen: Zeile[] = rechnungen
-    .filter((r) => istUeberfaellig(r, heute) && !imLauf.has(r.id))
-    .sort((a, b) => (mahnbar(a, heute).faellig ?? '').localeCompare(mahnbar(b, heute).faellig ?? ''))
-    .map((r) => {
-      // Was zu mahnen ist und ab wann — ein Rücklass erst ab seiner Fälligkeit.
-      const m = mahnbar(r, heute);
-      return {
-        key: `ueber-${r.id}`,
-        titel: r.customerName,
-        detail: ausgereizt.has(r.id)
-          ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
-          : `${r.invoiceNumber} · ${euro(m.rest)}`,
-        status: { text: m.faellig ? tageWort(tageZwischen(m.faellig, heute)) : 'überfällig', ton: 'fehl' as const },
-        to: ZIEL.rechnung(r.invoiceNumber),
-      };
-    });
-  return abschnitt('ueberfaellig', 'Überfällig, noch nicht mahnbar', zeilen, ZIEL.rechnungenUeberfaellig);
+  const zeilen: Zeile[] = ueber.zeilen.map(({ rechnung: r, ausgereizt }) => {
+    const m = mahnbar(r, heute);
+    return {
+      key: `ueber-${r.id}`,
+      titel: r.customerName,
+      detail: ausgereizt
+        ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
+        : `${r.invoiceNumber} · ${euro(m.rest)}`,
+      status: { text: m.faellig ? tageWort(tageZwischen(m.faellig, heute)) : 'überfällig', ton: 'fehl' as const },
+      to: ZIEL.rechnung(r.invoiceNumber),
+    };
+  });
+  return abschnittMitZahl('ueberfaellig', 'Überfällig, noch nicht mahnbar', zeilen, ueber.anzahl, ZIEL.rechnungenUeberfaellig);
 }
 
-/** Wie viele Tage vor der Fälligkeit ein Rücklass auf der Startseite steht. */
-export const RUECKLASS_VORLAUF_TAGE = 30;
-
-/** Die Rücklässe, die in den nächsten 30 Tagen fällig werden — offen, nicht schon überfällig. */
-export function ruecklaesseBald(rechnungen: (RechnungsKopf & { id: string })[], heute: string): (RechnungsKopf & { id: string })[] {
-  const bis = new Date(`${heute}T00:00:00Z`);
-  bis.setUTCDate(bis.getUTCDate() + RUECKLASS_VORLAUF_TAGE);
-  const grenze = bis.toISOString().slice(0, 10);
-  return rechnungen
-    // Fällig ist er am vereinbarten Tag — oder früher, wenn eine Bankgarantie ihn ablöst.
-    .filter((r) => {
-      const am = ruecklassFaelligAm(r);
-      return r.paymentStatus !== 'Storniert' && offenerRuecklass(r) > 0 && !!am && am >= heute && am <= grenze;
-    })
-    .sort((a, b) => (ruecklassFaelligAm(a) ?? '').localeCompare(ruecklassFaelligAm(b) ?? ''));
-}
+export { RUECKLASS_VORLAUF_TAGE, ruecklaesseBald };
 
 /**
  * DER RÜCKLASS, BEVOR ER FÄLLIG WIRD (seit 05.10.2026). Ohne Erinnerung
@@ -319,15 +325,15 @@ export function ruecklaesseBald(rechnungen: (RechnungsKopf & { id: string })[], 
  * liegen. Ab der Fälligkeit steht er unter „überfällig“ und im Mahnlauf —
  * hier nur davor, damit dieselbe Rechnung nicht zweimal dasteht.
  */
-export function ruecklassWirdFaellig(rechnungen: (RechnungsKopf & { id: string })[], heute: string): Abschnitt | null {
-  const zeilen: Zeile[] = ruecklaesseBald(rechnungen, heute).map((r) => ({
+export function ruecklassWirdFaellig(bald: ForderungsStand['ruecklassBald']): Abschnitt | null {
+  const zeilen: Zeile[] = bald.zeilen.map((r) => ({
     key: `ruecklass-${r.id}`,
     titel: r.customerName,
     detail: `${r.invoiceNumber} · ${r.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'} ${euro(offenerRuecklass(r))}`,
     status: { text: `fällig ${tagKurz(ruecklassFaelligAm(r)!)}`, ton: 'warn' },
     to: ZIEL.rechnung(r.invoiceNumber),
   }));
-  return abschnitt('ruecklass', 'Rücklass wird fällig', zeilen, ZIEL.rechnungen);
+  return abschnittMitZahl('ruecklass', 'Rücklass wird fällig', zeilen, bald.anzahl, ZIEL.rechnungen);
 }
 
 /** So viele Tage vor dem Ende einer Bankgarantie erinnert die Startseite. */
@@ -783,11 +789,10 @@ export function ohneEinsatz(
  * Baustelle. Vorschläge zuerst — dort ist ein Handgriff fällig.
  */
 export function wartungenEingeplant(
-  wartungen: Wartung[],
+  eingeplant: WartungenStand['eingeplant'],
   vorschlaege: WartungErledigtVorschlag[],
   heute: string,
 ): Abschnitt | null {
-  const mitVorschlag = new Set(vorschlaege.map((v) => v.wartungId));
   const vorschlagZeilen: Zeile[] = vorschlaege.map((v) => ({
     key: `wartung-erledigt-${v.wartungId}`,
     titel: `${v.anlage} ${v.kunde}`.trim(),
@@ -797,11 +802,9 @@ export function wartungenEingeplant(
     status: { text: `erledigt am ${tagKurz(v.am)}?`, ton: 'warn' as const },
     to: ZIEL.wartungErledigt(v.wartungId, v.am),
   }));
-  const offen: Zeile[] = wartungen
-    .filter((w) => w.aktiv && w.offeneBaustelle && !mitVorschlag.has(w.id))
+  // Die Datenbank gibt nur fällige mit offener Baustelle und ohne Vorschlag, nach dem Fälligkeitstag.
+  const offen: Zeile[] = eingeplant.zeilen
     .map((w) => ({ w, b: beurteile(w, heute) }))
-    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
-    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
     .map(({ w, b }) => ({
       key: `wartung-eingeplant-${w.id}`,
       titel: `${w.anlage} ${w.customerName}`.trim(),
@@ -809,16 +812,13 @@ export function wartungenEingeplant(
       status: b.stand === 'überfällig' ? { text: 'überfällig', ton: 'fehl' as const } : { text: 'eingeplant', ton: 'leise' as const },
       to: ZIEL.baustelle(w.offeneBaustelle!),
     }));
-  return abschnitt('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], ZIEL.wartungen);
+  return abschnittMitZahl('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], vorschlaege.length + eingeplant.anzahl, ZIEL.wartungen);
 }
 
 /** Fällige Wartungen ohne offene Baustelle — überfällige zuerst. */
-export function wartungenOhneBaustelle(wartungen: Wartung[], heute: string): Abschnitt | null {
-  const zeilen: Zeile[] = wartungen
-    .filter((w) => w.aktiv && !w.offeneBaustelle)
+export function wartungenOhneBaustelle(ohne: WartungenStand['ohne'], heute: string): Abschnitt | null {
+  const zeilen: Zeile[] = ohne.zeilen
     .map((w) => ({ w, b: beurteile(w, heute) }))
-    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
-    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
     .map(({ w, b }) => {
       const tage = tageZwischen(heute, w.faelligAm);
       return {
@@ -831,7 +831,18 @@ export function wartungenOhneBaustelle(wartungen: Wartung[], heute: string): Abs
         to: ZIEL.wartungenOhneBaustelle,
       };
     });
-  return abschnitt('wartung', 'Fällige Wartungen ohne Baustelle', zeilen, ZIEL.wartungenOhneBaustelle);
+  return abschnittMitZahl('wartung', 'Fällige Wartungen ohne Baustelle', zeilen, ohne.anzahl, ZIEL.wartungenOhneBaustelle);
+}
+
+/**
+ * Wie `abschnitt`, wenn die Datenbank nur die ersten Zeilen gibt und die Zahl
+ * über alle dazu: höchstens ein Abschnitt voll, „und N weitere →“ auf die
+ * gefilterte Seite.
+ */
+function abschnittMitZahl(key: string, titel: string, alle: Zeile[], anzahl: number, weiterTo: string): Abschnitt | null {
+  if (anzahl === 0) return null;
+  const zeilen = alle.slice(0, JE_ABSCHNITT);
+  return { key, titel, anzahl, zeilen, weiter: anzahl > zeilen.length ? { to: weiterTo } : undefined };
 }
 
 export function eilanforderungen(orders: MaterialOrder[]): Abschnitt | null {

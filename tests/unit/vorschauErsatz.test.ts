@@ -135,7 +135,8 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('zeitsitzungen')).not.toContain('export const zeitsitzungenLaden = NOOP;');
     // Synchron wie das Vorbild: ein Versprechen wäre ein vermeintlicher Entwurf.
     expect(modul('zeitsitzungen')).toContain('export const letzterTimerEntwurf = () => undefined;');
-    expect(modul('zeitsitzungen')).toContain('export const timerSenden = NOOP;');
+    // Ein gesendeter Schritt gilt in der Vorschau als vorgemerkt (B7): sonst stünde der Arbeitstag gleich wieder auf „bereit“.
+    expect(modul('zeitsitzungen')).toContain("export const timerSenden = () => A('queued');");
   });
 
   it('bleibt gleich: Schreibendes ist NOOP, Lesendes nach Namen, Abos über SUB', () => {

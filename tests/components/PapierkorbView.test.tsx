@@ -191,18 +191,27 @@ describe('Der Papierkorb', () => {
 });
 
 describe('Die Frist', () => {
+  it('leer heißt kein Hinweis — eine gespeicherte Frist wird mit dem geleerten Feld entfernt', async () => {
+    firma = { id: 'perl', name: 'Perl', papierkorbFristTage: 30 };
+    const nutzer = userEvent.setup();
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: /Papierkorb: Hinweis nach … Tagen/ });
+    expect(feld).toHaveValue('30');
+    await nutzer.clear(feld);
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenLastCalledWith('perl', { papierkorbFristTage: null }));
+  });
+
   it('die Spitze setzt sie in Tagen; leer heißt kein Hinweis; Unsinn wird nicht gespeichert', async () => {
     const nutzer = userEvent.setup();
     zeige();
     const feld = await screen.findByRole('textbox', { name: /Papierkorb: Hinweis nach … Tagen/ });
     expect(feld).toHaveValue('');
+    // Ohne Änderung keine Speicherleiste (U1).
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
     await nutzer.type(feld, '30');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { papierkorbFristTage: 30 }));
-
-    await nutzer.clear(feld);
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
-    await waitFor(() => expect(updateCompany).toHaveBeenLastCalledWith('perl', { papierkorbFristTage: null }));
 
     updateCompany.mockClear();
     for (const falsch of ['0', '2,5', '-3', 'abc']) {

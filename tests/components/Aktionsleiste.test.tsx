@@ -60,3 +60,20 @@ describe('Aktionsleiste der Zeiterfassung am Telefon (G22)', () => {
     expect(leiste).not.toHaveClass('aktionsleiste-frei');
   });
 });
+
+/*
+  B4 (Plan 15.11.2026): nach bestätigtem Speichern zieht sich die klebende
+  Leiste zurück — die Leiste trägt dafür `data-ruht` (Wirkung und Lesezeit:
+  `lot-bewegung.css`, im Browser `bewegungen.spec.ts`). Ohne die Angabe bleibt
+  sie, wie sie war.
+*/
+describe('Aktionsleiste ruht nach dem Speichern (B4)', () => {
+  it('trägt die Markierung nur mit `ruht`', () => {
+    const { container, rerender } = render(<Aktionsleiste rechts={<button type="submit">Speichern</button>} />);
+    expect(container.querySelector('.aktionsleiste')).not.toHaveAttribute('data-ruht');
+    rerender(<Aktionsleiste ruht rechts={<button type="submit">Gespeichert</button>} />);
+    expect(container.querySelector('.aktionsleiste')).toHaveAttribute('data-ruht', '');
+    rerender(<Aktionsleiste rechts={<button type="submit">Speichern</button>} />);
+    expect(container.querySelector('.aktionsleiste')).not.toHaveAttribute('data-ruht');
+  });
+});

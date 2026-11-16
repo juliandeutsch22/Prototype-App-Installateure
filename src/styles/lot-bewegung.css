@@ -1,0 +1,181 @@
+/*
+  BEWEGUNG, DIE ERKLÄRT (Plan 15.11.2026, Abschnitt 4, B1–B12).
+
+  Jede Regel hier bewegt nur `transform` und Deckkraft (warum: `lib/bewegung.ts`,
+  Regel 1). Bei „Bewegung reduzieren“ greift die Grundregel in `index.css`:
+  Animationen laufen 0,01 ms, Übergänge 0 s — jeder Zustand steht sofort am Ziel.
+*/
+@layer components {
+  /*
+    B1 — DAS BLATT KOMMT VON UNTEN. Bis hierher blendete es nur ein; woher es
+    kam und wohin es zurückgeht, sah man nicht. Jetzt fährt es aus dem unteren
+    Rand herein und beim Schließen dorthin zurück. Ab dem Tablet ist dasselbe
+    Fenster ein Seitenfenster rechts — es kommt von rechts.
+
+    `backwards` statt `both` beim Hereinfahren: danach gilt wieder der
+    Versatz, den der Finger setzt (`useBlattGeste`). Wurde das Blatt
+    weggezogen (`data-gezogen`), fährt es aus der Lage des Fingers weiter
+    hinaus (Übergang am Element) statt noch einmal von oben zu starten.
+
+    Einzelne Selektoren statt `:is(.blatt, …)`: Tailwind legt zu Klassen der
+    Ebene `components` eine `!`-Fassung mit `!important` an und übernimmt
+    dabei die übrigen Glieder der Liste — die Regel ab dem Tablet kam gegen
+    diese Abschrift nicht mehr an.
+  */
+  .lot-overlay > .blatt[data-lot-inhalt],
+  .lot-overlay > .fenster[data-lot-inhalt],
+  .lot-overlay > .fenster-breit[data-lot-inhalt] {
+    animation: blatt-herein var(--motion-overlay) var(--ease-response) backwards;
+  }
+  .lot-overlay[data-phase=schliesst] > .blatt[data-lot-inhalt],
+  .lot-overlay[data-phase=schliesst] > .fenster[data-lot-inhalt],
+  .lot-overlay[data-phase=schliesst] > .fenster-breit[data-lot-inhalt] {
+    animation: blatt-hinaus var(--motion-exit) var(--ease-response) forwards;
+  }
+  .lot-overlay[data-phase=schliesst] > [data-lot-inhalt][data-gezogen] { animation: none; }
+  @media (min-width: 760px) {
+    .lot-overlay > .fenster[data-lot-inhalt],
+    .lot-overlay > .fenster-breit[data-lot-inhalt] {
+      animation-name: fenster-herein;
+    }
+    .lot-overlay[data-phase=schliesst] > .fenster[data-lot-inhalt],
+    .lot-overlay[data-phase=schliesst] > .fenster-breit[data-lot-inhalt] {
+      animation-name: fenster-hinaus;
+    }
+  }
+
+  /*
+    B5 — DIE UNTERLINIE GLEITET (`lib/unterlinie.ts`). Die Leiste ist
+    Bezugsrahmen für den Strich, der für die Dauer der Bewegung über ihr
+    liegt; rollt sie seitlich, rollt er mit. Alter und neuer Reiter zeigen
+    so lange keine eigene Kante — es gibt genau einen Strich, und der fährt.
+  */
+  .reiterleiste, .segment, .akten-bereiche, [role="tablist"] { position: relative; }
+  [data-unterlinie-weg] { border-bottom-color: transparent !important; transition: none !important; }
+
+  /*
+    B6 — ZAHLEN ROLLEN (`components/RollZahl.tsx`). Inline-Block, weil
+    `transform` an reinem Text nicht greift; `clip-path` statt `overflow`,
+    damit die Grundlinie bleibt, wo sie war. Seitlich darf der Wert über den
+    Rahmen (ein Abbild kann breiter sein als der neue Wert).
+  */
+  .rollzahl { position: relative; display: inline-block; clip-path: inset(0 -100vw); }
+  .rollzahl-neu { display: inline-block; }
+  .rollzahl-alt { position: absolute; inset: 0; white-space: nowrap; pointer-events: none; }
+
+  /*
+    B4 — GESPEICHERT. Der Haken im Knopf zeichnet sich (Strichlänge des
+    Hakens `m5 12.5 4.5 4.5L19 7`: rund 20 Einheiten), statt zu erscheinen.
+    Danach zieht sich die klebende Speicherleiste zurück (`Aktionsleiste`
+    mit `ruht`), nur wo sie klebt — unter 1.200 px. Sie wartet so lange, bis
+    der Haken zu lesen war; unsichtbar nimmt sie keinen Tipp mehr an
+    (`visibility` nach dem Weg). Kommt eine Änderung, ist sie ohne Warten da.
+    Bei „Bewegung reduzieren“ bleibt das Warten (es ist Lesezeit, keine
+    Bewegung — und die Vorlesehilfe sagt „Gespeichert“ noch an, bevor die
+    Leiste verborgen ist); dann ist sie ohne Weg verschwunden.
+  */
+  /*
+    B9 — DIE SCHWEBENDE HAUPTAKTION ZIEHT SICH ZUSAMMEN (`useEinziehen`).
+    Nur am Handy und nur, wo sie schwebt: steht ein Timer oder ein Korb
+    über der Navigation, rückt sie in den Seitenkopf (`lot.css`, D2) — dort
+    bleibt sie unberührt. Sichtbar bleibt dann ein 48-px-Kreis rechts mit
+    dem Symbol; die Schaltfläche und ihr Name bleiben dieselben, getippt
+    wird nur noch im Kreis (`clip-path` schneidet auch die Trefferfläche).
+    Der Ausschnitt reicht im Ruhezustand über den Knopf hinaus, damit der
+    Schatten der Insel nicht abgeschnitten wird; eingezogen liegt das
+    Symbol als eigener Kreis mit Fläche und Schatten der Insel darüber
+    (stumm, ohne Klickfläche — getippt wird der Knopf darunter).
+  */
+  .daumen-symbol { display: none; }
+  @media (max-width: 759px) {
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen-symbol {
+      display: grid; place-items: center; position: absolute; right: 1rem; bottom: 0.5rem; width: 3rem; height: 3rem;
+      border-radius: 999px; background: var(--brand); color: var(--brand-fg); box-shadow: var(--shadow-insel);
+      pointer-events: none; opacity: 0; transform: scale(0.6);
+      transition: opacity var(--motion-state) var(--ease-response), transform var(--motion-state) var(--ease-response);
+    }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen > :not(.daumen-symbol) {
+      clip-path: inset(-1.5rem round 2rem);
+      transition: clip-path var(--motion-state) var(--ease-response), opacity var(--motion-state) var(--ease-response);
+    }
+    /* Sichtbar bleibt der Kreis rechts: links fällt ab, was über 48 px hinausgeht (`--daumen-einzug`, aus `useEinziehen`). */
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] > :not(.daumen-symbol) {
+      clip-path: inset(0 0 0 var(--daumen-einzug, 0) round 1.5rem);
+    }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol { opacity: 1; transform: none; }
+  }
+
+  /*
+    B12 — WÄHREND DIE SEITE GLEITET (Layout, Liste → Akte) ist `.inhalt`
+    Bezugsrahmen für Festes darin; die schwebende Hauptaktion stünde am
+    Seitenende. Sie wartet, bis die Seite steht, und blendet dann ein.
+  */
+  /*
+    Die gleitende Seite steht bis zu 3 rem rechts über dem Rand: die Seite
+    war in dieser Zeit breiter als der Bildschirm (am Telefon 438 statt
+    390 px) und liess sich in Safari seitlich verschieben. `clip` schneidet
+    nur ab — kein eigener Rollbereich, Klebendes klebt weiter.
+  */
+  .hauptflaeche:has(.inhalt[data-seitenwechsel]) { overflow-x: clip; }
+  @media (max-width: 759px) {
+    .inhalt[data-seitenwechsel] .daumen > * { opacity: 0 !important; transition: none !important; }
+    .inhalt .daumen > :not(.daumen-symbol) { transition: opacity var(--motion-state) var(--ease-response); }
+  }
+
+  /* B8 — das Abbild des Platzhalters steht still: kein zweites Warten, kein Puls. */
+  .platzhalter-geist .skeleton { animation: none; }
+
+  .lot-knopf[data-zustand=gespeichert] svg path { stroke-dasharray: 21; animation: haken-zeichnen var(--motion-bestaetigt) var(--ease-response) both; }
+  @media (max-width: 1199px) {
+    .aktionsleiste { transition: transform var(--motion-overlay) var(--ease-response), opacity var(--motion-overlay) var(--ease-response); }
+    .aktionsleiste[data-ruht] {
+      transform: translateY(120%);
+      opacity: 0;
+      visibility: hidden;
+      /* Lesezeit 1,2 s, dann der Weg (220 ms); unsichtbar erst danach (1,42 s). */
+      transition: transform var(--motion-overlay) var(--ease-response) 1.2s, opacity var(--motion-overlay) var(--ease-response) 1.2s, visibility 0s linear 1.42s;
+    }
+  }
+}
+
+
+@keyframes blatt-herein { from { transform: translateY(100%); } }
+@keyframes blatt-hinaus { to { transform: translateY(100%); } }
+/* Um mehr als die eigene Breite und den Abstand zum Rand (`right: 0.5rem`; bei 440 px Breite 22 px): ganz aus dem Bild. Ohne calc() (Linie, Protokoll 0.2). */
+@keyframes fenster-herein { from { transform: translateX(105%); } }
+@keyframes fenster-hinaus { to { transform: translateX(105%); } }
+@keyframes haken-zeichnen { from { stroke-dashoffset: 21; } to { stroke-dashoffset: 0; } }
+
+/*
+  F15 — WISCHEN AN DER ZEILE (`components/useWischen.tsx`). Die Zeile schneidet
+  ab, was rechts neben ihr liegt: die Aktionen stehen außerhalb der Zeile und
+  fahren mit ihrem Inhalt herein (`--wisch-x`). So scheinen sie nie durch den
+  Text, und zu sind sie unsichtbar. Folgt dem Finger ohne Übergang; los-
+  gelassen rastet die Zeile weich auf oder zu.
+*/
+@layer components {
+  [data-wischbar] { position: relative; overflow: hidden; touch-action: pan-y; }
+  [data-wischbar] > * { transform: translateX(var(--wisch-x, 0px)); transition: transform var(--motion-state) var(--ease-response); }
+  [data-wischbar][data-wischt] > * { transition: none; }
+  .wisch-aktionen { position: absolute; top: 0; bottom: 0; left: 100%; display: flex; }
+  /* Keine rote Fläche (V10: Warnung und Fehler färben keine Flächen) — die Farbe trägt das Wort. */
+  .wisch-knopf { display: flex; align-items: center; justify-content: center; min-width: 5.5rem; padding: 0 1rem; border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); cursor: pointer; }
+  .wisch-knopf-gefahr { color: var(--danger); }
+}
+
+/*
+  F15 — ZIEHEN ZUM AKTUALISIEREN (`ZiehenZumAktualisieren.tsx`): ein schwebender
+  Kreis (Schatten der Insel) folgt dem Finger von oben; über der Schwelle wird
+  er voll, beim Aktualisieren dreht er sich kurz. Keine Klickfläche.
+*/
+@layer components {
+  .ziehen-aktualisieren {
+    position: fixed; left: 50%; top: 0.5rem; margin-top: env(safe-area-inset-top, 0px); z-index: 60;
+    display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 999px;
+    background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); box-shadow: var(--shadow-insel);
+    pointer-events: none; opacity: 0.6;
+  }
+  .ziehen-aktualisieren[data-bereit] { opacity: 1; color: var(--accent-deep); }
+  .ziehen-aktualisieren[data-laeuft] svg { animation: ziehen-drehen 700ms var(--ease-response) both; }
+}
+@keyframes ziehen-drehen { to { transform: rotate(360deg); } }

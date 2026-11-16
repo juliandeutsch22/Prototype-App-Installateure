@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import KnopfLink from '@/components/KnopfLink';
 import { InputField, SelectField } from '@/components/Field';
 import { Zustand, type Stand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
@@ -152,22 +152,26 @@ export function AnnahmeLinkDialog({
             Gilt bis {datumAT(link.gueltigBis)}. Wer den Link hat, kann das Angebot ansehen und annehmen — bitte nur an
             den Kunden schicken. Ist er verloren, gibt es im Angebot einen neuen.
           </p>
-          <div className="fuss-aktionen">
-            <Button variant="secondary" onClick={() => void kopieren()}>Kopieren</Button>
-            <KnopfLink
-              variant="secondary"
-              href={annahmeMail({
-                an: kundenEmail, angebotsnummer: angebot.quoteNumber, firma, adresse: link.adresse, gueltigBis: link.gueltigBis,
-              })}
-            >
-              Per Mail-Programm senden
-            </KnopfLink>
-            {/* F16: mit dem PDF aus der App — der Link steht im Text. */}
-            {onMailSenden && (
-              <Button variant="secondary" onClick={() => onMailSenden(link.adresse)}>Mit PDF aus der App senden</Button>
-            )}
-            <Button onClick={schliessen}>Fertig</Button>
-          </div>
+          {/*
+            U4: „Kopieren“ ist der häufigste Weg zum Kunden, „Fertig“ schließt;
+            die beiden Mailwege stehen im ⋯ (F16: mit dem PDF aus der App).
+          */}
+          <Fensteraktionen
+            about="Annahme-Link"
+            haupt={<Button onClick={schliessen}>Fertig</Button>}
+            zweit={<Button variant="secondary" onClick={() => void kopieren()}>Kopieren</Button>}
+            weitere={[
+              {
+                label: 'Per Mail-Programm senden',
+                // Ein Verweis wie vorher: das Mailprogramm öffnet der Browser.
+                href: annahmeMail({
+                  an: kundenEmail, angebotsnummer: angebot.quoteNumber, firma, adresse: link.adresse, gueltigBis: link.gueltigBis,
+                }),
+                onSelect: () => undefined,
+              },
+              ...(onMailSenden ? [{ label: 'Mit PDF aus der App senden', onSelect: () => onMailSenden(link.adresse) }] : []),
+            ]}
+          />
         </div>
       ) : (
         <form

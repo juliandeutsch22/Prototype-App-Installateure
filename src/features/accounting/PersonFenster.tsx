@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import type { CompletenessResult, MonthStats } from '@/lib/time';
@@ -508,16 +509,14 @@ export default function PersonFenster({
         }}
       />
 
+      {/* U4: eine gefüllte Hauptaktion, eine zweite, der Bericht im ⋯. */}
       <div className="pf-fuss">
-        <Button variant="secondary" onClick={onCsv}>
-          Monat als CSV
-        </Button>
-        <Button variant="secondary" onClick={onBericht}>
-          Bericht für Zeitraum
-        </Button>
-        {onErfassen && <Button variant="primary" onClick={() => onErfassen(null)}>
-          Zeit erfassen
-        </Button>}
+        <Fensteraktionen
+          about="Person im Monat"
+          haupt={onErfassen ? <Button onClick={() => onErfassen(null)}>Zeit erfassen</Button> : null}
+          zweit={<Button variant="secondary" onClick={onCsv}>Monat als CSV</Button>}
+          weitere={[{ label: 'Bericht für Zeitraum', onSelect: onBericht }]}
+        />
       </div>
     </div>
   );

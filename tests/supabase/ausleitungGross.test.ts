@@ -105,13 +105,25 @@ describe('Ein Stand über 256 MB', () => {
       [BETRIEB],
     )).rows[0].s as string;
 
-    // Den Betrieb löschen, wie in `ruecklauf.test.ts` — der Ernstfall.
+    /*
+      Den Betrieb löschen, wie in `ruecklauf.test.ts` — der Ernstfall. Mit den
+      Rechten des Dienstschlüssels, aber direkt in der Datenbank statt über die
+      Schnittstelle (Durchsicht 15.11.2026): 2.400 Kunden auf einmal prüfen
+      ihre Verweise in Scheinen, Rechnungen und Angeboten ALLER Betriebe —
+      neben dem gewachsenen Messbestand länger als die 8 s, die die
+      Schnittstelle einer Anweisung lässt. Gelöscht wird dasselbe.
+    */
+    await db.query(`select set_config('request.jwt.claims', '{"role":"service_role"}', false)`);
     let offen = [...tabellen];
     while (offen.length > 0) {
       const gescheitert: string[] = [];
       for (const t of offen) {
-        const { error } = await admin.from(t).delete().eq('company_id', BETRIEB);
-        if (error) gescheitert.push(t);
+        // Jede Anweisung für sich: was ein Fremdschlüssel noch hält, geht im nächsten Durchgang.
+        try {
+          await db.query(`delete from public."${t}" where company_id = $1`, [BETRIEB]);
+        } catch {
+          gescheitert.push(t);
+        }
       }
       if (gescheitert.length === offen.length) throw new Error(`Aufräumen: ${gescheitert.join(', ')}`);
       offen = gescheitert;

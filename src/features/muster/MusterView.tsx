@@ -27,6 +27,11 @@ import MusterMonat from './MusterMonat';
 import MusterPlanlinie from './MusterPlanlinie';
 import MusterZeitfelder from './MusterZeitfelder';
 import MusterV10 from './MusterV10';
+import MusterBedienung from './MusterBedienung';
+import MusterSchalter from './MusterSchalter';
+import MusterGefahr from './MusterGefahr';
+import MusterHinweise from './MusterHinweise';
+import MusterDatum from './MusterDatum';
 
 /**
  * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
@@ -242,6 +247,17 @@ export default function MusterView() {
           </div>
         </div>
       </Card>
+
+      {/* Durchsicht 15.11.2026 (U1–U4): Hauptaktion, Neu und Fenster. */}
+      <MusterBedienung />
+      {/* U6, E3: Schalter für Sofortiges, Kästchen für die Auswahl im Formular. */}
+      <MusterSchalter />
+      {/* E4: nur ein Vorschlag zum Ansehen — die Gefahrfarbe ist nicht umgestellt. */}
+      <MusterGefahr />
+      {/* U5/U9: Warnung mit Zeichen, ein Satz plus „Anzeigen“. */}
+      <MusterHinweise />
+      {/* U10, E5: Datum und Uhrzeit deutsch neben dem Feld des Geräts. */}
+      <MusterDatum />
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />

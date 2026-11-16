@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
 
@@ -100,7 +100,11 @@ describe('Nachtzeit kürzer als 22 bis 6 Uhr (18.10.2026)', () => {
     expect(hinweis()).toBeNull();
     fireEvent.change(screen.getByLabelText('Nachtzeit von'), { target: { value: '23:00' } });
     fireEvent.change(screen.getByLabelText('Nachtzeit bis'), { target: { value: '05:00' } });
-    expect(hinweis()?.closest('.hinweiszeile')).toHaveTextContent(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/);
+    const zeile = hinweis()?.closest('.hinweiszeile') as HTMLElement;
+    // U9: die Rechtsgrundlage steht auf „Anzeigen“, nicht offen über dem Formular.
+    expect(within(zeile).getByText(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/)).not.toBeVisible();
+    fireEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+    expect(within(zeile).getByText(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ nachtVon: '23:00', nachtBis: '05:00' })));
   });
@@ -153,6 +157,8 @@ describe('Vollzeit je Woche für die Mehrarbeit in Teilzeit (19.10.2026)', () =>
     firma = { ...firma, ueberstundenModell: 'tagesgrenze', ueberstundenGrenze: 'zehn' };
     zeige();
     expect(screen.queryByLabelText('Vollzeit je Woche (Std.)')).not.toBeInTheDocument();
+    // Eine Änderung an anderer Stelle — ohne sie gibt es keine Speicherleiste (U1).
+    fireEvent.change(screen.getByLabelText(/Durchrechnung für den Schnitt/), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalled());
     expect(updateCompany.mock.calls[0]).not.toContainEqual(expect.objectContaining({ vollzeitWochenstunden: expect.anything() }));
@@ -304,6 +310,7 @@ describe('Die Meldung steht beim Feld (Runde 6, G14)', () => {
   it('gleich geblieben: scheitert das Speichern, steht die Meldung beim Knopf und kein Feld ist markiert', async () => {
     updateCompany.mockRejectedValueOnce(new Error('Netz weg'));
     zeige();
+    fireEvent.change(screen.getByLabelText(/Durchrechnung für den Schnitt/), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     const meldung = await screen.findByRole('alert');
     expect(meldung).toHaveTextContent(/Netz weg|konnten nicht gespeichert werden/);

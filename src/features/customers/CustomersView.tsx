@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useSearchParams } from 'react-router-dom';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
@@ -183,6 +185,8 @@ export default function CustomersView() {
     Datenbank fehl.
   */
   const darfAendern = user ? darfKundenPflegen(user) : false;
+  // „Neuer Kunde“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => neuerKunde(), darfAendern);
   const darfBaustellenZuordnen = user ? isGF(user.role) : false;
 
   /*
@@ -275,6 +279,8 @@ export default function CustomersView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `suche` und `merken` entscheiden nur, ob gemerkt wird; ein Tastendruck lädt nicht neu
     [user, grenze, begriff, nurPruefen, nurOhneArt],
   );
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
 
   useEffect(() => {
     void laden();

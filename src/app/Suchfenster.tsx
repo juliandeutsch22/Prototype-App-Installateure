@@ -8,6 +8,7 @@ import { useHintergrundSperre } from '@/components/hintergrundSperre';
 import { listUsers } from '@/lib/db/users';
 import { datumAT } from '@/lib/datum';
 import { kontoAnzeige } from '@shared/benutzername';
+import { suchAktionen } from './suchAktionen';
 
 /*
   DIE SUCHE DER BEREICHE KOMMT ERST MIT DEM FENSTER (L7, 17.11.2026). Fest
@@ -43,7 +44,7 @@ import type { AppUser } from '@/types';
  * tragen keine eigene Nummer; man findet sie über ihre Baustelle.
  */
 
-const GRUPPEN = ['Seiten', 'Kunden', 'Baustellen', 'Rechnungen', 'Angebote', 'Personen', 'Artikel'] as const;
+const GRUPPEN = ['Aktionen', 'Seiten', 'Kunden', 'Baustellen', 'Rechnungen', 'Angebote', 'Personen', 'Artikel'] as const;
 type Gruppe = (typeof GRUPPEN)[number];
 
 interface Treffer {
@@ -56,6 +57,10 @@ interface Treffer {
   /** `neben` ist eine Nummer (Beleg, Baustelle, Artikel) — gemessen, also in Mono und ohne Umbruch. */
   nummer?: boolean;
   ziel: string;
+  /** Was die Zielseite beim Ankommen öffnet (Aktionen, etwa „Zeit erfassen“). */
+  zustand?: unknown;
+  /** Weitere Wörter, unter denen ein Treffer gefunden wird. */
+  auch?: string;
 }
 
 const HOECHSTENS = 5;
@@ -101,6 +106,17 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       })),
     ]);
   }, [user, company]);
+
+  /*
+    AKTIONEN ZUERST (F15, 15.11.2026): „Neue Rechnung“, „Zeit erfassen“ … —
+    nach denselben Rechten wie der Knopf auf der Seite (`suchAktionen.ts`).
+  */
+  const aktionen = useMemo<Treffer[]>(
+    () => suchAktionen(user, company).map((a) => ({
+      schluessel: `aktion-${a.ziel}`, gruppe: 'Aktionen' as const, text: a.text, auch: a.auch, ziel: a.ziel, zustand: a.zustand,
+    })),
+    [user, company],
+  );
 
   /*
     ESC AM FENSTER, NICHT NUR AM SUCHFELD. Ein Klick neben die Treffer (auf
@@ -245,8 +261,9 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
   const b = begriff.trim();
   const treffer = useMemo(() => {
     const s = b ? seiten.filter((t) => passt(t.text, b) || (t.zweite && passt(t.zweite, b))) : seiten;
-    return [...s, ...daten];
-  }, [b, seiten, daten]);
+    const a = b ? aktionen.filter((t) => passt(t.text, b) || (t.auch && passt(t.auch, b))) : aktionen;
+    return [...a, ...s, ...daten];
+  }, [b, aktionen, seiten, daten]);
 
   useEffect(() => {
     if (an >= treffer.length) setAn(0);
@@ -256,7 +273,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
 
   function oeffnen(t: Treffer) {
     onSchliessen();
-    navigate(t.ziel);
+    navigate(t.ziel, t.zustand ? { state: t.zustand } : undefined);
   }
 
   function taste(e: React.KeyboardEvent) {

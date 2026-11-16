@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useNavigate } from 'react-router-dom';
 import type { Lagerort } from '@/types';
 import { inventurAnlegen, inventurListen, type InventurUmfang, type Zaehlliste } from '@/lib/db/inventur';
@@ -39,6 +40,8 @@ export default function Zaehllisten({
   const [listen, setListen] = useState<Zaehlliste[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [neuOffen, setNeuOffen] = useState(false);
 
   useEffect(() => {

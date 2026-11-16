@@ -22,6 +22,15 @@ export function listFaelligeWartungen(
   return pg.listFaelligeWartungen(companyId, bis, max);
 }
 
+export type { WartungenStand } from './pg/wartungen';
+
+/** Fällige Wartungen je Abschnitt: Zahl und die ersten — siehe `pg.wartungenFaelligStand`. */
+export function wartungenFaelligStand(
+  heute: string, bis: string, anzahl: number, ohne: readonly string[] = [],
+): Promise<pg.WartungenStand> {
+  return pg.wartungenFaelligStand(heute, bis, anzahl, ohne);
+}
+
 export function listWartungenForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Wartung>[]> {

@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './Icon';
+import { useWischen, WischAktionen, type WischAktion } from './useWischen';
 
 /**
  * Einheitliche Listenzeile (Designlinie „Fassung 3", `.zeile`): Titel mit
@@ -19,6 +20,7 @@ export function ListRow({
   gestapelt = false,
   ausgewaehlt = false,
   vorbereiten,
+  wischen,
   children,
 }: {
   title: ReactNode;
@@ -67,8 +69,17 @@ export function ListRow({
    * Ziel): die Akte vorbereiten, bevor losgelassen wird (L12).
    */
   vorbereiten?: () => void;
+  /**
+   * Am Handy nach links wischen gibt diese Aktionen frei (F15) — dieselben
+   * Aufrufe wie an der Zeile oder im Fenster, keine neuen.
+   */
+  wischen?: WischAktion[];
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
+  const zeile = useRef<HTMLLIElement>(null);
+  const wisch = useWischen(zeile, !!wischen?.length);
+  const wischAttr = { ref: zeile, 'data-wischbar': wisch.an ? '' : undefined };
+  const wischFlaeche = wisch.an && wischen ? <WischAktionen aktionen={wischen} offen={wisch.offen} schliessen={wisch.schliessen} /> : null;
   const ganz = !!to || !!onOeffnen;
   const titelText = nummer != null && nummer !== '' ? (
     <>
@@ -86,7 +97,7 @@ export function ListRow({
   );
   if (gestapelt) {
     return (
-      <li className={ganz ? 'zeile zeile-gestapelt zeile-ganz' : 'zeile zeile-gestapelt'} aria-current={ausgewaehlt || undefined}>
+      <li {...wischAttr} className={ganz ? 'zeile zeile-gestapelt zeile-ganz' : 'zeile zeile-gestapelt'} aria-current={ausgewaehlt || undefined}>
         <div className="zeile-text">
           <div className="zeile-titel flex flex-wrap items-center gap-x-2">{titelInhalt}</div>
           {subtitle && <p className="zeile-meta mt-0.5 block">{subtitle}</p>}
@@ -103,11 +114,12 @@ export function ListRow({
             {pfeil && <Icon name="weiter" size={16} className="zeile-pfeil" />}
           </div>
         )}
+        {wischFlaeche}
       </li>
     );
   }
   return (
-    <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'} aria-current={ausgewaehlt || undefined}>
+    <li {...wischAttr} className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'} aria-current={ausgewaehlt || undefined}>
       {/*
         Untergrenze statt min-w-0. `flex: 1` allein bedeutet flex-basis:0 — der
         Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest
@@ -146,6 +158,7 @@ export function ListRow({
           {pfeil && <Icon name="weiter" size={16} className="zeile-pfeil" />}
         </div>
       )}
+      {wischFlaeche}
     </li>
   );
 }

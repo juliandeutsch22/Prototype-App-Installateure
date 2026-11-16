@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Marke, Zustand, Warnung, Zaehler } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
@@ -213,19 +213,38 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
 });
 
 /*
-  EINE NEUE ZAHL BLENDET EIN (09.11.2026): der sichtbare Teil wird bei jeder
-  neuen Zahl neu gesetzt und trägt `.lot-zahl-neu`. Gleich bleibt: der
-  Vorleser hört die Zahl mit dem ausgeschriebenen Wort.
+  EINE NEUE ZAHL ROLLT (B6, 15.11.2026; vorher seit 09.11.2026: sie blendete
+  ein): die sichtbare Zahl wechselt sofort, ein stummes Abbild der alten
+  rollt hinaus. Gleich bleibt: der Vorleser hört die Zahl mit dem
+  ausgeschriebenen Wort, und ohne Bewegung steht nur die neue Zahl da.
 */
 describe('Zähler bei einer neuen Zahl', () => {
-  it('setzt die sichtbare Zahl neu und lässt sie einblenden', () => {
+  afterEach(() => { vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLElement.prototype, 'animate'); });
+
+  it('zeigt sofort die neue Zahl; ohne Bewegung ohne Abbild', () => {
     const { container, rerender } = render(<Zaehler anzahl={2} was="offene Anträge" />);
-    const vorher = container.querySelector('[aria-hidden="true"]');
-    expect(vorher).toHaveClass('lot-zahl-neu');
     rerender(<Zaehler anzahl={3} was="offene Anträge" />);
-    const nachher = container.querySelector('[aria-hidden="true"]');
-    expect(nachher).toHaveTextContent('3');
-    expect(nachher).not.toBe(vorher);
+    const sichtbar = container.querySelector('[aria-hidden="true"]');
+    expect(sichtbar).toHaveTextContent(/^3$/);
+    expect(container.querySelector('[data-rollzahl-alt]')).toBeNull();
     expect(screen.getByText('3 offene Anträge')).toBeInTheDocument();
+  });
+
+  it('mit Bewegung rollt die alte Zahl nach oben hinaus, wenn es mehr wird', () => {
+    const fahrten: Array<{ el: Element; bilder: Keyframe[] }> = [];
+    Object.defineProperty(HTMLElement.prototype, 'animate', {
+      configurable: true,
+      value(this: HTMLElement, bilder: Keyframe[]) { fahrten.push({ el: this, bilder }); return { onfinish: null, oncancel: null } as unknown as Animation; },
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    const { container, rerender } = render(<Zaehler anzahl={2} was="offene Anträge" />);
+    expect(fahrten).toHaveLength(0);
+    rerender(<Zaehler anzahl={3} was="offene Anträge" />);
+    const alt = container.querySelector('[data-rollzahl-alt]');
+    expect(alt).toHaveTextContent('2');
+    expect(alt).toHaveAttribute('aria-hidden', 'true');
+    expect(fahrten.find((f) => f.el === alt)!.bilder[1].transform).toBe('translateY(-100%)');
+    rerender(<Zaehler anzahl={1} was="offene Anträge" />);
+    expect(fahrten.find((f) => f.el.textContent === '3' && f.el.hasAttribute('data-rollzahl-alt'))!.bilder[1].transform).toBe('translateY(100%)');
   });
 });

@@ -1,4 +1,5 @@
 import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
+import { handlung } from './handlung';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -631,7 +632,7 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
 
     expect(within(fenster()).getByText(/von 72:00 Soll/)).toBeInTheDocument();
     const tabelle = tagesnachweis();
-    expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
+    expect(handlung({ name: 'Urlaubsantrag' }, tabelle)).toBeInTheDocument();
     expect(within(tabelle).getAllByRole('button', { name: / bearbeiten$/ })).toHaveLength(9);
   });
 });
@@ -718,7 +719,7 @@ describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () =>
   it('bleibt gleich: im Tagesstreifen und in der Woche keine vierte Zahl', async () => {
     zeigeListe();
     await screen.findByText('Gesamtsaldo', { selector: '.ue-zahl-name' });
-    await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
+    await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(handlung({ name: 'Alle Tage vergleichen' }));
     await waitFor(() => expect(screen.queryByText('Gesamtsaldo', { selector: '.ue-zahl-name' })).toBeNull());
     expect(screen.getByText('Saldo Monat', { selector: '.ue-zahl-name' })).toBeInTheDocument();
   });
@@ -804,7 +805,7 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     await personKnopf('Neu Eingestellt');
     const abo = vi.mocked((await import('@/lib/db/timeEntries')).subscribeEntriesInRange);
     // Sechs Wochen zurück: Mo 20.07. — vor dem 25.07., bis wohin der August sonst lädt.
-    for (let i = 0; i < 6; i++) await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    for (let i = 0; i < 6; i++) await nutzer.click(handlung({ name: 'Vorige Woche' }));
     const [, von] = abo.mock.calls[abo.mock.calls.length - 1];
     expect(von <= '2026-07-20').toBe(true);
   });
@@ -825,7 +826,7 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     expect(zahl()).toBeCloseTo(ohne, 2);
     expect(screen.getByTestId('resturlaub')).toHaveTextContent('davon verplant: 1 Tag');
     csvGeladen.mockClear();
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, fenster()));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
     // „Urlaub im Jahr“ zählt jeden Urlaubstag des Jahres — wie bisher aus dem Jahresbestand.
     expect(csvGeladen.mock.calls[0][0]).toMatch(/Urlaub 2026 gesamt;2 Tage/);
@@ -921,7 +922,7 @@ function zeichneSeite(start = '/accounting?tage=alle') {
 }
 
 /** Ein Feld des Streifens bzw. eine Zelle der Woche — beim `aria-label` gesucht (Person, Tag, Zustand). */
-const tagKnopf = (muster: RegExp) => screen.getByRole('button', { name: muster });
+const tagKnopf = (muster: RegExp) => handlung({ name: muster });
 /** Ein Feld des Schriftfelds im Plankopf, nach seiner Beschriftung. */
 const schriftfeld = (name: string) =>
   [...document.querySelectorAll('.schriftfeld .lage-name')].find((n) => n.textContent === name)!.closest('.lage-punkt') as HTMLElement;
@@ -931,15 +932,15 @@ describe('Mitarbeiterübersicht: mobile Tage ohne Buchung', () => {
     buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
     const nutzer = zeichneSeite('/accounting');
     await nutzer.click(await personKnopf('Neu Eingestellt'));
-    let schalter = within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ });
+    let schalter = handlung({ name: /1 Arbeitstag ohne Buchung/ }, fenster());
     expect(schalter).toHaveAttribute('aria-expanded', 'false');
     await nutzer.click(schalter);
     expect(schalter).toHaveAttribute('aria-expanded', 'true');
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    await nutzer.click(handlung({ name: 'Zeit erfassen für Do 20.08.' }, fenster()));
     const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
     expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
-    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
-    schalter = within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ });
+    await nutzer.click(handlung({ name: 'Abbrechen' }, formular));
+    schalter = handlung({ name: /1 Arbeitstag ohne Buchung/ }, fenster());
     expect(schalter).toHaveAttribute('aria-expanded', 'true');
     await nutzer.click(schalter);
     expect(schalter).toHaveAttribute('aria-expanded', 'false');
@@ -950,7 +951,7 @@ describe('Mitarbeiterübersicht: mobile Tage ohne Buchung', () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
     await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
-    expect(within(fenster()).getByRole('button', { name: /1 Arbeitstag ohne Buchung/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(handlung({ name: /1 Arbeitstag ohne Buchung/ }, fenster())).toHaveAttribute('aria-expanded', 'true');
     expect(fenster().querySelector('[data-markiert="ja"]')).toHaveTextContent('Do 20.08.');
   });
 });
@@ -1009,7 +1010,7 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     await nutzer.click(await personKnopf('Neu Eingestellt'));
     expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
     expect(fenster().querySelector('[data-markiert="ja"]')).toBeNull();
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Schließen' }));
+    await nutzer.click(handlung({ name: 'Schließen' }, fenster()));
 
     await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
     const markiert = fenster().querySelector('[data-markiert="ja"]');
@@ -1028,20 +1029,20 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
     await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    await nutzer.click(handlung({ name: 'Zeit erfassen für Do 20.08.' }, fenster()));
     const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
     expect(within(formular).getByRole('heading', { name: 'Zeit für Neu Eingestellt erfassen' })).toBeInTheDocument();
     expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
     // Dasselbe Fenster, kein zweites darüber.
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
-    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    await nutzer.click(handlung({ name: 'Abbrechen' }, formular));
     expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
   });
 
   it('Gegenprobe: die Hauptaktion der Seite erfasst ohne Vorbelegung', async () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Zeit erfassen' }));
+    await nutzer.click(handlung({ name: 'Zeit erfassen' }));
     expect(screen.queryByText(/Vorbelegt:/)).not.toBeInTheDocument();
   });
 
@@ -1071,7 +1072,7 @@ describe('Mitarbeiterübersicht: der Monat als Streifen (Runde 4, Auftrag 3.3)',
   it('erklärt die Felder in „Hilfe zu dieser Seite“', async () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    await nutzer.click(handlung({ name: 'Hilfe zu dieser Seite' }));
     expect(await screen.findByText(/„abwesend“ heißt Urlaub, Krankenstand, Berufsschule/)).toBeInTheDocument();
     expect(screen.getByText(/Darüberfahren zeigt\s+Stunden und Soll des Tages, ein Tipp öffnet ihn/)).toBeInTheDocument();
   });
@@ -1102,7 +1103,7 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     luecke();
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
-    const kennzahl = screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ });
+    const kennzahl = screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ });
     // Die Zahl steht im Schriftfeld des Kopfs (Planlinie B1), nicht mehr als Satz über der Liste.
     const feld = schriftfeld('Tage ohne Buchung');
     expect(feld.querySelector('.lage-wert')).toHaveTextContent(/^2$/);
@@ -1124,9 +1125,9 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     luecke();
     zeichneSeite('/accounting?filter=luecken&monat=2026-08');
     await personKnopf('Anna Zweite');
-    expect(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ })).toBeChecked();
+    expect(screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ })).toBeChecked();
     expect(Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent)).toEqual(['Anna Zweite']);
-    expect(screen.getByRole('button', { name: /August 2026/ })).toBeInTheDocument();
+    expect(handlung({ name: /August 2026/ })).toBeInTheDocument();
   });
 
   it('„Gebucht“ ist die Summe der Zeilen — im Schriftfeld und in der Summenzeile', async () => {
@@ -1150,7 +1151,7 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
     expect(person.compareDocumentPosition(summe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(summe).toHaveTextContent('144:00');
-    await nutzer.click(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ }));
+    await nutzer.click(screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ }));
     expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
     expect(summe).toHaveTextContent('144:00');
     expect(summe).toHaveTextContent('160:00');
@@ -1184,7 +1185,7 @@ describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
   it('ein Klick auf den Titel öffnet die bisherige Auswahl — auch 2022', async () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    const titel = screen.getByRole('button', { name: /August 2026/ });
+    const titel = handlung({ name: /August 2026/ });
     expect(titel).toHaveTextContent('Dieser Monat · Stand Mo 31.08.');
     expect(screen.queryByLabelText('Jahr')).not.toBeInTheDocument();
     await nutzer.click(titel);
@@ -1195,7 +1196,7 @@ describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
     ]);
     await nutzer.selectOptions(jahr, '2022');
     await nutzer.selectOptions(screen.getByLabelText('Monat'), '2');
-    expect(screen.getByRole('button', { name: /März 2022/ })).toBeInTheDocument();
+    expect(handlung({ name: /März 2022/ })).toBeInTheDocument();
   });
 
   it('‹ › blättern monatsweise über den Jahreswechsel und laden das neue Jahr', async () => {
@@ -1203,23 +1204,23 @@ describe('Mitarbeiterübersicht: Monat und Jahr (Runde 4, Auftrag 3.2)', () => {
     await personKnopf('Neu Eingestellt');
     const abo = vi.mocked((await import('@/lib/db/timeEntries')).subscribeEntriesInRange);
     abo.mockClear();
-    await nutzer.click(screen.getByRole('button', { name: 'Voriger Monat' }));
-    expect(screen.getByRole('button', { name: /Dezember 2025/ })).toHaveTextContent('Dezember 2025');
+    await nutzer.click(handlung({ name: 'Voriger Monat' }));
+    expect(handlung({ name: /Dezember 2025/ })).toHaveTextContent('Dezember 2025');
     // Der Dezember mit einer Woche davor und danach — nicht mehr das ganze Jahr.
     expect(abo).toHaveBeenCalledWith('perl', '2025-11-24', '2026-01-07', expect.any(Function), expect.any(Function));
-    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
-    expect(screen.getByRole('button', { name: /Jänner 2026/ })).toBeInTheDocument();
+    await nutzer.click(handlung({ name: 'Nächster Monat' }));
+    expect(handlung({ name: /Jänner 2026/ })).toBeInTheDocument();
   });
 
   it('Gegenprobe: nicht über die Auswahl hinaus — Jänner 2022 hat kein ‹, Dezember des laufenden Jahres kein ›', async () => {
     zeichneSeite('/accounting?monat=2022-01');
-    await screen.findByRole('button', { name: /Jänner 2022/ });
-    expect(screen.getByRole('button', { name: 'Voriger Monat' })).toBeDisabled();
+    await waitFor(() => handlung({ name: /Jänner 2022/ }));
+    expect(handlung({ name: 'Voriger Monat' })).toBeDisabled();
     cleanup();
     zeichneSeite('/accounting?monat=2026-12');
-    await screen.findByRole('button', { name: /Dezember 2026/ });
-    expect(screen.getByRole('button', { name: 'Nächster Monat' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Voriger Monat' })).toBeEnabled();
+    await waitFor(() => handlung({ name: /Dezember 2026/ }));
+    expect(handlung({ name: 'Nächster Monat' })).toBeDisabled();
+    expect(handlung({ name: 'Voriger Monat' })).toBeEnabled();
   });
 });
 
@@ -1228,7 +1229,7 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     buchungen = eintraege.filter((e) => e.date !== '2026-08-26');
     const nutzer = zeichneSeite('/accounting?ansicht=woche');
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    await nutzer.click(handlung({ name: 'Vorige Woche' }));
     const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
     expect(summe).toHaveTextContent('Alle Personen');
     expect(summe).toHaveTextContent('32:00');
@@ -1240,9 +1241,9 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     buchungen = eintraege.filter((e) => e.date !== '2026-08-26');
     const nutzer = zeichneSeite('/accounting?ansicht=woche');
     await personKnopf('Neu Eingestellt');
-    expect(screen.getByRole('button', { name: /Diese Woche/ })).toHaveTextContent('KW 36');
-    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
-    expect(screen.getByRole('button', { name: /Letzte Woche/ })).toBeInTheDocument();
+    expect(handlung({ name: /Diese Woche/ })).toHaveTextContent('KW 36');
+    await nutzer.click(handlung({ name: 'Vorige Woche' }));
+    expect(handlung({ name: /Letzte Woche/ })).toBeInTheDocument();
     const gebucht = tagKnopf(/^Neu Eingestellt, Di 25\.08\./);
     expect(gebucht).toHaveClass('mw-zelle');
     expect(gebucht).toHaveTextContent('8:00');
@@ -1261,15 +1262,15 @@ describe('Mitarbeiterübersicht: die Woche (Runde 4, Auftrag 3.4)', () => {
     buchungen = [...eintraege.filter((e) => e.date !== '2026-08-27'), { ...eintrag('2026-08-27'), status: 'Zeitausgleich', startTime: undefined, endTime: undefined }];
     const nutzer = zeichneSeite('/accounting?monat=2026-08');
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Woche' }));
+    await nutzer.click(handlung({ name: 'Woche' }));
     expect(screen.getByTestId('adresse')).toHaveTextContent('ansicht=woche');
-    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    await nutzer.click(handlung({ name: 'Vorige Woche' }));
     expect(tagKnopf(/^Neu Eingestellt, Do 27\.08\./)).toHaveTextContent('Zeitausgleich');
     expect(tagKnopf(/^Neu Eingestellt, Do 27\.08\./)).toHaveClass('mw-zelle-weg');
-    await nutzer.click(screen.getByRole('button', { name: 'Monat' }));
+    await nutzer.click(handlung({ name: 'Monat' }));
     expect(screen.getByTestId('adresse')).not.toHaveTextContent('ansicht');
     expect(document.querySelector('.streifen')).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
+    await nutzer.click(handlung({ name: 'Alle Tage vergleichen' }));
     expect(document.querySelector('.streifen')).not.toBeNull();
   });
 });
@@ -1294,7 +1295,7 @@ describe('Mitarbeiterübersicht: Tastatur nach dem Blättern', () => {
     expect(tabStopps('Neu Eingestellt, Tage des Monats').map((b) => b.getAttribute('aria-label'))).toEqual([
       expect.stringMatching(/Do 20\.08\./),
     ]);
-    await nutzer.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    await nutzer.click(handlung({ name: 'Nächster Monat' }));
     expect(tabStopps('Neu Eingestellt, Tage des Monats')).toHaveLength(1);
   });
 
@@ -1303,7 +1304,7 @@ describe('Mitarbeiterübersicht: Tastatur nach dem Blättern', () => {
     await personKnopf('Neu Eingestellt');
     tagKnopf(/^Neu Eingestellt, Mo 31\.08\./).focus();
     await nutzer.keyboard('{ArrowRight}');
-    await nutzer.click(screen.getByRole('button', { name: 'Vorige Woche' }));
+    await nutzer.click(handlung({ name: 'Vorige Woche' }));
     expect(tabStopps('Neu Eingestellt, Tage der Woche')).toHaveLength(1);
   });
 
@@ -1342,18 +1343,18 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
   it('die Monats-CSV steht im ⋯ der Seite', async () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     expect(screen.getByRole('menuitem', { name: 'Monats-CSV' })).toBeInTheDocument();
   });
 
   it('„Zeit erfassen“ öffnet das Seitenfenster, die Liste bleibt stehen', async () => {
     const nutzer = zeichneSeite();
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Zeit erfassen' }));
+    await nutzer.click(handlung({ name: 'Zeit erfassen' }));
     const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
     expect(within(formular).getByRole('heading', { name: 'Zeit für einen Mitarbeiter erfassen' })).toBeInTheDocument();
     expect(within(formular).getByText('Formular für neu')).toBeInTheDocument();
-    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    await nutzer.click(handlung({ name: 'Abbrechen' }, formular));
     expect(screen.queryByRole('dialog', { name: 'Zeit erfassen' })).not.toBeInTheDocument();
   });
 
@@ -1370,7 +1371,7 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
     expect(within(formular).getByRole('heading', { name: 'Eintrag von Neu Eingestellt korrigieren' })).toBeInTheDocument();
     expect(within(formular).getByText(/Formular für e-2026-08-/)).toBeInTheDocument();
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
-    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
+    await nutzer.click(handlung({ name: 'Abbrechen' }, formular));
     expect(within(fenster()).getByText('Saldo im Monat')).toBeInTheDocument();
   });
 
@@ -1385,8 +1386,8 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
   it('Fussleiste: „Monat als CSV“, „Bericht für Zeitraum“ und „Zeit erfassen“ für die Person', async () => {
     await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    expect(within(fenster()).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
+    expect(handlung({ name: 'Monat als CSV' }, fenster())).toBeInTheDocument();
+    await nutzer.click(handlung({ name: 'Bericht für Zeitraum' }, fenster()));
     expect(screen.getByRole('dialog', { name: 'Bericht exportieren' })).toBeInTheDocument();
   });
 });
@@ -1485,26 +1486,26 @@ describe('Lot v2: Vergleich zuerst, Tagesraster auf Wunsch', () => {
     await personKnopf('Neu Eingestellt');
     expect(screen.queryByRole('group', { name: 'Neu Eingestellt, Tage des Monats' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Neu Eingestellt, Mo 17\.08\./ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Alle Tage vergleichen' })).toHaveAttribute('aria-pressed', 'false');
+    expect(handlung({ name: 'Alle Tage vergleichen' })).toHaveAttribute('aria-pressed', 'false');
     await nutzer.click(await personKnopf('Neu Eingestellt'));
     expect(tagesnachweis()).toBeInTheDocument();
     expect(within(tagesnachweis()).getAllByRole('listitem')).toHaveLength(11);
-    expect(within(fenster()).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
+    expect(handlung({ name: 'Monat als CSV' }, fenster())).toBeInTheDocument();
   });
 
   it('behält den Tagesvergleich samt Fremderfassung, Datum und Rückweg', async () => {
     buchungen = eintraege.filter((e) => e.date !== '2026-08-20');
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
-    await nutzer.click(screen.getByRole('button', { name: 'Alle Tage vergleichen' }));
+    await nutzer.click(handlung({ name: 'Alle Tage vergleichen' }));
     expect(screen.getByTestId('adresse')).toHaveTextContent('tage=alle');
     await nutzer.click(tagKnopf(/Do 20\.08\. · keine Buchung/));
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Zeit erfassen für Do 20.08.' }));
+    await nutzer.click(handlung({ name: 'Zeit erfassen für Do 20.08.' }, fenster()));
     const formular = screen.getByRole('dialog', { name: 'Zeit erfassen' });
     expect(within(formular).getByText('Vorbelegt: u1 am 2026-08-20')).toBeInTheDocument();
-    await nutzer.click(within(formular).getByRole('button', { name: 'Abbrechen' }));
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Schließen' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Personen vergleichen' }));
+    await nutzer.click(handlung({ name: 'Abbrechen' }, formular));
+    await nutzer.click(handlung({ name: 'Schließen' }, fenster()));
+    await nutzer.click(handlung({ name: 'Personen vergleichen' }));
     expect(screen.getByTestId('adresse')).not.toHaveTextContent('tage=alle');
     expect(screen.queryByRole('button', { name: /Neu Eingestellt, Do 20\.08\./ })).not.toBeInTheDocument();
   });
@@ -1515,15 +1516,15 @@ describe('Lot v2: optionaler Kalender im Tagesnachweis', () => {
     const nutzer = zeichneSeite('/accounting');
     await nutzer.click(await personKnopf('Neu Eingestellt'));
     expect(within(fenster()).queryByRole('group', { name: /Monatskalender/ })).not.toBeInTheDocument();
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Kalender anzeigen' }));
+    await nutzer.click(handlung({ name: 'Kalender anzeigen' }, fenster()));
     const kalender = within(fenster()).getByRole('group', { name: 'Neu Eingestellt, Monatskalender' });
     expect(within(kalender).getAllByRole('button')).toHaveLength(31);
-    await nutzer.click(within(kalender).getByRole('button', { name: /Do 20\.08\./ }));
+    await nutzer.click(handlung({ name: /Do 20\.08\./ }, kalender));
     await nutzer.keyboard('{ArrowRight}');
-    expect(within(kalender).getByRole('button', { name: /Fr 21\.08\./ })).toHaveFocus();
+    expect(handlung({ name: /Fr 21\.08\./ }, kalender)).toHaveFocus();
     expect(within(tagesnachweis()).getByText('Do 20.08.').closest('li')).toHaveAttribute('data-markiert', 'ja');
     expect(within(tagesnachweis()).getAllByRole('listitem')).toHaveLength(11);
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Kalender ausblenden' }));
+    await nutzer.click(handlung({ name: 'Kalender ausblenden' }, fenster()));
     expect(within(fenster()).queryByRole('group', { name: /Monatskalender/ })).not.toBeInTheDocument();
     expect(tagesnachweis()).toBeInTheDocument();
   });
@@ -1555,7 +1556,7 @@ describe('Überstunden nach dem KV: die Woche vor dem Monatsersten zählt mit (1
       await oeffneMitarbeiter();
       const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       csvGeladen.mockClear();
-      await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+      await nutzer.click(handlung({ name: 'Monat als CSV' }, fenster()));
       expect(csvGeladen).toHaveBeenCalledTimes(1);
       expect(csvGeladen.mock.calls[0][0]).toMatch(/Überstunden 50 %;0,00 h/);
       expect(csvGeladen.mock.calls[0][0]).toMatch(/Überstunden 100 %;4,00 h/);
@@ -1694,7 +1695,7 @@ describe('Mitarbeiteruebersicht — freie Zeitfelder (M06b)', () => {
     expect(within(f).getByText('fehlt: Auftragsnummer HV')).toBeInTheDocument();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     csvGeladen.mockClear();
-    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, f));
     const csv = csvGeladen.mock.calls[0][0] as string;
     expect(csv).toMatch(/Kommentar;Auftragsnummer HV\n/);
     expect(csv).toMatch(/;HV-4711\n/);
@@ -1737,14 +1738,14 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     expect(within(f).queryByTestId('resturlaub')).toBeNull();
     expect(within(f).queryByRole('button', { name: /Zeit erfassen/ })).toBeNull();
     csvGeladen.mockClear();
-    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, f));
     const eigene = csvGeladen.mock.calls[0][0] as string;
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(Konto deaktiviert\)/);
     expect(eigene).toMatch(/\nIst;16,00 h\nSoll;—\nSaldo;—\n/);
     expect(eigene).toMatch(/\nRest am Monatsende;—\n/);
-    await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
+    await nutzer.click(handlung({ name: 'Schließen' }, f));
 
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     csvGeladen.mockClear();
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
@@ -1772,7 +1773,7 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     expect(within(f).getByText('Saldo im Monat')).toBeInTheDocument();
     expect(within(f).queryByTestId('resturlaub')).toBeNull();
     csvGeladen.mockClear();
-    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, f));
     const eigene = csvGeladen.mock.calls[0][0] as string;
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(ausgetreten am 18\.08\.2026\)/);
     // 17. und 18.08. sind die Pflichttage bis zum Austritt: 16 Stunden Soll.
@@ -1786,7 +1787,7 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
     expect(screen.queryByText('Ausgeschieden Anton')).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     csvGeladen.mockClear();
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
@@ -1815,20 +1816,20 @@ describe('Urlaubstage nicht geladen (Z7)', () => {
     expect(within(f).getByTestId('resturlaub')).toHaveTextContent(/unbekannt/);
     expect(within(f).getByTestId('resturlaub')).not.toHaveTextContent(/\d/);
     csvGeladen.mockClear();
-    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, f));
     expect(csvGeladen).not.toHaveBeenCalled();
     expect(await screen.findByText(/Urlaub.*nicht geladen.*CSV/)).toBeInTheDocument();
-    await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
+    await nutzer.click(handlung({ name: 'Schließen' }, f));
 
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     expect(csvGeladen).not.toHaveBeenCalled();
 
     // Gegenprobe: geladen, geht die Datei hinaus — mit dem Resturlaub, der den Urlaubstag zählt.
     urlaubScheitert = false;
-    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await nutzer.click(handlung({ name: 'Erneut versuchen' }));
     await waitFor(() => expect(screen.queryByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeNull());
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
     const csv = csvGeladen.mock.calls[0][0] as string;
@@ -1843,7 +1844,7 @@ describe('Urlaubstage nicht geladen (Z7)', () => {
     await nutzer.click(knopf);
     expect(within(fenster()).getByTestId('resturlaub')).toHaveTextContent(/\d/);
     csvGeladen.mockClear();
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+    await nutzer.click(handlung({ name: 'Monat als CSV' }, fenster()));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
   });
 });
@@ -1860,10 +1861,10 @@ describe('Exporte je Person fragen nur die Person ab (Z8)', () => {
     buchungen = [...eintraege.map((e) => ({ ...e, projectNumber: 'PR-1' })), anderer];
     const nutzer = zeichneSeite('/accounting');
     await nutzer.click(await personKnopf('Neu Eingestellt'));
-    await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
+    await nutzer.click(handlung({ name: 'Bericht für Zeitraum' }, fenster()));
     vi.mocked(listEntriesInRange).mockClear();
     csvGeladen.mockClear();
-    await nutzer.click(screen.getByRole('button', { name: 'Projektauswertung (CSV)' }));
+    await nutzer.click(handlung({ name: 'Projektauswertung (CSV)' }));
     await waitFor(() => expect(csvGeladen).toHaveBeenCalledTimes(1));
     expect(listOwnEntriesInRange).toHaveBeenCalledWith('perl', 'u1', '2026-08-01', '2026-08-31');
     expect(listEntriesInRange).not.toHaveBeenCalled();
@@ -1876,7 +1877,7 @@ describe('Exporte je Person fragen nur die Person ab (Z8)', () => {
 
 describe('Monatsabschluss in der Mitarbeiterübersicht (Durchsicht 15.11.2026, Z6)', () => {
   const menue = async (nutzer: ReturnType<typeof zeichneSeite>) => {
-    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Weitere Aktionen für Mitarbeiterübersicht/ })));
   };
   afterEach(() => {
     authWert.company = { id: 'perl', name: 'Perl Installationen GmbH' };
@@ -1892,7 +1893,7 @@ describe('Monatsabschluss in der Mitarbeiterübersicht (Durchsicht 15.11.2026, Z
     await menue(nutzer);
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monat abschließen' }));
     const dialog = await screen.findByRole('dialog', { name: /abschließen/ });
-    await nutzer.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await nutzer.click(handlung({ name: 'Abschließen' }, dialog));
     await waitFor(() => expect(abschliessen).toHaveBeenCalledWith('2026-07'));
   });
 
@@ -1904,9 +1905,9 @@ describe('Monatsabschluss in der Mitarbeiterübersicht (Durchsicht 15.11.2026, Z
     await menue(nutzer);
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monat wieder öffnen' }));
     const dialog = await screen.findByRole('dialog', { name: /wieder öffnen/ });
-    expect(within(dialog).getByRole('button', { name: 'Wieder öffnen' })).toBeDisabled();
+    expect(handlung({ name: 'Wieder öffnen' }, dialog)).toBeDisabled();
     await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Nachtrag Krankenstand');
-    await nutzer.click(within(dialog).getByRole('button', { name: 'Wieder öffnen' }));
+    await nutzer.click(handlung({ name: 'Wieder öffnen' }, dialog));
     await waitFor(() => expect(oeffnen).toHaveBeenCalledWith('2026-07', 'Nachtrag Krankenstand'));
   });
 

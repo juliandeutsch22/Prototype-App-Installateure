@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { Link } from 'react-router-dom';
 import type { Termin } from '@/types';
 import Button from '@/components/Button';
@@ -178,13 +179,16 @@ export default function MonatsVorschau({
   /*
     EIN KLICK AUSSERHALB SCHLIESST (Schreibtisch). Ein Klick auf einen
     anderen Balken oder Tag öffnet dessen Vorschau — der schliesst hier
-    nicht erst, sonst flackerte sie.
+    nicht erst, sonst flackerte sie. Das ⋯ des Fußes (U4) öffnet sein Menü
+    in `body`, also außerhalb; ohne Ausnahme schlösse schon das Drücken auf
+    „Termin anlegen“ die Vorschau, das Menü verschwände mit ihr, und der
+    Klick käme nie an.
   */
   useEffect(() => {
     if (handy) return;
     const druck = (e: MouseEvent) => {
       const t = e.target as Element | null;
-      if (!t || ref.current?.contains(t) || t.closest('[data-vorschau-ausloeser]')) return;
+      if (!t || ref.current?.contains(t) || t.closest('[data-vorschau-ausloeser]') || t.closest('[role="menu"]')) return;
       onSchliessen(false);
     };
     document.addEventListener('mousedown', druck);
@@ -325,17 +329,13 @@ export default function MonatsVorschau({
           (lot-monat.css). Die Zweitknöpfe sind gerahmt; als Geisterknopf
           las sich „Termin anlegen“ wie ein verirrter Text.
         */}
-        {onTerminNeu && darfTermine && (
-          <Button variant="secondary" onClick={terminNeu}>
-            Termin anlegen
-          </Button>
-        )}
-        {onZurWoche && (
-          <Button variant="secondary" onClick={zurWoche}>
-            Zur Woche
-          </Button>
-        )}
-        {haupt && <Button onClick={() => einsatz(haupt.start)}>{haupt.text}</Button>}
+        {/* U4: höchstens zwei Knöpfe, „Termin anlegen“ im ⋯. */}
+        <Fensteraktionen
+          about="Tag im Monat"
+          haupt={haupt ? <Button onClick={() => einsatz(haupt.start)}>{haupt.text}</Button> : null}
+          zweit={onZurWoche ? <Button variant="secondary" onClick={zurWoche}>Zur Woche</Button> : null}
+          weitere={onTerminNeu && darfTermine ? [{ label: 'Termin anlegen', onSelect: terminNeu }] : []}
+        />
       </div>
       )}
     </div>

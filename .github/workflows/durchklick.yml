@@ -57,12 +57,20 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  # IN VIER TEILEN NEBENEINANDER (16.11.2026). Ein Auftrag mit einem Browser
+  # nacheinander brauchte für 317 Wege 45 Minuten, dazu Links und
+  # Inhaltsregel — rot wurde ein PR erst nach einer Dreiviertelstunde. Jeder
+  # Teil hat seinen eigenen Stapel und seinen eigenen Aufbau; die Wege sind
+  # dieselben, nur auf vier Rechner verteilt (`--shard`, je Datei). Dass ein
+  # Weg dabei auf einen anderen angewiesen wäre, darf nicht sein: jeder legt
+  # an, was er braucht.
   durchklicken:
-    # DER NAME BLEIBT, obwohl es inzwischen sieben Wege sind: unter ihm kann
-    # die Prüfung als Pflicht für den Merge hinterlegt sein, und ein neuer
-    # Name hiesse eine Pflichtprüfung, die nie mehr berichtet.
-    name: Die sechs Wege im Browser
+    name: Durchklick ${{ matrix.teil }}/4
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        teil: [1, 2, 3, 4]
     steps:
       # DIE PORTS DES STAPELS VOR DEM ERSTEN NETZZUGRIFF RESERVIEREN (13.11.2026).
       # 54320–54329 liegen im Bereich, aus dem Linux Ports für ausgehende
@@ -108,19 +116,7 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - name: Durchklick
-        run: npm run durchklick
-
-      # Jeder Link führt dorthin, wo die Rolle hin darf (offene Punkte C1).
-      # Läuft gegen die Vorschau mit Beispieldaten, nicht gegen den Stapel.
-      - name: Links je Rolle
-        run: npm run pruefen:links
-
-      # Jede Seite jeder Rolle unter der DURCHGESETZTEN Inhaltsregel, am
-      # Schreibtisch und am Telefon (Testbericht Runde 6, 8.4 und Hinweis 13).
-      # Gegen den fertigen Bau mit den Kopfzeilen aus `firebase.json` — der
-      # Entwicklungsserver des Durchklicks schickt keine Regel.
-      - name: Inhaltsregel je Rolle
-        run: npm run pruefen:inhaltsregel
+        run: npm run durchklick -- --shard=${{ matrix.teil }}/4
 
       # Bilder und Spuren NUR BEI ROT. Sie sind der Unterschied zwischen
       # „irgendein Knopf fehlte" und einer Antwort in zwei Minuten.
@@ -128,8 +124,95 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: durchklick-spuren
+          name: durchklick-spuren-${{ matrix.teil }}
           path: |
             test-results/
             playwright-report/
           retention-days: 7
+
+  # Jede Seite jeder Rolle unter der DURCHGESETZTEN Inhaltsregel, am
+  # Schreibtisch und am Telefon (Testbericht Runde 6, 8.4 und Hinweis 13).
+  # Gegen den fertigen Bau mit den Kopfzeilen aus `firebase.json` — der
+  # Entwicklungsserver des Durchklicks schickt keine Regel. Braucht den
+  # Stapel (derselbe Aufbau), aber keinen der Durchklick-Teile.
+  inhaltsregel:
+    name: Inhaltsregel je Rolle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ports des Stapels reservieren
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Gemeinsame Regeln übernehmen
+        run: npm run gemeinsames
+      - name: Stapel hochfahren
+        run: supabase start
+      - name: Wer hält die Ports des Stapels?
+        if: failure()
+        run: sudo ss -tanp | grep -E ':543(2[0-9])\b' || echo 'keiner'
+      - name: Browser holen
+        run: npx playwright install --with-deps chromium webkit
+      - name: Inhaltsregel je Rolle
+        run: npm run pruefen:inhaltsregel
+      - name: Bilder und Spuren sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inhaltsregel-spuren
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  # Jeder Link führt dorthin, wo die Rolle hin darf (offene Punkte C1).
+  # Läuft gegen die Vorschau mit Beispieldaten, nicht gegen den Stapel —
+  # deshalb ohne Supabase und neben den anderen.
+  links:
+    name: Links je Rolle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Browser holen
+        run: npx playwright install --with-deps chromium webkit
+      - name: Links je Rolle
+        run: npm run pruefen:links
+      - name: Bilder und Spuren sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: links-spuren
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  # DER NAME BLEIBT, obwohl es inzwischen sieben Wege sind: unter ihm kann
+  # die Prüfung als Pflicht für den Merge hinterlegt sein, und ein neuer
+  # Name hiesse eine Pflichtprüfung, die nie mehr berichtet. Seit der
+  # Aufteilung (16.11.2026) sammelt er nur: grün genau dann, wenn alle vier
+  # Teile, die Inhaltsregel und die Links grün sind — auch übersprungen oder
+  # abgebrochen zählt als rot.
+  gesamt:
+    name: Die sechs Wege im Browser
+    runs-on: ubuntu-latest
+    needs: [durchklicken, inhaltsregel, links]
+    if: always()
+    steps:
+      - name: Alle Teile grün?
+        run: |
+          echo "Durchklick: ${{ needs.durchklicken.result }} · Inhaltsregel: ${{ needs.inhaltsregel.result }} · Links: ${{ needs.links.result }}"
+          test "${{ needs.durchklicken.result }}" = success
+          test "${{ needs.inhaltsregel.result }}" = success
+          test "${{ needs.links.result }}" = success

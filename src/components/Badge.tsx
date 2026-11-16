@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import RollZahl from './RollZahl';
 
 /**
  * Abzeichen — DREI FORMEN, NACH AUFGABE GETRENNT.
@@ -206,8 +207,8 @@ export function Zaehler({
     <span
       className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-semibold leading-none ${ton}`}
     >
-      {/* Neu gesetzt bei jeder neuen Zahl: sie blendet kurz ein (`.lot-zahl-neu`), statt stumm zu wechseln. */}
-      <span key={anzahl} className="lot-zahl-neu" aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
+      {/* Eine neue Zahl rollt herein (B6) — nach oben, wenn es mehr wird; vorher blendete sie nur ein. */}
+      <span aria-hidden="true"><RollZahl wert={anzahl > 99 ? '99+' : anzahl} /></span>
       {/* Ein Komma davor, eigens: sonst las der Vorleser „Anforderungen1 offene …“ (G32). */}
       <span className="sr-only">, </span>
       <span className="sr-only">{`${anzahl} ${was}`}</span>

@@ -1319,15 +1319,12 @@ export default function WorkSheetView() {
           als keine.
         */}
         {(ersatzFuer || ersatzFehler) && (
-          <Hinweiszeile stufe={ersatzFehler ? 'warn' : undefined}>
+          <Hinweiszeile stufe={ersatzFehler ? 'warn' : undefined} einzelheiten={ersatzFehler ? undefined : <p>
+            Material und Notizen sind übernommen, die Zeiten kommen aus der Zeiterfassung; der Kunde
+            unterschreibt neu. Stand der stornierte Schein auf einer Rechnung, gilt dieser als verrechnet.
+          </p>}>
             <p>
-              {ersatzFehler ?? (
-                <>
-                  <strong>Ersatz für den stornierten Schein vom {datumAT(ersatzFuer!.datum)}.</strong> Material und
-                  Notizen sind übernommen, die Zeiten kommen aus der Zeiterfassung; der Kunde unterschreibt neu. Stand
-                  der stornierte Schein auf einer Rechnung, gilt dieser als verrechnet.
-                </>
-              )}
+              {ersatzFehler ?? <strong>Ersatz für den stornierten Schein vom {datumAT(ersatzFuer!.datum)}.</strong>}
             </p>
           </Hinweiszeile>
         )}
@@ -1997,7 +1994,7 @@ export default function WorkSheetView() {
                 */}
                 {vorfuellFehler && (
                   <div className="mt-4">
-                    <Hinweiszeile stufe="warn">
+                    <Hinweiszeile stufe="warn" offenWeil="Vor der Unterschrift: was eingefroren wird, muss ganz dastehen, bevor der Kunde unterschreibt (U9)">
                       <p>
                         <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und
                         eingefroren wird genau das, was hier steht. Für einen Beleg über die

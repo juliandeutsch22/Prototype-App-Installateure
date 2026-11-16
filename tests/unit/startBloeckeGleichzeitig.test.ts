@@ -35,6 +35,7 @@ vi.mock('@/lib/db/vacations', () => ({
   listAbwesendInRange: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/freistellungen', () => ({ listOffeneFreistellungen: vi.fn(spaeter('freistellungen')) }));
+vi.mock('@/lib/db/forderungen', () => ({ startseiteForderungen: vi.fn(spaeter('forderungen')) }));
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(spaeter('unbezahlt')),
   listUnpaidInvoices: vi.fn(spaeter('ganzeRechnungen')),
@@ -54,7 +55,8 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(spaeter('projekte')),
   listProjectsByNumbers: vi.fn(async () => []),
 }));
-vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(spaeter('wartungen')) }));
+// Seit 15.11.2026 die Zahl und die ersten aus der Datenbank (`wartungen_faellig_stand`) — gleich mit den Vorschlägen.
+vi.mock('@/lib/db/wartungen', () => ({ wartungenFaelligStand: vi.fn(spaeter('wartungen')), wartungErledigtVorschlaege: vi.fn(async () => []) }));
 
 const { team, buchhaltung, leitung } = await import('@/features/dashboard/start/laden');
 const k = { user: { uid: 'gf', companyId: 'c1', role: 'Geschäftsführung' as const, name: 'Chefin' }, company: null, heute: '2026-10-10' };
@@ -94,8 +96,9 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
 
   it('Buchhaltung: Scheine neben den Rechnungen, die Rechnungen hinter den Zahlungen ohne auf die offenen zu warten', async () => {
     const lauf = buchhaltung(k, { rechnungen: true, scheine: true });
-    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['unbezahlt', 'scheine', 'rechnungenDerZahlungen'])));
-    offen.unbezahlt([]);
+    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['forderungen', 'scheine', 'rechnungenDerZahlungen'])));
+    offen.forderungen({ mahnungen: { anzahl: 0, zeilen: [] }, ueberfaelligNichtMahnbar: { anzahl: 0, zeilen: [] }, ruecklassBald: { anzahl: 0, summe: 0, zeilen: [] },
+      kennzahlen: { offenSumme: 0, offenAnzahl: 0, faelligSumme: 0, ueberAnzahl: 0, aeltesteFaellig: null } });
     offen.rechnungenDerZahlungen([{ id: 'r1', invoiceNumber: 'RE-1', paymentStatus: 'Bezahlt' }]);
     offen.scheine({ anzahl: 1, alt: 1, aeltester: '2026-09-01' });
     const d = await lauf;
@@ -118,26 +121,30 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     an dem die Startseite steht. Gegenprobe: gegen den Stand davor fragt sie
     die ganzen Rechnungen (rot).
   */
-  it('Buchhaltung: für Summen und Mahnlauf nur die Köpfe der offenen Rechnungen — ohne Positionen und Abdeckung', async () => {
+  // Seit 15.11.2026 (B3) wertet die Edge Function `startseite-forderungen` aus; die Startseite fragt sie gleich mit.
+  it('Buchhaltung: Summen und Mahnlauf vom Server — weder Köpfe noch ganze Rechnungen im Browser', async () => {
     const lauf = buchhaltung(k, { rechnungen: true, scheine: false });
-    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['unbezahlt', 'rechnungenDerZahlungen'])));
-    offen.unbezahlt([{ id: 'r9', invoiceNumber: 'RE-9', paymentStatus: 'Offen', totalBrutto: 100, dueDate: '2026-09-01', invoiceDate: '2026-08-01' }]);
+    await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['forderungen', 'rechnungenDerZahlungen'])));
+    const stand = { mahnungen: { anzahl: 1, zeilen: [] }, ueberfaelligNichtMahnbar: { anzahl: 0, zeilen: [] }, ruecklassBald: { anzahl: 0, summe: 0, zeilen: [] },
+      kennzahlen: { offenSumme: 0, offenAnzahl: 0, faelligSumme: 100, ueberAnzahl: 1, aeltesteFaellig: '2026-09-01' } };
+    offen.forderungen(stand);
     offen.rechnungenDerZahlungen([]);
     const d = await lauf;
-    expect(d.unbezahlt).toHaveLength(1);
-    expect(d.lauf).toBeDefined();
+    expect(d.forderungen).toEqual(stand);
     expect(gefragt).not.toContain('ganzeRechnungen');
+    expect(gefragt).not.toContain('unbezahlt');
   });
 
   it('Leitung: die Wartungen gehen mit den Baustellen los, nicht nach dem Budget', async () => {
     const lauf = leitung(k, { einsatzplanung: false, wartung: true, budget: true });
     await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['projekte', 'wartungen'])));
-    offen.wartungen([{ id: 'w1' }]);
+    const stand = { ohne: { anzahl: 1, ueberfaellig: 0, zeilen: [{ id: 'w1' }] }, eingeplant: { anzahl: 0, ueberfaellig: 0, zeilen: [] } };
+    offen.wartungen(stand);
     offen.projekte([{ id: 'p1', projectNumber: 'B-1', estimatedHours: 10 }]);
     await vi.waitFor(() => expect(gefragt).toContain('stunden'));
     offen.stunden([]);
     const d = await lauf;
-    expect(d.wartungen).toEqual([{ id: 'w1' }]);
+    expect(d.wartungen).toEqual(stand);
     expect(d.budget).toHaveLength(1);
   });
 

@@ -1,0 +1,295 @@
+/**
+ * DIE BEDIENREGELN DER DURCHSICHT (15.11.2026) IM QUELLTEXT.
+ *
+ * Die Regeln stehen in `docs/design/v10/style.md` („Hauptaktion, Neu und
+ * Fenster“) und als Bausteine in `src/components/` (`Speicherleiste`,
+ * `Fensteraktionen`, `NeuFormular`, `AktenKopf`). Diese Wächter halten
+ * sie fest, damit keine neue Seite sie unterläuft — gelesen wird der Baum der
+ * Oberfläche (`bedienregelnQuelle.ts`), nicht ein Suchmuster.
+ *
+ * Jede Regel hat ihre Gegenprobe: ein Stück Quelltext in der alten Form, das
+ * die Regel finden muss.
+ */
+import { describe, it, expect } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import ts from 'typescript';
+import { attribut, baum, elemente, ergebnisse, hatKlasse, ort, reihe, tagName, tsxDateien } from './bedienregelnQuelle';
+
+type Element = ts.JsxElement | ts.JsxSelfClosingElement;
+const istElement = (n: ts.Node): n is Element => ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n);
+
+/* ── U1: eine Hauptaktion, keine Gruppe ─────────────────────────────────── */
+
+/** Was einem Seitenkopf als Hauptaktion übergeben wird und kein einzelner Knopf ist. */
+function gruppenAlsHauptaktion(datei: string, text?: string): string[] {
+  return elemente(datei, text).flatMap((e) => {
+    const t = tagName(e);
+    if (t !== 'PageHeader' && t !== 'AktenKopf' && t !== 'PlanungsSeitenkopf') return [];
+    return ['action', 'nebenAktion'].flatMap((name) => {
+      const wert = attribut(e, name);
+      if (!wert || wert === true) return [];
+      return ergebnisse(wert).filter((r) => {
+        if (ts.isJsxFragment(r)) return true;
+        // Ein kleingeschriebenes Element (div, span) ist eine Gruppe um Knöpfe, kein Knopf.
+        return istElement(r) && /^[a-z]/.test(tagName(r));
+      }).map((r) => `${ort(r)}: ${name}={${r.getText().slice(0, 60).replace(/\s+/g, ' ')}…}`);
+    });
+  });
+}
+
+describe('U1 · Muster 1 und 2: eine kompakte Hauptaktion', () => {
+  it('kein Seitenkopf bekommt eine Gruppe oder ein Fragment als Hauptaktion', () => {
+    expect(tsxDateien().flatMap((d) => gruppenAlsHauptaktion(d))).toEqual([]);
+  }, 60_000);
+
+  it('die Gruppe `.akten-aktionen`, die Knöpfe am Handy zu Balken streckte, gibt es nicht mehr', () => {
+    const funde = tsxDateien().flatMap((d) => elemente(d).filter((e) => hatKlasse(e, 'akten-aktionen')).map(ort));
+    expect(funde).toEqual([]);
+    for (const css of ['src/styles/lot-akten.css', 'src/index.css', 'src/styles/lot.css']) {
+      expect(readFileSync(css, 'utf8')).not.toMatch(/\.akten-aktionen\b/);
+    }
+  }, 60_000);
+
+  it('Gegenprobe: die alte Gruppe der Baustellenakte fiele auf', () => {
+    const alt = `export const X = () => <AktenKopf title="B" zurueck="/" zurueckText="z" action={darf && <div className="akten-aktionen"><Button>Einsatz planen</Button><Button variant="secondary">Bearbeiten</Button></div>} />;`;
+    expect(gruppenAlsHauptaktion('alt.tsx', alt)).toHaveLength(1);
+    const fragment = `export const X = () => <PageHeader title="B" action={<><Button>A</Button><Button>B</Button></>} />;`;
+    expect(gruppenAlsHauptaktion('alt.tsx', fragment)).toHaveLength(1);
+    // Bleibt erlaubt: getrennte Zweige mit je einem Knopf.
+    const zweige = `export const X = () => <PageHeader title="B" action={a ? <KnopfLink to="/">A</KnopfLink> : b ? <Button>B</Button> : null} />;`;
+    expect(gruppenAlsHauptaktion('neu.tsx', zweige)).toEqual([]);
+  });
+});
+
+/* ── U1: Muster 3, die Speicherleiste auf Einstellungsseiten ───────────── */
+
+/** Die Ansichten unter /settings/* aus App.tsx — samt den Karten, die sie aus ihrem Ordner holen. */
+function einstellungsDateien(): string[] {
+  const app = readFileSync('src/app/App.tsx', 'utf8');
+  const block = app.slice(app.indexOf('path="/settings/*"'), app.indexOf('/* Buchhaltung */'));
+  const namen = [...block.matchAll(/:\s*<(\w+)/g)].map((m) => m[1]);
+  const pfadVon = (quelle: string, imp: string): string | null => {
+    const roh = imp.startsWith('@/') ? join('src', imp.slice(2)) : imp.startsWith('.') ? join(dirname(quelle), imp) : null;
+    if (!roh) return null;
+    return [`${roh}.tsx`, `${roh}/index.tsx`].find((p) => existsSync(p)) ?? null;
+  };
+  const ansichten = namen.map((n) => {
+    // Die Ansichten laden nach (`ansicht('/settings', () => import('…'))`); ein fester Import ginge ebenso.
+    const m = app.match(new RegExp(`import ${n} from '([^']+)'`)) ?? app.match(new RegExp(`const ${n} = \\w+\\([^)]*\\(\\) => import\\('([^']+)'\\)`));
+    return m ? pfadVon('src/app/App.tsx', m[1]) : null;
+  }).filter((p): p is string => !!p);
+  const alle = new Set(ansichten);
+  for (const a of ansichten) {
+    const text = readFileSync(a, 'utf8');
+    for (const m of text.matchAll(/import \w+(?:, \{[^}]*\})? from '([^']+)'/g)) {
+      const p = pfadVon(a, m[1]);
+      // Nur Karten derselben Seite: gemeinsame Bausteine prüfen ihre eigenen Wächter.
+      if (p && dirname(p) === dirname(a)) alle.add(p);
+    }
+  }
+  return [...alle].sort();
+}
+
+const FENSTER = new Set(['BottomSheet', 'ConfirmDialog', 'AktenBearbeiten', 'NeuFormular', 'Speicherleiste', 'Fensteraktionen']);
+
+/** Knöpfe, die „… speichern“ heißen und nicht in der Speicherleiste oder einem Fenster stehen. */
+function speichernImFluss(datei: string, text?: string): string[] {
+  return elemente(datei, text).filter((e) => tagName(e) === 'Button').filter((e) => {
+    const beschriftung = ts.isJsxElement(e) ? e.children.map((k) => k.getText()).join(' ') : '';
+    if (!/speichern/i.test(beschriftung)) return false;
+    for (let n: ts.Node | undefined = e.parent; n; n = n.parent) {
+      if (istElement(n) && FENSTER.has(tagName(n))) return false;
+    }
+    return true;
+  }).map((e) => `${ort(e)}: ${e.getText().slice(0, 70).replace(/\s+/g, ' ')}`);
+}
+
+describe('U1 · Muster 3: Formular und Einstellung speichern über die Speicherleiste', () => {
+  const dateien = einstellungsDateien();
+
+  it('die Einstellungsseiten sind gefunden — die Prüfung hat etwas zu prüfen', () => {
+    expect(dateien).toEqual(expect.arrayContaining([
+      'src/features/settings/SettingsView.tsx',
+      'src/features/settings/FirmendatenView.tsx',
+      'src/features/settings/LohnregelnKarte.tsx',
+      'src/features/papierkorb/PapierkorbFristKarte.tsx',
+      'src/features/modules/ModulesView.tsx',
+    ]));
+  });
+
+  it('kein „… speichern“ im Fluss einer Einstellungsseite', () => {
+    expect(dateien.flatMap((d) => speichernImFluss(d))).toEqual([]);
+  });
+
+  it('die Speicherleiste erscheint erst bei einer Änderung — `geaendert` ist Pflicht und wird ausgewertet', () => {
+    const quelle = readFileSync('src/components/Speicherleiste.tsx', 'utf8');
+    expect(quelle).toMatch(/geaendert: boolean;/);
+    expect(quelle).toContain('if (!geaendert && !speichert && !gespeichert) return null;');
+  });
+
+  it('Gegenprobe: das alte „Sätze speichern“ im Fluss fiele auf, in der Leiste oder im Fenster nicht', () => {
+    const alt = `export const X = () => <form><div className="fuss-aktionen"><Button type="submit">Sätze speichern</Button></div></form>;`;
+    expect(speichernImFluss('alt.tsx', alt)).toHaveLength(1);
+    const fenster = `export const X = () => <BottomSheet open label="x" onClose={z}><Button>Speichern</Button></BottomSheet>;`;
+    expect(speichernImFluss('neu.tsx', fenster)).toEqual([]);
+  });
+
+  it('die Einstellungsseiten nehmen die Speicherleiste', () => {
+    const mit = dateien.filter((d) => readFileSync(d, 'utf8').includes('<Speicherleiste'));
+    expect(mit.length).toBeGreaterThanOrEqual(12);
+  });
+
+  it('nur ein Satz geht durch alle: der Baum ist lesbar (Parser-Fehler fielen hier auf)', () => {
+    // `parseDiagnostics` ist intern, aber der einzige Weg, Syntaxfehler ohne Programm zu sehen.
+    for (const d of dateien) expect((baum(d) as unknown as { parseDiagnostics?: unknown[] }).parseDiagnostics ?? []).toEqual([]);
+  });
+});
+
+/* ── U4: Knöpfe eines Fensters ──────────────────────────────────────────── */
+
+/** Bausteine, deren Inhalt ein Fenster ist. */
+const FENSTER_BAUSTEINE = new Set(['BottomSheet', 'AktenBearbeiten', 'NeuFormular']);
+
+/** Die Musterseite zeigt die Knopfgestalten absichtlich nebeneinander. */
+const NICHT_GEPRUEFT = ['src/features/muster/'];
+
+function imFenster(e: ts.Node): boolean {
+  for (let n: ts.Node | undefined = e.parent; n; n = n.parent) {
+    if (istElement(n) && FENSTER_BAUSTEINE.has(tagName(n))) return true;
+  }
+  return false;
+}
+
+/** Eine Werkzeugreihe (nach oben, nach unten, entfernen) aus kleinen Knöpfen ist kein Fensterfuß. */
+function werkzeuge(e: Element): boolean {
+  if (!ts.isJsxElement(e)) return false;
+  const knoepfe = e.children.filter((k): k is Element => istElement(k) && (tagName(k) === 'Button' || tagName(k) === 'KnopfLink'));
+  return knoepfe.length > 0 && knoepfe.every((k) => { const g = attribut(k, 'groesse'); return !!g && g !== true && /klein/.test(g.getText()); });
+}
+
+/** Eine Rückfrage: genau zwei Knöpfe, einer davon „Abbrechen“ oder „Zurück“ — ihr Bestätigen ist der Schritt selbst. */
+function rueckfrage(e: Element): boolean {
+  if (reihe(e).knoepfe !== 2) return false;
+  let abbrechen = false;
+  const gehen = (n: ts.Node) => {
+    if (ts.isJsxElement(n) && tagName(n) === 'Button' && /^\s*(Abbrechen|Zurück)\s*$/.test(n.children.map((k) => k.getText()).join(''))) abbrechen = true;
+    ts.forEachChild(n, gehen);
+  };
+  gehen(e);
+  return abbrechen;
+}
+
+export function knopfreihenVerstoesse(datei: string, text?: string): string[] {
+  if (NICHT_GEPRUEFT.some((p) => datei.startsWith(p))) return [];
+  return elemente(datei, text).flatMap((e) => {
+    const fuss = hatKlasse(e, 'fuss-aktionen');
+    if (!fuss && !imFenster(e)) return [];
+    if (werkzeuge(e)) return [];
+    const z = reihe(e);
+    const gruende = [
+      ...(z.knoepfe > 2 ? [`${z.knoepfe} Knöpfe`] : []),
+      ...(z.primaer > 1 ? [`${z.primaer} Hauptaktionen`] : []),
+      ...(z.gefahr > 0 && !rueckfrage(e) ? ['Unumkehrbares als Knopf'] : []),
+    ];
+    return gruende.length ? [`${ort(e)}: ${gruende.join(', ')}`] : [];
+  });
+}
+
+describe('U4 · im Fenster eine Hauptaktion, höchstens eine zweite, der Rest im ⋯', () => {
+  it('keine Knopfreihe eines Fensters mit mehr als zwei Knöpfen, zwei Hauptaktionen oder einem Gefahrknopf', () => {
+    expect(tsxDateien().flatMap((d) => knopfreihenVerstoesse(d))).toEqual([]);
+  }, 60_000);
+
+  it('Gegenprobe: der alte Schein-Entwurf und die alte Rechnung fielen auf', () => {
+    const schein = `export const X = () => <BottomSheet open label="s" onClose={z}><div className="fuss-aktionen">
+      <Button variant="secondary">PDF</Button><Button variant="ghost">Verwerfen</Button><KnopfLink to="/w" variant="secondary">Weiterbearbeiten</KnopfLink>
+    </div><div className="schein-loeschen"><Button variant="danger">Löschen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('alt.tsx', schein)).toHaveLength(2);
+    const rechnung = `export const X = () => <BottomSheet open label="r" onClose={z}><div className="rechnung-detail-aktionen">
+      {aktionen.map((a) => <Button key={a.label} variant={a.haupt ? 'primary' : 'secondary'} onClick={a.onSelect}>{a.label}</Button>)}
+    </div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('alt.tsx', rechnung)).toHaveLength(1);
+  });
+
+  it('bleibt erlaubt: die Rückfrage mit „Abbrechen“ und Bestätigen, die Werkzeugreihe, die Fensteraktionen', () => {
+    const rueck = `export const X = () => <BottomSheet open label="v" onClose={z}><div className="fuss-aktionen">
+      <Button variant="ghost">Abbrechen</Button><Button type="submit" variant="danger">Begründet verwerfen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', rueck)).toEqual([]);
+    const werkzeug = `export const X = () => <BottomSheet open label="v" onClose={z}><div className="rt">
+      <Button variant="ghost" groesse="klein">Nach oben</Button><Button variant="ghost" groesse="klein">Nach unten</Button><Button variant="ghost" groesse="klein">Entfernen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', werkzeug)).toEqual([]);
+    const neu = `export const X = () => <BottomSheet open label="v" onClose={z}><Fensteraktionen about="x" haupt={<Button>A</Button>} zweit={<Button variant="secondary">B</Button>} weitere={[{ label: 'Löschen', onSelect: l, danger: true }]} /></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', neu)).toEqual([]);
+  });
+});
+
+/* ── U2: „Neu …“ am Handy als Blatt ─────────────────────────────────────── */
+
+/** Ein Blatt, das etwas Neues anlegt — am Titel erkannt. */
+const NEU_TITEL = /(anlegen|Antrag stellen|Krank melden|^Neue[rns]? |Neue[rns]? Eintrag)/;
+
+/**
+ * Begründete Ausnahmen (CLAUDE.md, Grundsatz 6): die Rechnung entsteht als
+ * Arbeitsbereich aus mehreren Blättern mit Positionen, Vorschau und
+ * Rückfragen — in einem Blatt von unten stünden Karten in einer Karte und
+ * Fenster im Fenster (fachlich: Rechnungsstellung mit Vorschau). Die Seite
+ * zeigt zuerst den Bestand; „Neue Rechnung“ öffnet den Bereich erst auf
+ * Wunsch.
+ */
+const NEU_AUSNAHMEN: Record<string, string> = {
+  'src/features/invoices/InvoicesView.tsx': 'Rechnung als Arbeitsbereich mit Vorschau (fachlich)',
+  // Ebenso das Angebot: Positionen, Katalogsuche, Titel- und Textzeilen und Summen, mit eigener Adresse (`?bearbeiten=`, `?neueFassung=`).
+  'src/features/quotes/QuotesView.tsx': 'Angebot als Arbeitsbereich mit Positionen und Katalog (fachlich)',
+};
+
+function titelTexte(e: Element): string[] {
+  const t = attribut(e, 'title');
+  if (!t || t === true) return [];
+  const texte: string[] = [];
+  const gehen = (n: ts.Node) => {
+    if (ts.isStringLiteralLike(n)) texte.push(n.text);
+    if (ts.isTemplateExpression(n)) texte.push(n.head.text);
+    ts.forEachChild(n, gehen);
+  };
+  gehen(t);
+  return texte;
+}
+
+/** Ist die Stelle nur ab dem Tablet zu sehen (`!amHandy && …`) oder schon ein Fenster? */
+function amHandyImBlatt(e: Element): boolean {
+  for (let n: ts.Node | undefined = e.parent; n; n = n.parent) {
+    if (istElement(n) && (FENSTER_BAUSTEINE.has(tagName(n)) || tagName(n) === 'ConfirmDialog')) return true;
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken && /^!\s*amHandy$/.test(n.left.getText())) return true;
+  }
+  return false;
+}
+
+export function neuAufDerSeite(datei: string, text?: string): string[] {
+  if (NEU_AUSNAHMEN[datei]) return [];
+  return elemente(datei, text).filter((e) => tagName(e) === 'Card')
+    .filter((e) => titelTexte(e).some((t) => NEU_TITEL.test(t)))
+    .filter((e) => !amHandyImBlatt(e))
+    .map((e) => `${ort(e)}: ${titelTexte(e).join(' | ')}`);
+}
+
+describe('U2 · „Neu …“ öffnet am Handy ein Blatt von unten', () => {
+  it('kein Neu-Formular als Blatt offen auf der Seite (außer begründet)', () => {
+    expect(tsxDateien().flatMap((d) => neuAufDerSeite(d))).toEqual([]);
+  }, 60_000);
+
+  it('die Ausnahme gibt es noch', () => {
+    for (const d of Object.keys(NEU_AUSNAHMEN)) {
+      expect(elemente(d).some((e) => tagName(e) === 'Card' && titelTexte(e).some((t) => NEU_TITEL.test(t)))).toBe(true);
+    }
+  });
+
+  it('Gegenprobe: der alte Urlaubsantrag und „Neuen Benutzer anlegen“ fielen auf, die Zeiterfassung nicht', () => {
+    const urlaub = `export const X = () => <div><Card className="f" title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}><form /></Card><Card title="Meine Anträge" /></div>;`;
+    expect(neuAufDerSeite('alt.tsx', urlaub)).toHaveLength(1);
+    const benutzer = `export const X = () => <div>{formOffen && (<Card title="Neuen Benutzer anlegen"><form /></Card>)}</div>;`;
+    expect(neuAufDerSeite('alt.tsx', benutzer)).toHaveLength(1);
+    const zeit = `export const X = () => <div>{!amHandy && (<Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'} />)}</div>;`;
+    expect(neuAufDerSeite('neu.tsx', zeit)).toEqual([]);
+  });
+});

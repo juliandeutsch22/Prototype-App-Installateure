@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './grund';
+import { type Page } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR, ARTIKEL } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 
@@ -41,9 +42,12 @@ test('Urlaub: der Monteur beantragt am Handy, die Chefin genehmigt, der Monteur 
     const fehlerM = ohneFehler(handy);
     await anmelden(handy, MONTEUR.email);
     await handy.goto('/vacations');
-    await handy.getByLabel('Von', { exact: true }).first().fill(tag);
-    await handy.getByLabel('Bis (einschließlich)').first().fill(tag);
-    await handy.getByRole('button', { name: 'Antrag einreichen' }).click();
+    // U2: am Handy zeigt die Seite zuerst die Anträge; „Antrag stellen“ öffnet das Formular als Blatt.
+    await handy.getByRole('button', { name: 'Antrag stellen' }).click();
+    const antrag = handy.getByRole('dialog', { name: 'Antrag stellen' });
+    await antrag.getByLabel('Von', { exact: true }).first().fill(tag);
+    await antrag.getByLabel('Bis (einschließlich)').first().fill(tag);
+    await antrag.getByRole('button', { name: 'Antrag einreichen' }).click();
     await expect.poll(async () => (await admin.from('vacations').select('status').eq('user_id', max).eq('von', tag)).data?.[0]?.status, { timeout: 15_000 })
       .toBe('Beantragt');
 

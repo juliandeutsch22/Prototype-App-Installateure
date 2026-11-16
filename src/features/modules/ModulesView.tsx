@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { updateCompany } from '@/lib/db/company';
 import {
   MODULE,
@@ -17,7 +16,7 @@ import {
   type SchalterId,
 } from '@/lib/module';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Schalter from '@/components/Schalter';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -76,8 +75,17 @@ export default function ModulesView() {
   const { user, company, reloadCompany } = useAuth();
   const toast = useToast();
 
+  /*
+    EIN SCHALTER WIRKT SOFORT (U6, E3, 15.11.2026). Bis dahin sammelte die
+    Seite Haken und speicherte sie mit „Module speichern“ — ein Kästchen mit
+    „ein“/„aus“ daneben, dem man nicht ansah, ob es schon galt. Jetzt
+    schreibt jeder Schalter selbst; was beim Abschalten mitgeht oder nicht
+    zurückkommt, fragt die Rückfrage wie bisher VORHER. Der Schalter springt
+    erst um, wenn die Datenbank es bestätigt hat.
+  */
   const [entwurf, setEntwurf] = useState<Record<string, boolean>>({});
-  const [speichert, setSpeichert] = useState(false);
+  /** Welcher Schalter gerade schreibt — solange sind alle gesperrt, damit kein Wechsel den anderen überholt. */
+  const [laeuft, setLaeuft] = useState<SchalterId | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** Was abgeschaltet werden soll und noch bestätigt werden muss — samt dem, was mitgeht und was es nach sich zieht. */
   const [frage, setFrage] = useState<{ id: SchalterId; mit: SchalterId[]; folgen: string[] } | null>(null);
@@ -91,15 +99,6 @@ export default function ModulesView() {
   // Das Register wird ausdrücklich übergeben: so prüft der Test die Ansicht auch mit Unterfähigkeiten.
   const aktiv = useMemo(() => aktiveModule(entwurf, MODULE), [entwurf]);
   const schalterAn = useMemo(() => aktiveSchalter(entwurf, MODULE), [entwurf]);
-  const gespeichert = useMemo(() => aktiveSchalter(company?.modules, MODULE), [company]);
-
-  /** Weicht der Entwurf vom gespeicherten Stand ab? */
-  const geaendert = useMemo(() => {
-    if (schalterAn.size !== gespeichert.size) return true;
-    return [...schalterAn].some((m) => !gespeichert.has(m));
-  }, [schalterAn, gespeichert]);
-  // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
-  const warnung = useUngespeichertWarnung(geaendert);
 
   function umschalten(id: SchalterId, an: boolean) {
     if (!an) {
@@ -114,21 +113,29 @@ export default function ModulesView() {
       setEinschalten(id);
       return;
     }
-    setEntwurf((alt) => ({ ...alt, [id]: an }));
+    void schreiben(id, an);
   }
 
-  async function speichern() {
+  /**
+   * Einen Schalter speichern. In der Rückfrage wartet der Dialog darauf und
+   * zeigt einen Fehler selbst (`wirf`); sonst steht er über der Liste.
+   */
+  async function schreiben(id: SchalterId, an: boolean, wirf = false) {
     if (!user) return;
-    setSpeichert(true);
+    const neu = { ...entwurf, [id]: an };
+    setLaeuft(id);
     setError(null);
     try {
-      await updateCompany(user.companyId, { modules: entwurf });
+      await updateCompany(user.companyId, { modules: neu });
+      setEntwurf(neu);
       await reloadCompany();
-      toast.success('Module gespeichert');
+      toast.success(`${schalter(id, MODULE)?.name ?? 'Modul'} ${an ? 'eingeschaltet' : 'ausgeschaltet'}`);
     } catch (err) {
-      setError(grundAus(err, 'Die Module konnten nicht gespeichert werden.'));
+      const text = grundAus(err, 'Das Modul konnte nicht umgeschaltet werden.');
+      if (wirf) throw new Error(text);
+      setError(text);
     } finally {
-      setSpeichert(false);
+      setLaeuft(null);
     }
   }
 
@@ -164,17 +171,15 @@ export default function ModulesView() {
           </>
         }
       >
-        <label className="flex min-h-touch shrink-0 items-center gap-3">
-          <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
-          <input
-            type="checkbox"
-            className="checkbox checkbox-lg"
-            checked={an}
-            disabled={fehlt.length > 0 && !an}
-            onChange={(e) => umschalten(eintrag.id, e.target.checked)}
-            aria-label={`${eintrag.name} ${an ? 'ausschalten' : 'einschalten'}`}
-          />
-        </label>
+        <Schalter
+          id={`modul-${eintrag.id}`}
+          label={eintrag.name}
+          labelVerborgen
+          an={an}
+          laeuft={laeuft === eintrag.id}
+          gesperrt={(laeuft !== null && laeuft !== eintrag.id) || (fehlt.length > 0 && !an)}
+          onChange={(neu) => umschalten(eintrag.id, neu)}
+        />
       </ListRow>
     );
   }
@@ -196,7 +201,6 @@ export default function ModulesView() {
 
   return (
     <div className="space-y-6">
-      {warnung}
       <PageHeader
         ort="Einstellungen"
         title="Module"
@@ -208,8 +212,8 @@ export default function ModulesView() {
       {/*
         DER KERN VOR DEN MODULEN, als eigenes Blatt: er zählt nicht zu
         „Eingeschaltet: N von 9“, und ein Schalter, den es nicht gibt, soll
-        nicht zwischen den Schaltern stehen. Davor, damit „Module speichern“
-        am Ende von allem steht — es speichert auch seine Teile.
+        nicht zwischen den Schaltern stehen. Seine Teile schalten wie die
+        eines Moduls, sofort.
       */}
       <Card
         title="Immer an"
@@ -265,20 +269,6 @@ export default function ModulesView() {
           ])}
         </List>
 
-        {/* Fusszeile der Aktionen: Speichern ganz rechts, Verwerfen bzw. der Stand davor. */}
-        <div className="fuss-aktionen items-center px-4 pb-4">
-          {geaendert && (
-            <Button variant="ghost" onClick={() => setEntwurf(company?.modules ?? {})}>
-              Verwerfen
-            </Button>
-          )}
-          {!geaendert && (
-            <span className="text-sm text-ink-muted">Keine Änderung offen.</span>
-          )}
-          <Button onClick={speichern} loading={speichert} disabled={!geaendert}>
-            Module speichern
-          </Button>
-        </div>
       </Card>
 
       <ConfirmDialog
@@ -290,8 +280,8 @@ export default function ModulesView() {
         confirmLabel="Ausschalten"
         message={frage ? rueckfrage(frage) : ''}
         onCancel={() => setFrage(null)}
-        onConfirm={() => {
-          if (frage) setEntwurf((alt) => ({ ...alt, [frage.id]: false }));
+        onConfirm={async () => {
+          if (frage) await schreiben(frage.id, false, true);
           setFrage(null);
         }}
       />
@@ -303,8 +293,8 @@ export default function ModulesView() {
         confirmTone="primary"
         message={einschalten ? HINWEIS_BEIM_EINSCHALTEN[einschalten] : ''}
         onCancel={() => setEinschalten(null)}
-        onConfirm={() => {
-          if (einschalten) setEntwurf((alt) => ({ ...alt, [einschalten]: true }));
+        onConfirm={async () => {
+          if (einschalten) await schreiben(einschalten, true, true);
           setEinschalten(null);
         }}
       />

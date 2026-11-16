@@ -1,0 +1,991 @@
+import { test, expect, type Page, type CDPSession } from '@playwright/test';
+
+/*
+  BEWEGUNGEN UND GESTEN (Plan 15.11.2026, Abschnitt 4 B1–B12, F15) im echten
+  Browser — gegen die Vorschau, ohne Datenbank. Jsdom rechnet weder Layout
+  noch Animationen; ob ein Blatt von unten kommt oder eine Zeile zusammenklappt,
+  sieht nur ein Browser.
+
+  JEDE BEWEGUNG ZWEIMAL: einmal mit Bewegung (es gibt einen Weg), einmal mit
+  „Bewegung reduzieren“ (derselbe Endzustand, sofort, ohne Weg).
+
+  Gemessen wird je Bild (`requestAnimationFrame`), nicht mit festen Pausen:
+  eine Pause trifft je nach Rechner einen anderen Augenblick der Bewegung.
+*/
+
+/*
+  DER WEG BILD FÜR BILD NUR IN CHROMIUM (16.11.2026). Chromium setzt den
+  Start einer Animation auf das erste Bild, in dem sie gemalt wird; WebKit
+  auf den Augenblick des Anlegens. Bis WebKit das nächste Bild malt, ist eine
+  Bewegung von 160 ms dort schon 30 ms (gemessen hier) bis 200 ms (CI) alt —
+  je nach Rechner sah eine Prüfung nur noch ihr Ende. Code und CSS der
+  Bewegungen sind in beiden Maschinen dieselben; den Weg prüft deshalb
+  Chromium, WebKit prüft Endbild und reduzierte Bewegung (Grenze: Gerät, in
+  `docs/grenzen-durchsicht-2026-10-24.md`).
+*/
+const wegNurInChromium = (browserName: string) =>
+  test.skip(browserName === 'webkit', 'WebKit setzt den Start beim Anlegen: der Weg Bild für Bild ist dort nicht verlässlich messbar.');
+
+const pfad = (route: string, rolle = 'Administrator') => `./?pfad=${encodeURIComponent(route)}&rolle=${rolle}`;
+
+/** Die Beobachter der Bewegungen laden nach dem ersten Bild nach (`Layout`): erst danach wirken sie. */
+const beobachterBereit = (page: Page) => expect(page.locator('[data-bewegungen]')).toHaveCount(1);
+
+/**
+ * Je Bild einen Wert aufzeichnen — ab dem Bild, in dem das Element (wieder)
+ * da ist, `ms` lang; verschwindet es, endet die Spur mit „—“.
+ */
+async function aufzeichnen(page: Page, sel: string, eigenschaft: 'transform' | 'opacity', ms = 420) {
+  await page.evaluate(([sel, eigenschaft, ms]) => {
+    const w = window as unknown as { spur: Array<[number, string]>; spurFertig: boolean };
+    w.spur = [];
+    w.spurFertig = false;
+    let t0 = -1;
+    const bild = () => {
+      const el = document.querySelector(sel as string);
+      if (el && t0 < 0) t0 = performance.now();
+      if (t0 >= 0) w.spur.push([performance.now() - t0, el ? getComputedStyle(el)[eigenschaft as 'transform'] : '—']);
+      // Erscheint das Element nie (schon wieder zu, bevor ein Bild es zeigte), endet die Spur nach 2 s leer statt nie.
+      if (t0 < 0 ? performance.now() - start < 2000 : performance.now() - t0 < (ms as number) && el) requestAnimationFrame(bild);
+      else w.spurFertig = true;
+    };
+    const start = performance.now();
+    requestAnimationFrame(bild);
+  }, [sel, eigenschaft, ms] as const);
+}
+async function spur(page: Page): Promise<Array<[number, string]>> {
+  await page.waitForFunction(() => (window as unknown as { spurFertig: boolean }).spurFertig);
+  return page.evaluate(() => (window as unknown as { spur: Array<[number, string]> }).spur);
+}
+/** Verschiebung aus einer Matrix: [x, y]. `none` und `—` zählen als 0. */
+function versatz(m: string): [number, number] {
+  const z = /matrix\(([^)]+)\)/.exec(m)?.[1].split(',').map(Number);
+  return z ? [z[4], z[5]] : [0, 0];
+}
+
+test.describe('B1 Blatt von unten', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('fährt von unten herein und steht am Ende ohne Versatz', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await expect(page.locator('.unten button').filter({ hasText: 'Mehr' })).toBeVisible();
+    await aufzeichnen(page, '.blatt', 'transform');
+    await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+    const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m)[1]);
+    expect(Math.max(...s)).toBeGreaterThan(100);
+    expect(s[s.length - 1]).toBe(0);
+    // Von unten herauf: der Versatz nimmt nur ab.
+    for (let i = 1; i < s.length; i++) expect(s[i]).toBeLessThanOrEqual(s[i - 1] + 0.5);
+  });
+
+  test('schließt nach unten und gibt erst danach den Platz frei', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true });
+    await expect(dialog).toBeVisible();
+    await page.waitForTimeout(400);
+    await aufzeichnen(page, '.blatt', 'transform', 300);
+    await page.keyboard.press('Escape');
+    const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m)[1]);
+    expect(Math.max(...s)).toBeGreaterThan(100);
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test('weggezogen fährt es aus der Lage des Fingers weiter, ohne zurückzuspringen', async ({ page, browserName }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+    await page.waitForTimeout(400);
+    const griff = (await page.locator('.blatt-griff').boundingBox())!;
+    await page.mouse.move(griff.x + griff.width / 2, griff.y + 8);
+    await page.mouse.down();
+    await page.mouse.move(griff.x + griff.width / 2, griff.y + 168, { steps: 10 });
+    await aufzeichnen(page, '.blatt', 'transform', 300);
+    await page.mouse.up();
+    const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m)[1]);
+    // Der Weg nur in Chromium (siehe oben); dass das Blatt zugeht, überall.
+    if (browserName !== 'webkit') {
+      expect(s[0]).toBeGreaterThan(140);
+      for (let i = 1; i < s.length; i++) expect(s[i]).toBeGreaterThanOrEqual(s[i - 1] - 0.5);
+    }
+    await expect(page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true })).toHaveCount(0);
+  });
+
+  test('mit reduzierter Bewegung steht es sofort da — dasselbe Endbild', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/'));
+    await expect(page.locator('.unten button').filter({ hasText: 'Mehr' })).toBeVisible();
+    await aufzeichnen(page, '.blatt', 'transform');
+    await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+    const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m)[1]);
+    expect(s.length).toBeGreaterThan(0);
+    expect(Math.max(...s)).toBe(0);
+  });
+});
+
+test.describe('B1 Seitenfenster ab dem Tablet', () => {
+  test.use({ viewport: { width: 834, height: 1112 }, hasTouch: true });
+  test('kommt von rechts', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/invoices'));
+    await expect(page.getByRole('button', { name: 'Hilfe zu dieser Seite' }).first()).toBeVisible();
+    await aufzeichnen(page, '.fenster', 'transform');
+    await page.getByRole('button', { name: 'Hilfe zu dieser Seite' }).first().click();
+    const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m));
+    expect(Math.max(...s.map(([x]) => x))).toBeGreaterThan(100);
+    expect(Math.max(...s.map(([, y]) => Math.abs(y)))).toBe(0);
+    expect(s[s.length - 1]).toEqual([0, 0]);
+  });
+});
+
+/** Eine Liste mit mindestens vier Zeilen auf der Seite: ihre Zeilen in DOM-Reihenfolge. */
+async function listeMitZeilen(page: Page) {
+  await beobachterBereit(page);
+  await page.waitForFunction(() => [...document.querySelectorAll('ul')].some((u) => u.querySelectorAll(':scope > li.zeile').length >= 4));
+  // Die Ruhe nach dem Seitenwechsel abwarten (`zeilenflussRuhe`).
+  await page.waitForTimeout(700);
+}
+
+test.describe('B2 Zeile verschwindet', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  for (const reduziert of [false, true]) test(`klappt zusammen, Nachbarn rücken nach${reduziert ? ' — reduziert: sofort, dasselbe Endbild' : ''}`, async ({ page, browserName }) => {
+    await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const ergebnis = await page.evaluate(async () => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+      const weg = zeilen[1], nachbar = zeilen[2];
+      const hoehe = weg.getBoundingClientRect().height;
+      const vorher = nachbar.getBoundingClientRect().top;
+      // React nimmt eine Zeile heraus — hier von Hand, derselbe Eingriff im DOM.
+      weg.remove();
+      const bilder: Array<{ geist: boolean; y: number; top: number }> = [];
+      const t0 = performance.now();
+      await new Promise<void>((fertig) => {
+        const bild = () => {
+          const t = getComputedStyle(nachbar).transform;
+          bilder.push({ geist: !!ul.querySelector('[data-geist]'), y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42, top: nachbar.getBoundingClientRect().top });
+          if (performance.now() - t0 < 400) requestAnimationFrame(bild); else fertig();
+        };
+        requestAnimationFrame(bild);
+      });
+      const geist = ul.querySelector('[data-geist]');
+      return { hoehe, vorher, bilder, geistAmEnde: !!geist, endeOben: nachbar.getBoundingClientRect().top };
+    });
+    // Am Ende: die Lücke ist zu, kein Abbild bleibt — mit und ohne Bewegung gleich.
+    expect(ergebnis.geistAmEnde).toBe(false);
+    expect(Math.abs(ergebnis.vorher - ergebnis.hoehe - ergebnis.endeOben)).toBeLessThan(1.5);
+    if (reduziert) {
+      expect(ergebnis.bilder.every((b) => !b.geist && b.y === 0)).toBe(true);
+    } else if (browserName !== 'webkit') {
+      // Der Weg nur in Chromium (siehe oben); das Endbild oben gilt überall.
+      expect(ergebnis.bilder[0].geist).toBe(true);
+      // Der Nachbar startet an seiner alten Stelle (sichtbar) und gleitet hinauf.
+      expect(ergebnis.bilder[0].y).toBeGreaterThan(ergebnis.hoehe * 0.5);
+      for (let i = 1; i < ergebnis.bilder.length; i++) expect(ergebnis.bilder[i].y).toBeLessThanOrEqual(ergebnis.bilder[i - 1].y + 0.5);
+      expect(ergebnis.bilder[ergebnis.bilder.length - 1].y).toBe(0);
+    }
+  });
+
+  test('das Abbild ist stumm und nicht bedienbar; der Fokus geht auf die nächste Zeile', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const r = await page.evaluate(() => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+      const ziel = zeilen[1].querySelector<HTMLElement>('a, button')!;
+      ziel.focus();
+      const naechstes = zeilen[2].querySelector<HTMLElement>('a, button')!;
+      zeilen[1].remove();
+      return new Promise<{ aria: string | null; inert: boolean; ids: number; fokusNaechste: boolean }>((fertig) => requestAnimationFrame(() => {
+        const g = ul.querySelector<HTMLElement>('[data-geist]');
+        fertig({ aria: g?.getAttribute('aria-hidden') ?? null, inert: !!g?.hasAttribute('inert'), ids: g ? g.querySelectorAll('[id]').length + (g.id ? 1 : 0) : -1, fokusNaechste: document.activeElement === naechstes });
+      }));
+    });
+    expect(r).toEqual({ aria: 'true', inert: true, ids: 0, fokusNaechste: true });
+  });
+
+  test('ein Austausch vieler Zeilen (Filter) bewegt nichts', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const geister = await page.evaluate(() => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      for (const z of [...ul.querySelectorAll(':scope > li.zeile')].slice(0, 4)) z.remove();
+      return new Promise<number>((fertig) => requestAnimationFrame(() => fertig(ul.querySelectorAll('[data-geist]').length)));
+    });
+    expect(geister).toBe(0);
+  });
+});
+
+test.describe('B3 Zeile kommt dazu', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Eine neue Zeile an zweiter Stelle — so, wie React sie einfügt. */
+  const einfuegen = (page: Page, art: 'neu' | 'umstellen' | 'leere-liste') => page.evaluate(async (art) => {
+    const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+    const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+    const nachbar = zeilen[1];
+    let neu: HTMLElement;
+    if (art === 'umstellen') {
+      neu = zeilen[3];
+      ul.insertBefore(neu, nachbar);
+    } else if (art === 'leere-liste') {
+      const leer = document.createElement('ul');
+      ul.after(leer);
+      neu = zeilen[0].cloneNode(true) as HTMLElement;
+      leer.append(neu, zeilen[1].cloneNode(true));
+    } else {
+      neu = zeilen[0].cloneNode(true) as HTMLElement;
+      ul.insertBefore(neu, nachbar);
+    }
+    const auswahl = getComputedStyle(document.documentElement).getPropertyValue('--auswahl').trim();
+    const probe = document.createElement('i'); probe.style.color = auswahl; document.body.append(probe);
+    const auswahlRgb = getComputedStyle(probe).color; probe.remove();
+    const bilder: Array<{ deck: number; grund: string; y: number }> = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const t = getComputedStyle(nachbar).transform;
+        bilder.push({ deck: Number(getComputedStyle(neu).opacity), grund: getComputedStyle(neu).backgroundColor, y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42 });
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    return { bilder, auswahlRgb };
+  }, art);
+
+  test('blendet ein, trägt kurz die Auswahlfläche, Nachbarn rücken von oben nach', async ({ page, browserName }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const { bilder, auswahlRgb } = await einfuegen(page, 'neu');
+    // Der Weg nur in Chromium (siehe oben); das Endbild gilt überall.
+    if (browserName !== 'webkit') {
+      expect(bilder[0].deck).toBeLessThan(1);
+      expect(bilder[0].grund).toBe(auswahlRgb);
+      expect(bilder[0].y).toBeLessThan(-10);
+    }
+    expect(bilder[bilder.length - 1].y).toBe(0);
+    expect(bilder[bilder.length - 1].deck).toBe(1);
+  });
+
+  test('mit reduzierter Bewegung steht sie sofort da, ohne Markierung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const { bilder, auswahlRgb } = await einfuegen(page, 'neu');
+    expect(bilder.every((b) => b.deck === 1 && b.y === 0 && b.grund !== auswahlRgb)).toBe(true);
+  });
+
+  test('gleich geblieben: umgestellte Zeilen und das erste Füllen einer Liste werden nicht markiert', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    for (const art of ['umstellen', 'leere-liste'] as const) {
+      const { bilder, auswahlRgb } = await einfuegen(page, art);
+      expect(bilder.every((b) => b.deck === 1 && b.grund !== auswahlRgb), art).toBe(true);
+    }
+  });
+});
+
+test.describe('B5 Unterlinie gleitet', () => {
+  for (const fall of [
+    { route: '/settings/firma', role: 'link' as const, name: 'Personal', breite: 390 },
+    { route: '/customers/k1', role: 'tab' as const, name: 'Stammdaten', breite: 390 },
+    { route: '/invoices', role: 'button' as const, name: 'Erledigt', breite: 1440 },
+  ]) for (const reduziert of [false, true]) test(`${fall.route} → ${fall.name}${reduziert ? ' — reduziert: sofort' : ''}`, async ({ page, browserName }) => {
+    if (!reduziert) wegNurInChromium(browserName);
+    await page.setViewportSize({ width: fall.breite, height: 900 });
+    await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
+    await page.goto(pfad(fall.route));
+    const wahl = page.getByRole(fall.role, { name: fall.name, exact: true });
+    await expect(wahl).toBeVisible();
+    await beobachterBereit(page);
+    /*
+      AUFGEZEICHNET WIRD BIS 700 MS NACH DEM WECHSEL, nicht ab dem Start der
+      Aufnahme: der Unterreiter einer Einstellungsseite kommt erst mit ihrem
+      Baustein, und der lädt beim ersten Mal (Entwicklungsserver, kalt) über
+      eine halbe Sekunde. Der Wechsel ist der Zustand, auf den es ankommt —
+      Strich (160 ms) und Aufräumen (200 ms) liegen sicher in den 700 ms danach.
+    */
+    await page.evaluate((name) => {
+      const w = window as unknown as { striche: number[]; strichFertig: boolean };
+      w.striche = []; w.strichFertig = false;
+      const t0 = performance.now();
+      let gewechselt = 0;
+      const aktiv = () => [...document.querySelectorAll('[aria-current="page"], [aria-selected="true"], .segment-an')]
+        .some((el) => el.textContent?.trim() === name);
+      const bild = () => {
+        const s = document.querySelector<HTMLElement>('[data-unterlinie]');
+        const t = s ? getComputedStyle(s).transform : null;
+        w.striche.push(s ? (t === 'none' ? 0 : new DOMMatrixReadOnly(t!).m41) : NaN);
+        const jetzt = performance.now();
+        if (!gewechselt && aktiv()) gewechselt = jetzt;
+        if ((gewechselt && jetzt - gewechselt >= 700) || jetzt - t0 > 5000) w.strichFertig = true;
+        else requestAnimationFrame(bild);
+      };
+      requestAnimationFrame(bild);
+    }, fall.name);
+    await wahl.click();
+    await page.waitForFunction(() => (window as unknown as { strichFertig: boolean }).strichFertig);
+    const striche = await page.evaluate(() => (window as unknown as { striche: number[] }).striche);
+    const da = striche.filter((x) => !Number.isNaN(x));
+    if (reduziert) expect(da).toEqual([]);
+    else {
+      expect(Math.max(...da.map(Math.abs))).toBeGreaterThan(8);
+      expect(da[da.length - 1]).toBe(0);
+    }
+    // Am Ende: kein Strich mehr, die Kante gehört wieder dem Reiter — wie vorher.
+    expect(Number.isNaN(striche[striche.length - 1])).toBe(true);
+    const kante = await wahl.evaluate((el) => getComputedStyle(el).borderBottomColor);
+    expect(kante).not.toBe('rgba(0, 0, 0, 0)');
+  });
+});
+
+test.describe('B7 Arbeitstag Start/Pause/Stopp', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Den Tag starten und je Bild aufzeichnen: Fläche, Deckkraft des Inhalts, Lage des neuen Knopfs. */
+  async function starten(page: Page) {
+    await page.goto(pfad('/', 'Mitarbeiter') + '&module=zeiterfassung.timer');
+    const start = page.getByRole('button', { name: 'Arbeitstag starten' });
+    await expect(start).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { tag: Array<{ stand?: string; deck: number; knopf: string }>; tagFertig: boolean };
+      w.tag = []; w.tagFertig = false;
+      let t0 = -1;
+      const bild = () => {
+        const a = document.querySelector<HTMLElement>('.arbeitstag')!;
+        const lauf = a.querySelector('.arbeitstag-lauf');
+        if (lauf && t0 < 0) t0 = performance.now();
+        if (t0 >= 0) {
+          const k = a.querySelector('.arbeitstag-knoepfe .rund-knopf');
+          w.tag.push({ stand: a.dataset.stand, deck: Number(getComputedStyle(lauf!).opacity), knopf: k ? getComputedStyle(k).transform : '—' });
+        }
+        if (t0 < 0 || performance.now() - t0 < 300) requestAnimationFrame(bild); else w.tagFertig = true;
+      };
+      requestAnimationFrame(bild);
+    });
+    await start.click();
+    await page.waitForFunction(() => (window as unknown as { tagFertig: boolean }).tagFertig);
+    return page.evaluate(() => (window as unknown as { tag: Array<{ stand?: string; deck: number; knopf: string }> }).tag);
+  }
+
+  test('der Inhalt blendet mit der Fläche ein, der neue Knopf kommt aus der Verkleinerung', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const tag = await starten(page);
+    expect(tag[0].stand).toBe('laeuft');
+    expect(tag[0].deck).toBeLessThan(0.5);
+    expect(tag[0].knopf).not.toBe('none');
+    expect(tag[tag.length - 1]).toEqual({ stand: 'laeuft', deck: 1, knopf: 'none' });
+    // Die Knöpfe sind währenddessen bedienbar: „Pause“ greift sofort.
+    await page.getByRole('button', { name: 'Pause beginnen' }).click();
+    await expect(page.locator('.arbeitstag')).toHaveAttribute('data-stand', 'pause');
+  });
+
+  test('mit reduzierter Bewegung wechselt alles sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const tag = await starten(page);
+    expect(tag.every((b) => b.stand === 'laeuft' && b.deck === 1 && b.knopf === 'none')).toBe(true);
+  });
+});
+
+test.describe('B4 Speichern bestätigt', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  async function aendernUndSpeichern(page: Page) {
+    await page.goto(pfad('/settings/firma'));
+    const feld = page.getByLabel('Bank', { exact: true });
+    await expect(feld).toBeVisible();
+    await feld.fill('Prüfbank Wien');
+    const leiste = page.locator('.aktionsleiste').last();
+    await expect(leiste).not.toHaveAttribute('data-ruht');
+    await page.evaluate(() => {
+      const w = window as unknown as { haken: number[]; hakenFertig: boolean };
+      w.haken = []; w.hakenFertig = false;
+      let t0 = -1;
+      const bild = () => {
+        const p = document.querySelector('.lot-knopf[data-zustand=gespeichert] svg path');
+        if (p && t0 < 0) t0 = performance.now();
+        if (p) w.haken.push(parseFloat(getComputedStyle(p).strokeDashoffset) || 0);
+        if (t0 < 0 || performance.now() - t0 < 200) requestAnimationFrame(bild); else w.hakenFertig = true;
+      };
+      requestAnimationFrame(bild);
+    });
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Gespeichert' })).toBeVisible();
+    await page.waitForFunction(() => (window as unknown as { hakenFertig: boolean }).hakenFertig);
+    return { leiste, feld, haken: await page.evaluate(() => (window as unknown as { haken: number[] }).haken) };
+  }
+
+  test('der Haken zeichnet sich, dann zieht sich die Leiste zurück; eine Änderung holt sie sofort', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const { leiste, feld, haken } = await aendernUndSpeichern(page);
+    expect(haken[0]).toBeGreaterThan(5);
+    expect(haken[haken.length - 1]).toBe(0);
+    await expect(leiste).toHaveAttribute('data-ruht', '');
+    // Erst bleibt sie lesbar stehen …
+    expect(await leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
+    // … dann ist sie weg und nimmt keinen Tipp mehr an.
+    await expect.poll(() => leiste.evaluate((el) => getComputedStyle(el).visibility), { timeout: 3000 }).toBe('hidden');
+    expect(await leiste.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42)).toBeGreaterThan(20);
+    await feld.fill('Prüfbank Graz');
+    await expect(leiste).not.toHaveAttribute('data-ruht');
+    expect(await leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
+    await expect(page.getByRole('button', { name: 'Speichern', exact: true })).toBeVisible();
+  });
+
+  test('mit reduzierter Bewegung: Haken sofort, nach der Lesezeit ist die Leiste ohne Weg verschwunden', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { leiste, haken } = await aendernUndSpeichern(page);
+    expect(Math.max(...haken)).toBe(0);
+    const lagen = await leiste.evaluate((el) => new Promise<string[]>((fertig) => {
+      const werte: string[] = [];
+      const t0 = performance.now();
+      const bild = () => {
+        const t = getComputedStyle(el).transform;
+        werte.push(`${getComputedStyle(el).opacity} ${t === 'none' ? 0 : Math.round(new DOMMatrixReadOnly(t).m42)}`);
+        if (performance.now() - t0 < 1700) requestAnimationFrame(bild); else fertig(werte);
+      };
+      requestAnimationFrame(bild);
+    }));
+    // Nur zwei Bilder: stehend, dann weg — kein Zwischenstand.
+    expect([...new Set(lagen)].length).toBe(2);
+    expect(lagen[0]).toBe('1 0');
+    expect(lagen[lagen.length - 1]).toMatch(/^0 [1-9]\d+$/);
+    await expect.poll(() => leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('hidden');
+  });
+
+  test('gleich geblieben: am Schreibtisch bleibt die Leiste stehen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { leiste } = await aendernUndSpeichern(page);
+    await page.waitForTimeout(1600);
+    expect(await leiste.evaluate((el) => [getComputedStyle(el).visibility, getComputedStyle(el).transform, getComputedStyle(el).opacity])).toEqual(['visible', 'none', '1']);
+  });
+});
+
+test.describe('B8 Platzhalter gehen in Inhalt über', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Eine Liste lädt neu: erst der Platzhalter an ihrer Stelle, nach `ms` wieder die Liste — wie React tauscht. */
+  const laden = (page: Page, ms: number) => page.evaluate(async (ms) => {
+    const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+    const eltern = ul.parentElement!;
+    const platz = document.createElement('div');
+    platz.className = 'lade-liste';
+    platz.setAttribute('role', 'status');
+    platz.innerHTML = '<div class="divide-y divide-line">' + '<div class="flex items-center justify-between gap-4 py-3"><div class="min-w-0 flex-1 space-y-2"><div class="skeleton h-4" style="width:60%"></div><div class="skeleton h-3" style="width:40%"></div></div><div class="skeleton h-6 w-16 shrink-0"></div></div>'.repeat(3) + '</div>';
+    eltern.replaceChild(platz, ul);
+    await new Promise((r) => setTimeout(r, ms));
+    eltern.replaceChild(ul, platz);
+    const bilder: Array<{ geist: number | null; inhalt: number }> = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const g = eltern.querySelector<HTMLElement>('.platzhalter-geist');
+        bilder.push({ geist: g ? Number(getComputedStyle(g).opacity) : null, inhalt: Number(getComputedStyle(ul).opacity) });
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    return bilder;
+  }, ms);
+
+  test('der gesehene Platzhalter blendet aus, während der Inhalt einblendet', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const bilder = await laden(page, 400);
+    expect(bilder[0].geist).toBeGreaterThan(0.3);
+    expect(bilder[0].inhalt).toBeLessThan(0.7);
+    expect(bilder[bilder.length - 1]).toEqual({ geist: null, inhalt: 1 });
+  });
+
+  test('gleich geblieben: ein schnelles Laden (Platzhalter nie zu sehen) und reduzierte Bewegung zeigen den Inhalt sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    expect((await laden(page, 50)).every((b) => b.geist === null && b.inhalt === 1)).toBe(true);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect((await laden(page, 400)).every((b) => b.geist === null && b.inhalt === 1)).toBe(true);
+  });
+});
+
+test.describe('B9 Schwebende Hauptaktion', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  const rollen = (page: Page, y: number) => page.evaluate((y) => new Promise<void>((fertig) => {
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => requestAnimationFrame(() => fertig()));
+  }), y);
+  /** Was liegt links und rechts im Knopf oben? Der Knopf selbst — oder etwas darunter. */
+  const treffer = (page: Page) => page.evaluate(() => {
+    const k = document.querySelector<HTMLElement>('.daumen > :not(.daumen-symbol)')!;
+    const r = k.getBoundingClientRect();
+    const an = (x: number) => k.contains(document.elementFromPoint(x, r.top + r.height / 2));
+    return { links: an(r.left + 8), rechts: an(r.right - 24) };
+  });
+
+  test('zieht sich beim Rollen nach unten zum Symbol zusammen und geht beim Hochrollen wieder auf', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/invoices'));
+    const daumen = page.locator('.daumen');
+    await expect(daumen.getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    await expect(daumen).toHaveAttribute('data-eingezogen', '');
+    await page.waitForTimeout(300);
+    expect(await treffer(page)).toEqual({ links: false, rechts: true });
+    // Derselbe Knopf mit demselben Namen — im Kreis bedienbar.
+    await expect(daumen.getByRole('button', { name: 'Neue Rechnung' })).toHaveCount(1);
+    await rollen(page, 300);
+    await expect(daumen).not.toHaveAttribute('data-eingezogen');
+    await page.waitForTimeout(300);
+    expect(await treffer(page)).toEqual({ links: true, rechts: true });
+  });
+
+  test('mit reduzierter Bewegung wechselt der Ausschnitt sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/invoices'));
+    await expect(page.locator('.daumen').getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    expect(await treffer(page)).toEqual({ links: false, rechts: true });
+  });
+
+  test('gleich geblieben: am Tablet steht die Aktion im Kopf und zieht sich nie zusammen', async ({ page }) => {
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.goto(pfad('/invoices'));
+    await expect(page.getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    await expect(page.locator('.daumen')).not.toHaveAttribute('data-eingezogen');
+  });
+});
+
+test.describe('B10 Aufklappen', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Die erste Woche in „Meine Einträge“ zu- oder aufklappen und je Bild messen. */
+  async function umschalten(page: Page) {
+    const knopf = page.locator('.abschnitt button[aria-expanded]').first();
+    await expect(knopf).toBeVisible();
+    await knopf.evaluate((k) => k.scrollIntoView({ block: 'start' }));
+    await page.evaluate(() => {
+      const k = document.querySelector('.abschnitt button[aria-expanded]')!;
+      const blatt = k.closest('.karte')!;
+      const abschnitte = [...blatt.querySelectorAll('.abschnitt')];
+      const nachbar = abschnitte[1] as HTMLElement;
+      const w = window as unknown as { klapp: Array<{ geist: boolean; y: number }>; klappFertig: boolean };
+      w.klapp = []; w.klappFertig = false;
+      const t0 = performance.now();
+      // Die sichtbare Lage der nächsten Woche (mit transform, auch eines umgebenden Blocks) gegen ihre Endlage.
+      const lagen: number[] = [];
+      const bild = () => {
+        lagen.push(nachbar.getBoundingClientRect().top);
+        w.klapp.push({ geist: !!blatt.querySelector('[data-geist]'), y: 0 });
+        if (performance.now() - t0 < 350) requestAnimationFrame(bild);
+        else {
+          const ende = lagen[lagen.length - 1];
+          lagen.forEach((l, i) => { w.klapp[i].y = Math.round(l - ende); });
+          w.klappFertig = true;
+        }
+      };
+      requestAnimationFrame(bild);
+    });
+    await knopf.click();
+    await page.waitForFunction(() => (window as unknown as { klappFertig: boolean }).klappFertig);
+    return page.evaluate(() => (window as unknown as { klapp: Array<{ geist: boolean; y: number }> }).klapp);
+  }
+
+  test('zuklappen: der Inhalt klappt als Abbild zusammen, die Woche darunter gleitet hinauf; aufklappen umgekehrt', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const zu = await umschalten(page);
+    expect(zu.some((b) => b.geist)).toBe(true);
+    expect(Math.max(...zu.map((b) => b.y))).toBeGreaterThan(40);
+    expect(zu[zu.length - 1]).toEqual({ geist: false, y: 0 });
+    const auf = await umschalten(page);
+    expect(Math.min(...auf.map((b) => b.y))).toBeLessThan(-40);
+    expect(auf[auf.length - 1].y).toBe(0);
+  });
+
+  test('mit reduzierter Bewegung klappt es ohne Weg', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    // Vor dem Tipp die alte Lage, danach sofort die neue — kein Bild dazwischen, kein Abbild.
+    for (const bilder of [await umschalten(page), await umschalten(page)]) {
+      expect(bilder.every((b) => !b.geist)).toBe(true);
+      expect(new Set(bilder.map((b) => b.y)).size).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
+test.describe('B10 Aufklappen — <details>', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  test('der Inhalt blendet von oben ein; das Schließen hinterlässt kein Abbild', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    const kopf = page.locator('details > summary').filter({ hasText: 'Änderungsprotokoll' });
+    await expect(kopf).toBeVisible();
+    await kopf.evaluate((k) => k.scrollIntoView({ block: 'center' }));
+    await kopf.click();
+    const deck = await page.evaluate(() => new Promise<number>((fertig) => requestAnimationFrame(() => requestAnimationFrame(() => {
+      const d = [...document.querySelectorAll('details')].find((x) => x.open)!;
+      fertig(Number(getComputedStyle([...d.children].find((k) => k.tagName !== 'SUMMARY')!).opacity));
+    }))));
+    expect(deck).toBeLessThan(1);
+    await kopf.click();
+    await page.waitForTimeout(400);
+    expect(await page.locator('[data-geist]').count()).toBe(0);
+  });
+});
+
+test.describe('B11 Fehler am Feld', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Wie ein abgewiesenes Speichern: der Fokus steht auf dem Knopf, dann wird das Feld als fehlerhaft markiert. */
+  const abweisen = (page: Page, fokusImFeld: boolean) => page.evaluate(async (fokusImFeld) => {
+    const feld = document.querySelector<HTMLInputElement>('#fd-iban, input[id^="fd-"]')!;
+    const knopf = [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => /Speichern/.test(b.textContent ?? ''))!;
+    (fokusImFeld ? feld : knopf).focus();
+    feld.scrollIntoView({ block: 'end' });
+    window.scrollBy(0, -600);
+    feld.setAttribute('aria-invalid', 'true');
+    const lagen: number[] = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const t = getComputedStyle(feld).transform;
+        lagen.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    const r = feld.getBoundingClientRect();
+    return { lagen, fokus: document.activeElement === feld, imBild: r.top >= 0 && r.bottom <= innerHeight };
+  }, fokusImFeld);
+
+  /*
+    „Speichern“ steht seit U1 in der Speicherleiste, und die erscheint erst,
+    wenn etwas geändert ist — abgewiesen werden kann ja auch nur dann.
+  */
+  const etwasAendern = async (page: Page) => {
+    await page.locator('#fd-bank').fill('Raiffeisenbank Probe');
+    await expect(page.locator('.aktionsleiste').getByRole('button', { name: 'Speichern' })).toBeVisible();
+  };
+
+  test('nach „Speichern“: das Feld ruckt kurz, der Fokus springt hin und es steht im Bild', async ({ page, browserName }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    await beobachterBereit(page);
+    await etwasAendern(page);
+    const r = await abweisen(page, false);
+    // Der Ruck Bild für Bild nur in Chromium (siehe oben); Endlage, Fokus und Lage im Bild überall.
+    if (browserName !== 'webkit') expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
+    expect(r.lagen[r.lagen.length - 1]).toBe(0);
+    expect(r.fokus).toBe(true);
+    expect(r.imBild).toBe(true);
+  });
+
+  test('gleich geblieben: beim Tippen im Feld weder Ruck noch Sprung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    const tippen = await abweisen(page, true);
+    expect(tippen.lagen.every((x) => x === 0)).toBe(true);
+    expect(tippen.fokus).toBe(true);
+  });
+
+  test('mit reduzierter Bewegung ohne Ruck, aber der Fokus springt hin', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    await beobachterBereit(page);
+    await etwasAendern(page);
+    const reduziert = await abweisen(page, false);
+    expect(reduziert.lagen.every((x) => x === 0)).toBe(true);
+    expect(reduziert.fokus).toBe(true);
+  });
+
+});
+
+test.describe('B12 Seitenwechsel Liste → Akte', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Ab jetzt je Bild die waagrechte Lage der Seite aufzeichnen (1,2 s: die Akte lädt erst ihren Baustein, unter Last auch länger). */
+  const aufnehmen = (page: Page) => page.evaluate(() => {
+    const w = window as unknown as { seite: number[]; seiteFertig: boolean; ueber: number };
+    w.seite = []; w.seiteFertig = false; w.ueber = 0;
+    const t0 = performance.now();
+    const bild = () => {
+      const t = getComputedStyle(document.querySelector('.inhalt')!).transform;
+      w.seite.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
+      // Auch während des Gleitens ragt die Seite nicht seitlich über den Bildschirm.
+      w.ueber = Math.max(w.ueber, document.documentElement.scrollWidth - innerWidth);
+      if (performance.now() - t0 < 1200) requestAnimationFrame(bild); else w.seiteFertig = true;
+    };
+    requestAnimationFrame(bild);
+  });
+  const lesen = async (page: Page) => {
+    await page.waitForFunction(() => (window as unknown as { seiteFertig: boolean }).seiteFertig);
+    return page.evaluate(() => (window as unknown as { seite: number[] }).seite);
+  };
+
+  test('die Akte kommt von rechts, zurück kommt die Liste von links; quer bleibt ohne Seitenbewegung', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/customers'));
+    const zeile = page.locator('li.zeile .zeile-ziel').first();
+    await expect(zeile).toBeVisible();
+    await aufnehmen(page);
+    await zeile.click();
+    const hinein = await lesen(page);
+    expect(Math.max(...hinein)).toBeGreaterThan(10);
+    expect(await page.evaluate(() => (window as unknown as { ueber: number }).ueber)).toBe(0);
+    expect(hinein[hinein.length - 1]).toBe(0);
+    // Die Vorschau führt die Adresse im Speicher: zurück über den Weg der Akte.
+    const zurueckWeg = page.locator('.seitenkopf-zurueck');
+    await expect(zurueckWeg).toBeVisible();
+    await page.waitForTimeout(300);
+    await aufnehmen(page);
+    await zurueckWeg.click();
+    const zurueck = await lesen(page);
+    expect(Math.min(...zurueck)).toBeLessThan(-10);
+    expect(zurueck[zurueck.length - 1]).toBe(0);
+    await page.waitForTimeout(300);
+    // Die schwebende Hauptaktion der Liste ist nach der Bewegung wieder da.
+    await expect(page.locator('.daumen > *').first()).toHaveCSS('opacity', '1');
+    await aufnehmen(page);
+    await page.locator('.unten a, .unten button').filter({ hasText: 'Rechnungen' }).first().click();
+    expect((await lesen(page)).every((x) => x === 0)).toBe(true);
+  });
+
+  test('mit reduzierter Bewegung kein Gleiten', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/customers'));
+    const zeile = page.locator('li.zeile .zeile-ziel').first();
+    await expect(zeile).toBeVisible();
+    await aufnehmen(page);
+    await zeile.click();
+    expect((await lesen(page)).every((x) => x === 0)).toBe(true);
+  });
+});
+
+test.describe('U7 Zeiterfassung am Handy', () => {
+  test('kompakte Zeile, Löschen im Fenster mit derselben Rückfrage', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const zeilen = page.locator('#meine-eintraege li.zeile');
+    await expect(zeilen.first()).toBeVisible();
+    const hoehen = await zeilen.evaluateAll((z) => z.slice(0, 6).map((e) => e.getBoundingClientRect().height));
+    // Vorher 152–176 px je Buchung (drei bis vier Zeilen und ein Papierkorb).
+    expect(Math.max(...hoehen)).toBeLessThan(110);
+    const erste = zeilen.first();
+    await expect(erste.getByRole('button', { name: /löschen$/ })).toHaveCount(0);
+    await erste.locator('.zeile-ziel').click();
+    const fenster = page.getByRole('dialog', { name: 'Eintrag bearbeiten' });
+    await expect(fenster).toBeVisible();
+    await fenster.getByRole('button', { name: 'Eintrag löschen' }).click();
+    await expect(page.getByRole('dialog', { name: 'Eintrag löschen?' })).toBeVisible();
+    await expect(fenster).toHaveCount(0);
+  });
+
+  test('gleich geblieben: ab dem Tablet die Zeile wie bisher, mit Papierkorb', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const erste = page.locator('#meine-eintraege li.zeile').first();
+    await expect(erste).toBeVisible();
+    await expect(erste.getByRole('button', { name: /löschen$/ })).toHaveCount(1);
+    await expect(erste).toContainText(/\d{2}\.\d{2}\.\d{4} · /);
+  });
+});
+
+test.describe('U8 Anforderungen (Büro) am Handy', () => {
+  const lage = (page: Page) => page.evaluate(() => {
+    const z = document.querySelector('.arbeitszeile:has(> .arbeitszeile-wahl)')!;
+    const r = (s: string) => z.querySelector(s)!.getBoundingClientRect();
+    const zeile = z.getBoundingClientRect();
+    return { textBreite: r('.arbeitszeile-inhalt').width, zeileBreite: zeile.width, textUnten: r('.arbeitszeile-inhalt').bottom, wahlOben: r('.arbeitszeile-wahl').top, schrittOben: r('.arbeitszeile-schritt').top, wahlHoehe: r('.arbeitszeile-wahl').height, schrittHoehe: r('.arbeitszeile-schritt').height };
+  });
+
+  test('der Text steht über die volle Breite, Kästchen und Schritt darunter', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(pfad('/anforderungen'));
+    await expect(page.locator('.arbeitszeile-schritt').first()).toBeVisible();
+    const l = await lage(page);
+    // Vorher rund 165 px zwischen Kästchen und „Aus Lager“.
+    expect(l.textBreite).toBeGreaterThan(l.zeileBreite - 40);
+    expect(l.wahlOben).toBeGreaterThanOrEqual(l.textUnten - 1);
+    expect(l.schrittOben).toBeGreaterThanOrEqual(l.textUnten - 1);
+    expect(Math.min(l.wahlHoehe, l.schrittHoehe)).toBeGreaterThanOrEqual(44);
+  });
+
+  test('gleich geblieben: am Schreibtisch eine Zeile mit Kästchen links, Schritt rechts', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/anforderungen'));
+    await expect(page.locator('.arbeitszeile-schritt').first()).toBeVisible();
+    const l = await lage(page);
+    expect(l.wahlOben).toBeLessThan(l.textUnten);
+    expect(l.schrittOben).toBeLessThan(l.textUnten);
+  });
+});
+
+test.describe('F15 Aktionen in „Suchen oder springen“', () => {
+  test('Strg + K, „neue rechnung“, Enter: das Formular steht offen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/'));
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.keyboard.press('Control+k');
+    const feld = page.getByRole('combobox', { name: 'Suchen oder springen' });
+    await feld.fill('neue rechnung');
+    await expect(page.getByRole('group', { name: 'Aktionen' }).getByRole('option', { name: 'Neue Rechnung' })).toBeVisible();
+    await feld.press('Enter');
+    await expect(page.getByRole('group', { name: 'Rechnung erstellen' })).toBeVisible();
+  });
+});
+
+test.describe('F15 Wischen an der Zeile', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  /** Ein echter Finger über die Chromium-Schnittstelle (wie in interaktionen.spec.ts). */
+  async function finger(page: Page, cdp: CDPSession, x: number, y: number, dx: number, dy: number) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + dx * i / 12, y: y + dy * i / 12 }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+
+  test('Zeiterfassung: nach links gewischt steht „Löschen“, ein Tipp fragt wie bisher nach', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Echte Touchereignisse werden über die Chromium-Schnittstelle eingespeist.');
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const zeile = page.locator('#meine-eintraege li.zeile[data-wischbar]').first();
+    await expect(zeile).toBeVisible();
+    await zeile.evaluate((z) => z.scrollIntoView({ block: 'center' }));
+    const loeschen = zeile.locator('.wisch-aktionen').getByRole('button', { name: /löschen$/ });
+    // Zu: stumm und unsichtbar.
+    await expect(zeile.locator('.wisch-aktionen')).toHaveAttribute('inert', '');
+    const cdp = await page.context().newCDPSession(page);
+    const box = (await zeile.boundingBox())!;
+    // Senkrecht bleibt Rollen: die Zeile bewegt sich nicht.
+    const vorher = await page.evaluate(() => scrollY);
+    await finger(page, cdp, box.x + 200, box.y + 30, 0, -120);
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(vorher + 40);
+    expect(await zeile.evaluate((z) => z.style.getPropertyValue('--wisch-x') || '0px')).toBe('0px');
+    // Den Schwung des Rollens auslaufen lassen: Rollen schließt eine offene Zeile (wie am iPhone).
+    await page.evaluate(() => new Promise<void>((fertig) => {
+      let vorher = scrollY, ruhig = 0;
+      const bild = () => {
+        ruhig = Math.abs(scrollY - vorher) < 0.1 ? ruhig + 1 : 0;
+        vorher = scrollY;
+        if (ruhig >= 6) fertig(); else requestAnimationFrame(bild);
+      };
+      requestAnimationFrame(bild);
+    }));
+    const box2 = (await zeile.boundingBox())!;
+    await finger(page, cdp, box2.x + 300, box2.y + 30, -160, 4);
+    await expect(zeile.locator('.wisch-aktionen')).not.toHaveAttribute('inert', '');
+    await expect(loeschen).toBeInViewport();
+    // Ein Tipp an die Stelle, wo der Knopf steht — ohne dass Playwright erst hinrollt (das schlösse die Zeile).
+    const knopf = (await loeschen.boundingBox())!;
+    await page.touchscreen.tap(knopf.x + knopf.width / 2, knopf.y + knopf.height / 2);
+    await expect(page.getByRole('dialog', { name: 'Eintrag löschen?' })).toBeVisible();
+  });
+
+  test('Anforderungen: nach links gewischt steht derselbe Schritt', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await page.goto(pfad('/anforderungen'));
+    const zeile = page.locator('.arbeitszeile[data-wischbar]').first();
+    await expect(zeile).toBeVisible();
+    const cdp = await page.context().newCDPSession(page);
+    const box = (await zeile.boundingBox())!;
+    await finger(page, cdp, box.x + 300, box.y + 30, -160, 2);
+    await expect(zeile.locator('.wisch-aktionen').getByRole('button', { name: /^Aus Lager: / })).toBeInViewport();
+  });
+
+  test('gleich geblieben: am Schreibtisch keine Wischfläche', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await expect(page.locator('[data-wischbar], .wisch-aktionen')).toHaveCount(0);
+  });
+});
+
+test.describe('F15 Ziehen zum Aktualisieren', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  async function ziehen(page: Page, dy: number, mitte?: (p: Page) => Promise<void>) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 200, y: 200 }] });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 200, y: 200 + dy * i / 12 }] });
+      await page.waitForTimeout(16);
+    }
+    await mitte?.(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+  const alsApp = (page: Page) => page.addInitScript(() => {
+    const echt = window.matchMedia.bind(window);
+    window.matchMedia = (q: string) => (q.includes('display-mode: standalone') ? { ...echt(q), matches: true, media: q } as MediaQueryList : echt(q));
+  });
+  const zaehlen = (page: Page) => page.evaluate(() => {
+    const w = window as unknown as { aktualisiert: number };
+    w.aktualisiert = 0;
+    window.addEventListener('senklot:aktualisieren', () => { w.aktualisiert += 1; });
+  });
+
+  test('als App: von oben gezogen kommt das Zeichen mit, losgelassen holen die Listen nach', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await alsApp(page);
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 200, async (p) => {
+      await expect(p.getByRole('status', { name: 'Loslassen zum Aktualisieren' })).toBeVisible();
+    });
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(1);
+    await expect(page.getByRole('status', { name: 'Wird aktualisiert' })).toBeVisible();
+    await expect(page.locator('.ziehen-aktualisieren')).toHaveCount(0);
+  });
+
+  test('ein kurzer Zug oder ein Zug mitten in der Seite holt nichts', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await alsApp(page);
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 60);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await ziehen(page, 200);
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(0);
+  });
+
+  test('gleich geblieben: im Browser (eigenes Neuladen) keine zweite Geste', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 200);
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(0);
+  });
+});

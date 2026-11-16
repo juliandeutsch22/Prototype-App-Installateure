@@ -1,30 +1,29 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { imLager, istKnapp } from './lagerartikel';
+import Fensteraktionen from '@/components/Fensteraktionen';
+import { istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
 import RowMenu from '@/components/RowMenu';
 import { useAuth } from '@/app/AuthContext';
 import { canProcessOrders, darfKatalogEinspielen } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import {
-  subscribeLagerartikel,
   katalogAnzahl,
   katalogBeobachten,
   LOW_STOCK_THRESHOLD,
-  lagerFrei,
+  lagerListe,
+  lagerBeobachten,
   nummernTreffer,
   NUMMER_AB,
   kommissionsartikelImLager,
-  type LagerStand,
+  type LagerListe,
+  type LagerZeile,
 } from '@/lib/db/materials';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { grundAus } from '@/lib/fehlerGrund';
 import { fmtMenge } from '@/lib/belegLayout';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
-import { subscribeAllOrders } from '@/lib/db/materialOrders';
-import { bestandAmOrt, bestandBeobachten, bestandDesArtikels } from '@/lib/db/lagerorte';
+import { bestandBeobachten, bestandDesArtikels } from '@/lib/db/lagerorte';
 import type { WithId } from '@/lib/db/core';
-import type { Lagerbestand, Material, MaterialOrder } from '@/types';
-import Nachladen from '@/components/Nachladen';
+import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung } from '@/components/Badge';
@@ -37,7 +36,7 @@ import { InputField } from '@/components/Field';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
-import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 import { Bewegungsverlauf, InventurDialog, OrtWahl, UmlagernDialog, WareneingangDialog } from './LagerDialoge';
 import LagerorteFenster from './LagerorteFenster';
@@ -62,12 +61,6 @@ const darfEinspielenFuer = (user: Parameters<typeof darfKatalogEinspielen>[0] | 
 /** Gruppen höchstens 20 Zeilen (Regel 4) — auch die Artikelwahl. */
 const JE_SEITE = 20;
 
-/** Gesucht wird über Name, Kategorie und Artikelnummer — wie im Katalog. */
-function passtZurSuche(m: Pick<Material, 'name' | 'category' | 'articleNumber'>, text: string) {
-  const q = text.trim().toLowerCase();
-  return q ? [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)) : true;
-}
-
 /**
  * Lager — eigener Bereich statt versteckter vierter Reiter unter
  * „Bestellungen".
@@ -77,15 +70,6 @@ function passtZurSuche(m: Pick<Material, 'name' | 'category' | 'articleNumber'>,
  * geblieben; neu ist die Bestandsansicht davor, die zeigt, was knapp wird
  * und wie viel bereits für offene Anforderungen reserviert ist.
  */
-/**
- * Wie viele Anforderungen geladen werden.
- *
- * Ohne Grenze wurde jede Anforderung des Betriebs seit jeher abonniert, nur
- * um die aktuellen zu zeigen. Bei zwanzig Monteuren kommen im Jahr mehrere
- * tausend zusammen.
- */
-const ANFORDERUNGEN_JE_SEITE = 200;
-
 export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -116,15 +100,24 @@ export default function StockView() {
   };
   // Die Leitung — oder die Verwaltung mit Freigabe „Katalog einspielen“ (M37).
   const darfEinspielen = user ? darfKatalogEinspielen(user) : false;
-  /** Die im Lager geführten Artikel — nur sie, vom Server gefiltert. */
-  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
-  const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    DIE LAGERLISTE KOMMT AUS DER DATENBANK (`lager_liste`, Durchsicht
+    15.11.2026, Budget B3): die gezeigte Seite und die Zahlen über alle
+    Lagerartikel — gesucht, gefiltert, nach dem Freien sortiert und gezählt
+    nach denselben Regeln wie bisher hier. Vorher kam jeder Lagerartikel samt
+    seinem Freien in den Browser (gewachsener Bestand: 2.000 und 1.000
+    Zeilen), um 20 davon zu zeigen. `null`: noch nicht da.
+  */
+  const [liste, setListe] = useState<LagerListe | null>(null);
+  /** Für welchen Ort die Liste gefragt war (leer = Hauptlager) — beim Wechsel steht bis zur Antwort ein Platzhalter. */
+  const [listeOrt, setListeOrt] = useState('');
   const [error, setError] = useState<string | null>(null);
-  /** „Erneut versuchen“ nach einem Ladefehler: holt die Lagerartikel neu (V10). */
-  const [versuch, setVersuch] = useState(0);
-  /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
-  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /**
+   * Eine Runde weiter, wenn sich im Lager etwas geändert hat (Artikel,
+   * Anforderungen, eine eigene Buchung) oder nach „Erneut versuchen“: die
+   * Liste fragt dann neu.
+   */
+  const [runde, setRunde] = useState(0);
   const [search, setSearch] = useState('');
   /*
     DER FILTER STEHT IN DER ADRESSE (Regel 7.5). „knapp“ kam schon vorher von
@@ -165,115 +158,122 @@ export default function StockView() {
    * jetzt direkt aus dem Artikel.
    */
   const [zuBearbeiten, setZuBearbeiten] = useState<WithId<Material> | null>(null);
-  /* Warum der Katalog eine Grenze braucht: siehe `lib/db/materials.ts`. */
-  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
   const [gezeigt, setGezeigt] = useState(JE_SEITE);
+
+  /*
+    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): Liste und Zahl des
+    Katalogs stehen beim zweiten Besuch sofort da; frisch geholt wird im
+    Hintergrund. Gemerkt wird nur die Liste ohne Suche, Filter und Ort, so wie
+    sie beim Öffnen steht.
+  */
+  const { anfang, merken } = useGemerkt<{ liste: LagerListe; imKatalog: number }>(
+    user ? schluessel('lagerStand', user) : null,
+  );
+  const listeJetzt = liste ?? anfang?.liste ?? null;
+
+  /*
+    AUCH ÜBER DIE NUMMER EINES GROSSHÄNDLERS (M03a): die Nummern der
+    zugeordneten Großhändler und die EAN kennt eine eigene Suche. Sie nennt
+    die passenden Artikel (ab drei Zeichen, kurz nach dem letzten
+    Tastendruck), und die Lagerliste nimmt sie dazu.
+  */
+  const [ueberNummer, setUeberNummer] = useState<{ fuer: string; ids: Set<string> }>({ fuer: '', ids: new Set() });
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < NUMMER_AB) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      void nummernTreffer(q).then((treffer) => {
+        if (!weg) setUeberNummer({ fuer: q, ids: new Set(treffer.keys()) });
+      });
+    }, 250);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+  }, [search]);
+  const begriff = search.trim();
+  const nummernIds = ueberNummer.fuer === begriff ? [...ueberNummer.ids].sort().join(',') : '';
 
   useEffect(() => {
     if (!user) return;
-    const unsubM = subscribeLagerartikel(
-      user.companyId,
-      (rows) => {
-        setMaterials(rows);
-        setError(null);
-        setLoading(false);
-      },
-      (e) => {
-        setError(e.message);
-        setLoading(false);
-      },
-      grenze,
-    );
-    /**
-     * Der Fehlerweg des Abos war `() => undefined`. Scheitert die Abfrage —
-     * etwa an den Regeln —, blieb die Liste der Anforderungen dauerhaft leer
-     * und sah aus wie „nichts angefordert". Das ist derselbe verschluckte
-     * Fehler, der beim Handwerksschein schon einmal als „leeres Auswahlfeld"
-     * gemeldet wurde.
-     */
-    const unsubO = subscribeAllOrders(
-      user.companyId,
-      ANFORDERUNGEN_JE_SEITE,
-      setOrders,
-      () => setNebenFehler('Die Anforderungen'),
-    );
+    try {
+      return lagerBeobachten(user.companyId, () => setRunde((n) => n + 1));
+    } catch {
+      // Ohne Meldeweg steht die Liste trotzdem; sie fragt nach eigenen Buchungen neu.
+      return undefined;
+    }
+  }, [user]);
+
+  /*
+    BESTAND AN WEITEREN ORTEN (M04a): live — bucht jemand (eine Umlagerung,
+    ein Haken aus dem Fahrzeug), holt die Ansicht neu. Nur mit der Fähigkeit.
+  */
+  const [ortStand, setOrtStand] = useState(0);
+  useEffect(() => {
+    if (!user || !lo.an) return;
+    try {
+      return bestandBeobachten(user.companyId, () => setOrtStand((n) => n + 1));
+    } catch {
+      // Ohne Meldeweg steht der Bestand trotzdem; er wird nach eigenen Buchungen neu geholt.
+      return undefined;
+    }
+  }, [user, lo.an]);
+
+  /*
+    DIE GEZEIGTE SEITE: Suche (samt Treffern über Nummern), Filter, am
+    weiteren Ort dessen Bestand nach Namen, so viele Zeilen wie gezeigt.
+    Getippt wird kurz abgewartet; eine Antwort zu einem älteren Begriff wird
+    verworfen. Neu gefragt wird bei jeder Runde und an einem weiteren Ort bei
+    jeder Buchung dort.
+  */
+  const imOrtStand = ort ? ortStand : 0;
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      lagerListe({
+        begriff,
+        treffer: nummernIds ? nummernIds.split(',') : [],
+        filter: ort ? 'alle' : filter,
+        reihenfolge: ort ? 'name' : 'frei',
+        anzahl: gezeigt,
+        grenze: LOW_STOCK_THRESHOLD,
+        ort: ort || null,
+      })
+        .then((l) => {
+          if (weg) return;
+          setListe(l);
+          setListeOrt(ort);
+          setError(null);
+          if (!begriff && !ort && filter === 'alle' && gezeigt === JE_SEITE) merken({ liste: l });
+        })
+        .catch((e: Error) => { if (!weg) setError(e.message); });
+    }, begriff ? 200 : 0);
     return () => {
-      unsubM();
-      unsubO();
+      weg = true;
+      clearTimeout(t);
     };
-  }, [user, grenze, versuch]);
+  }, [user, begriff, nummernIds, filter, ort, gezeigt, runde, imOrtStand, merken]);
   function neuVersuchen() {
     setError(null);
-    setLoading(true);
-    setVersuch((n) => n + 1);
+    setRunde((n) => n + 1);
   }
+  /** Die Liste steht (gemerkt oder frisch) — oder ihr Fehler. */
+  const bestandBereit = listeJetzt !== null || error !== null;
+  /** Die Zeilen gelten für den gewählten Ort: am weiteren Ort tragen sie dessen Menge. */
+  const zeilenGelten = liste ? listeOrt === ort : !ort && listeJetzt !== null;
+  const zeilen: LagerZeile[] = zeilenGelten ? listeJetzt?.zeilen ?? [] : [];
+  const lowCount = listeJetzt?.knapp ?? 0;
+  const fehltCount = listeJetzt?.fehlt ?? 0;
+  const imLagerZahl = listeJetzt?.imLager ?? 0;
 
-  /**
-   * Was ist zugesagt, aber noch nicht abgeholt?
-   *
-   * Der reine Lagerstand täuscht sonst: 20 Stück im Regal, von denen 18
-   * bereits drei Monteuren zugesagt sind, sind keine 20 verfügbaren Stück.
-   */
-  /*
-    DIE ZAHLEN DER DATENBANK (Testbericht 30.09.2026, M32, G19): zugesagte
-    Anforderungen und Rüstlisten ab heute, nach derselben Regel, mit der
-    „Aus Lager“ prüft. Neu geholt, sobald sich Artikel oder Anforderungen
-    bewegen. Bleiben sie aus, rechnet die Ansicht wie bisher selbst.
-
-    SEIT 10.10.2026 NICHT MEHR „BIS SIE DA SIND“ (Analyse des Ladens): dann
-    stand erst die eigene Rechnung, Augenblicke später die der Datenbank —
-    zwei verschiedene Zahlen für „frei“ und „reserviert“. Bis zur ersten
-    Antwort (oder ihrem Fehler) stehen Platzhalter.
-  */
-  /*
-    DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): Artikel und
-    Anforderungen kommen als Live-Listen ohnehin sofort; frei und reserviert
-    stehen beim zweiten Besuch mit ihnen da und werden frisch geholt. Nur
-    zum Anzeigen — „Aus Lager“ prüft die Datenbank beim Zusagen selbst.
-  */
-  const { anfang, merken } = useGemerkt<{ stand: Map<string, LagerStand>; imKatalog: number }>(
-    user ? schluessel('lagerStand', user) : null,
-  );
-  const [stand, setStand] = useState<Map<string, LagerStand> | null>(() => anfang?.stand ?? null);
-  const [standFertig, setStandFertig] = useState(() => anfang?.stand !== undefined);
-  /*
-    AM INHALT, NICHT AN DER IDENTITÄT DER LISTEN (Ladezeit, 19.10.2026): jede
-    Meldung der Live-Listen ist ein neues Array — auch das Nachfassen, das
-    dieselben Zeilen bringt. Gemessen holte das Lager die Frei-Mengen aller
-    800 Lagerartikel dreimal, wo sich nichts geändert hatte.
-  */
-  const artikelStand = materials.map((m) => `${m.id}:${m.stock ?? 0}`).join('|');
-  const anforderungsStand = orders
-    .map((o) => [o.id, o.status, o.quantity, o.materialId, o.beschaffung, o.processed, o.updatedAt].join(':'))
-    .join('|');
-  useEffect(() => {
-    /*
-      ERST MIT DEN ARTIKELN: eine Antwort über einen noch leeren Katalog ist
-      keine über den Bestand. Sie wurde nie gezeigt (Platzhalter), überschrieb
-      beim zweiten Besuch aber den gemerkten Stand mit lauter Nullen —
-      „Reserviert 0“, Sekunden später 6 (Messung 11.10.2026).
-    */
-    if (!user || loading) return;
-    let weg = false;
-    Promise.resolve()
-      .then(() => lagerFrei(materials.map((m) => m.id)))
-      .then((k) => {
-        if (weg) return;
-        setStand(k);
-        merken({ stand: k });
-      })
-      // Schlägt ein Nachladen fehl, bleibt der letzte Stand — besser als zurück auf die eigene Rechnung.
-      .catch(() => undefined)
-      .finally(() => { if (!weg) setStandFertig(true); });
-    return () => { weg = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, artikelStand, anforderungsStand, loading, merken]);
   /*
     DIE GRÖSSE DES KATALOGS — gezählt, nicht geholt (18.10.2026). Sie steht
     nur im Hinweis „von N im Katalog“ und unterscheidet „Katalog leer“ von
     „nichts im Lager geführt“. Neu gezählt, sobald sich im Katalog etwas
-    ändert; gemerkt wie frei und reserviert, damit sie beim zweiten Besuch
-    gleich dasteht.
+    ändert; gemerkt wie die Liste, damit sie beim zweiten Besuch gleich
+    dasteht.
   */
   /** Wie viele Artikel der Katalog hat; `null` = nicht bekannt. */
   const [imKatalog, setImKatalog] = useState<number | null>(() => anfang?.imKatalog ?? null);
@@ -300,132 +300,6 @@ export default function StockView() {
       stopp();
     };
   }, [user, merken]);
-  /** Frei und reserviert stehen erst mit der Antwort der Datenbank — oder ihrem Fehler. */
-  const bestandBereit = !loading && standFertig;
-
-  /*
-    BESTAND AN WEITEREN ORTEN (M04a): live — bucht jemand (eine Umlagerung,
-    ein Haken aus dem Fahrzeug), holt die Ansicht neu. Nur mit der Fähigkeit.
-  */
-  const [ortStand, setOrtStand] = useState(0);
-  useEffect(() => {
-    if (!user || !lo.an) return;
-    try {
-      return bestandBeobachten(user.companyId, () => setOrtStand((n) => n + 1));
-    } catch {
-      // Ohne Meldeweg steht der Bestand trotzdem; er wird nach eigenen Buchungen neu geholt.
-      return undefined;
-    }
-  }, [user, lo.an]);
-  const [amOrt, setAmOrt] = useState<Lagerbestand[] | null>(null);
-  const [amOrtFehler, setAmOrtFehler] = useState<string | null>(null);
-  useEffect(() => {
-    if (!user || !ort) {
-      setAmOrt(null);
-      return;
-    }
-    let weg = false;
-    setAmOrtFehler(null);
-    Promise.resolve()
-      .then(() => bestandAmOrt(user.companyId, ort))
-      .then((b) => { if (!weg) setAmOrt(b); })
-      .catch(() => { if (!weg) setAmOrtFehler('Der Bestand an diesem Ort konnte nicht geladen werden.'); });
-    return () => { weg = true; };
-  }, [user, ort, ortStand]);
-
-  const selbstGerechnet = useMemo(() => {
-    // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
-    // Der Altbestand kennt Positionen ohne Verweis (Prototyp: „nur wenn matId
-    // bekannt"), und auch eine per Sprache erfasste Zeile kann sie verlieren.
-    // Ohne diesen Weg zählte die Reservierung stillschweigend zu niedrig —
-    // eine falsche Zahl im Lager ist schlimmer als gar keine.
-    const byName = new Map<string, string>();
-    for (const m of materials) byName.set(m.name.trim().toLowerCase(), m.id);
-
-    const map = new Map<string, number>();
-    for (const o of orders) {
-      if (o.transactionType === 'return' || o.status === 'Erledigt') continue;
-      const id = o.materialId || byName.get((o.materialName ?? '').trim().toLowerCase());
-      if (!id) continue;
-      map.set(id, (map.get(id) ?? 0) + (o.quantity ?? 0));
-    }
-    return map;
-  }, [orders, materials]);
-
-  const reserved = useMemo(() => {
-    if (!stand) return selbstGerechnet;
-    const map = new Map<string, number>();
-    for (const [id, st] of stand) map.set(id, st.zugesagt + st.geplant);
-    return map;
-  }, [stand, selbstGerechnet]);
-
-  /** Alle Lagerartikel mit freiem und reserviertem Bestand — Grundlage für Liste und Wahl. */
-  const lagerZeilen = useMemo(
-    () =>
-      materials
-        .filter(imLager)
-        .map((m) => ({
-          ...m,
-          reserved: reserved.get(m.id) ?? 0,
-          free: (m.stock ?? 0) - (reserved.get(m.id) ?? 0),
-        })),
-    [materials, reserved],
-  );
-
-  /*
-    AUCH ÜBER DIE NUMMER EINES GROSSHÄNDLERS (M03a): die Lagerliste sucht in
-    den geladenen Artikeln; die Nummern der zugeordneten Großhändler und die
-    EAN kennt nur der Server. Er nennt die passenden Artikel (ab drei
-    Zeichen, kurz nach dem letzten Tastendruck), und die Liste nimmt sie dazu.
-  */
-  const [ueberNummer, setUeberNummer] = useState<{ fuer: string; ids: Set<string> }>({ fuer: '', ids: new Set() });
-  useEffect(() => {
-    const q = search.trim();
-    if (q.length < NUMMER_AB) return;
-    let weg = false;
-    const t = setTimeout(() => {
-      void nummernTreffer(q).then((treffer) => {
-        if (!weg) setUeberNummer({ fuer: q, ids: new Set(treffer.keys()) });
-      });
-    }, 250);
-    return () => {
-      weg = true;
-      clearTimeout(t);
-    };
-  }, [search]);
-  const nummernIds = ueberNummer.fuer === search.trim() ? ueberNummer.ids : null;
-
-  const rows = useMemo(
-    () =>
-      lagerZeilen
-        .filter((m) => passtZurSuche(m, search) || !!nummernIds?.has(m.id))
-        .filter((m) =>
-          filter === 'fehlt'
-            ? m.free < 0
-            : filter === 'knapp'
-              ? istKnapp(m.free, m, LOW_STOCK_THRESHOLD)
-              : true,
-        )
-        // Knappes zuerst — wer das Lager öffnet, will wissen, was fehlt.
-        .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de')),
-    [lagerZeilen, search, filter, nummernIds],
-  );
-
-  /** Am weiteren Ort: die Artikel, die dort liegen, mit ihrer Menge. */
-  const ortZeilen = useMemo(() => {
-    if (!ort || !amOrt) return [];
-    const menge = new Map(amOrt.map((b) => [b.materialId, Number(b.menge)]));
-    return lagerZeilen
-      .filter((m) => menge.has(m.id) && (passtZurSuche(m, search) || !!nummernIds?.has(m.id)))
-      .map((m) => ({ ...m, amOrt: menge.get(m.id) ?? 0 }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  }, [ort, amOrt, lagerZeilen, search, nummernIds]);
-
-  const lowCount = useMemo(
-    () => lagerZeilen.filter((m) => istKnapp(m.free, m, LOW_STOCK_THRESHOLD)).length,
-    [lagerZeilen],
-  );
-  const fehltCount = useMemo(() => lagerZeilen.filter((m) => m.free < 0).length, [lagerZeilen]);
 
   /*
     DER WARENEINGANG FRAGT IN EINEM DIALOG DER APP, nicht über
@@ -475,7 +349,28 @@ export default function StockView() {
   const [wahlSuche, setWahlSuche] = useState('');
   const [wahlGezeigt, setWahlGezeigt] = useState(JE_SEITE);
 
-  const artikel = artikelId ? lagerZeilen.find((m) => m.id === artikelId) ?? null : null;
+  /*
+    DER ARTIKEL IM FENSTER — eigens gefragt, nicht aus der gezeigten Seite:
+    nach einer Buchung rückt er in der Sortierung weiter und stünde sonst
+    nicht mehr da. Bis zur Antwort die Zeile aus der Liste.
+  */
+  const [artikelFrisch, setArtikelFrisch] = useState<LagerZeile | null>(null);
+  useEffect(() => {
+    if (!user || !artikelId) {
+      setArtikelFrisch(null);
+      return;
+    }
+    let weg = false;
+    lagerListe({ nur: [artikelId], anzahl: 1, grenze: LOW_STOCK_THRESHOLD })
+      .then((l) => { if (!weg) setArtikelFrisch(l.zeilen[0] ?? null); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, artikelId, runde]);
+  const artikel: LagerZeile | null = !artikelId
+    ? null
+    : artikelFrisch?.id === artikelId
+      ? artikelFrisch
+      : zeilen.find((m) => m.id === artikelId) ?? null;
 
   /*
     DER BESTAND JE ORT DES ARTIKELS IM FENSTER — neu, sobald irgendwo gebucht
@@ -524,10 +419,29 @@ export default function StockView() {
       weiter(m);
     }
   };
-  const wahlTreffer = useMemo(
-    () => [...lagerZeilen].filter((m) => passtZurSuche(m, wahlSuche)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [lagerZeilen, wahlSuche],
-  );
+  /*
+    DIE ARTIKELWAHL fragt ihre eigene Seite: nach Namen, gesucht wie die
+    Liste, so viele wie gezeigt — erst, wenn sie offen ist.
+  */
+  const [wahlListe, setWahlListe] = useState<LagerListe | null>(null);
+  useEffect(() => {
+    if (!user || !wahl) {
+      setWahlListe(null);
+      return;
+    }
+    let weg = false;
+    const t = setTimeout(() => {
+      lagerListe({ begriff: wahlSuche.trim(), reihenfolge: 'name', anzahl: wahlGezeigt, grenze: LOW_STOCK_THRESHOLD })
+        .then((l) => { if (!weg) setWahlListe(l); })
+        .catch((e: Error) => { if (!weg) toast.error(grundAus(e, 'Die Lagerartikel konnten nicht geladen werden.')); });
+    }, wahlSuche.trim() ? 200 : 0);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toast ist stabil
+  }, [user, wahl, wahlSuche, wahlGezeigt, runde]);
+  const wahlTreffer = wahlListe?.zeilen ?? [];
 
   if (!user) return null;
 
@@ -574,9 +488,9 @@ export default function StockView() {
             */}
             <Metric
               label="Im Lager"
-              value={error ? '—' : materials.filter(imLager).length}
+              value={error ? '—' : imLagerZahl}
               // Mit dem Hinweis zusammen — käme er später, rückte die Zeile darunter nach.
-              bereit={!loading && gezaehlt}
+              bereit={bestandBereit && gezaehlt}
               // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
               hint={error ? 'nicht geladen' : imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
             />
@@ -589,7 +503,7 @@ export default function StockView() {
             />
             <Metric
               label="Reserviert"
-              value={error ? '—' : fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              value={error ? '—' : fmtMenge(listeJetzt?.reserviert ?? 0)}
               bereit={bestandBereit}
             />
           </MetricRow>
@@ -620,8 +534,6 @@ export default function StockView() {
           />
         }
       />
-
-      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {/*
         DIE BEREICHE SCHMAL LINKS, WIE IN DEN ANFORDERUNGEN (E72, 09.11.2026):
@@ -669,13 +581,13 @@ export default function StockView() {
         <Zaehllisten
           orte={lo.orte}
           mitOrten={lo.mitWeiteren}
-          warengruppen={[...new Set(materials.map((m) => m.warengruppe?.trim()).filter((w): w is string => !!w))].sort((a, b) => a.localeCompare(b, 'de'))}
+          warengruppen={listeJetzt?.warengruppen ?? []}
         />
       ) : tab === 'katalog' ? (
         <MaterialCatalog
           zuBearbeiten={zuBearbeiten}
           onUebernommen={() => setZuBearbeiten(null)}
-          lagerartikel={materials}
+          knappImLager={listeJetzt?.knappBestand ?? 0}
           suche={params.get('suche') ?? undefined}
         />
       ) : (
@@ -692,11 +604,11 @@ export default function StockView() {
                   suche={{ id: 'stocksearch', wert: search, onChange: setSearch, platzhalter: 'Name, Kategorie oder Art.-Nr.' }}
                 />
                 <div>
-                  {amOrtFehler ? (
-                    <div className="px-4 pb-4"><ErrorState message={amOrtFehler} /></div>
-                  ) : amOrt === null || loading ? (
+                  {error ? (
+                    <div className="px-4 pb-4"><ErrorState message="Der Bestand an diesem Ort konnte nicht geladen werden." onRetry={neuVersuchen} /></div>
+                  ) : !zeilenGelten ? (
                     <div className="px-4 pb-4"><SkeletonList rows={4} /></div>
-                  ) : ortZeilen.length === 0 ? (
+                  ) : zeilen.length === 0 ? (
                     <EmptyState>
                       {search.trim()
                         ? `Gesucht wurde „${search.trim()}“ in Name, Kategorie und Artikelnummer.`
@@ -704,20 +616,22 @@ export default function StockView() {
                     </EmptyState>
                   ) : (
                     <List>
-                      {ortZeilen.slice(0, gezeigt).map((m) => (
+                      {zeilen.map((m) => (
                         <ListRow
                           key={m.id}
                           title={m.name}
                           onOeffnen={() => setArtikelId(m.id)}
                           ausgewaehlt={artikelId === m.id}
                           subtitle={[m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`].filter(Boolean).join(' · ') || undefined}
-                          wert={`${fmtMenge(m.amOrt)} ${m.unit ?? 'Stk'}`}
+                          wert={`${fmtMenge(m.amOrt ?? 0)} ${m.unit ?? 'Stk'}`}
                           pfeil
                         />
                       ))}
                     </List>
                   )}
-                  <MehrAnzeigen anzahl={Math.max(0, ortZeilen.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
+                  {zeilenGelten && (
+                    <MehrAnzeigen anzahl={Math.max(0, (listeJetzt?.treffer ?? 0) - zeilen.length)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
+                  )}
                 </div>
               </>
             ) : (
@@ -726,9 +640,7 @@ export default function StockView() {
               reiter={
                 /*
                   Die Zahlen zählen, was zu tun ist (Protokoll 7.7) — über
-                  alle Lagerartikel, die hier vollständig geladen sind, und
-                  erst mit dem Stand der Datenbank: vorher wären es Zahlen
-                  aus einer vorläufigen Rechnung.
+                  alle Lagerartikel, gezählt in der Datenbank.
                 */
                 <Segmente
                   name="Filter"
@@ -757,11 +669,11 @@ export default function StockView() {
                   />
                 </div>
               ) : /* Ein leeres Lager wartet auf die Zahl des Katalogs: sie wählt den Hinweis. */
-              !bestandBereit || (materials.length === 0 && !gezaehlt) ? (
+              !zeilenGelten || (imLagerZahl === 0 && !gezaehlt) ? (
                 <div className="px-4 pb-4">
                   <SkeletonList rows={5} />
                 </div>
-              ) : rows.length === 0 ? (
+              ) : zeilen.length === 0 ? (
                 <EmptyState
                   /*
                     ECHTE LEERE MIT ZEICHNUNG (Planlinie § 6): ein leerer Katalog
@@ -769,13 +681,13 @@ export default function StockView() {
                     Suche ohne Treffer die Lupe. „Kein Artikel knapp“ ist keine
                     Leere, sondern eine gute Nachricht — dort bleibt der Satz.
                   */
-                  zeichnung={imKatalog === 0 ? 'lager' : imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'suche' : undefined}
-                  titel={imKatalog === 0 ? 'Noch kein Material im Katalog' : imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'Keine passenden Artikel.' : undefined}
-                  action={imKatalog !== 0 && materials.some(imLager) && search.trim() ? <Button variant="secondary" onClick={() => setSearch('')}>Suche zurücksetzen</Button> : undefined}
+                  zeichnung={imKatalog === 0 ? 'lager' : imKatalog !== 0 && imLagerZahl > 0 && search.trim() ? 'suche' : undefined}
+                  titel={imKatalog === 0 ? 'Noch kein Material im Katalog' : imKatalog !== 0 && imLagerZahl > 0 && search.trim() ? 'Keine passenden Artikel.' : undefined}
+                  action={imKatalog !== 0 && imLagerZahl > 0 && search.trim() ? <Button variant="secondary" onClick={() => setSearch('')}>Suche zurücksetzen</Button> : undefined}
                 >
                   {imKatalog === 0
                     ? 'Der Bereich „Katalog“ legt den ersten Eintrag an.'
-                    : !materials.some(imLager)
+                    : imLagerZahl === 0
                       ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                       : search.trim()
                         ? `Gesucht wurde „${search.trim()}“ in Name, Kategorie und Artikelnummer.`
@@ -785,7 +697,7 @@ export default function StockView() {
                 </EmptyState>
               ) : (
                 <List>
-                  {rows.slice(0, gezeigt).map((m) => {
+                  {zeilen.map((m) => {
                     const low = istKnapp(m.free, m, LOW_STOCK_THRESHOLD);
                     const einheit = m.unit ?? 'Stk';
                     return (
@@ -869,19 +781,8 @@ export default function StockView() {
                 </List>
               )}
               {/* Erst mit der Liste: unter dem kürzeren Platzhalter schob die Liste sie beim Eintreffen nach unten (Messung 11.10.2026). */}
-              {bestandBereit && (
-                <>
-                  <MehrAnzeigen anzahl={Math.max(0, rows.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
-                  <div className="px-4 pb-3 empty:hidden">
-                    <Nachladen
-                      geladen={materials.length}
-                      grenze={grenze}
-                      onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-                      einheit="Artikel"
-                      sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-                    />
-                  </div>
-                </>
+              {zeilenGelten && !error && (
+                <MehrAnzeigen anzahl={Math.max(0, (listeJetzt?.treffer ?? 0) - zeilen.length)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
               )}
             </div>
             </>
@@ -919,8 +820,8 @@ export default function StockView() {
               <div className="fenster-zahl">
                 <dt>reserviert</dt>
                 <dd>{fmtMenge(artikel.reserved)}</dd>
-                {stand?.get(artikel.id)?.geplant ? (
-                  <p className="fenster-zahl-zusatz">davon {fmtMenge(stand.get(artikel.id)!.geplant)} auf Rüstlisten</p>
+                {artikel.geplant ? (
+                  <p className="fenster-zahl-zusatz">davon {fmtMenge(artikel.geplant)} auf Rüstlisten</p>
                 ) : null}
               </div>
               <div className="fenster-zahl">
@@ -961,24 +862,24 @@ export default function StockView() {
               </div>
             )}
 
-            <div className="material-aktionen">
-              <Button onClick={() => setEingang(artikel)}>Wareneingang</Button>
-              <Button variant="secondary" onClick={() => void mitOrten(artikel, setInventur)}>Inventur</Button>
-              {lo.mitWeiteren && (
-                <Button variant="secondary" onClick={() => void mitOrten(artikel, setUmlagern, true)}>Umlagern</Button>
-              )}
-              <Button
-                variant="secondary"
-                onClick={() => {
+            {/* U4: „Wareneingang“ gefüllt, „Inventur“ daneben, das Seltene im ⋯. */}
+            <Fensteraktionen
+              about={`Artikel ${artikel.name}`}
+              haupt={<Button onClick={() => setEingang(artikel)}>Wareneingang</Button>}
+              zweit={<Button variant="secondary" onClick={() => void mitOrten(artikel, setInventur)}>Inventur</Button>}
+              weitere={[
+                ...(lo.mitWeiteren ? [{ label: 'Umlagern', onSelect: () => void mitOrten(artikel, setUmlagern, true) }] : []),
+                {
+                  label: 'Im Katalog bearbeiten',
                   // Bearbeitet wird im Katalog — eine zweite Stelle mit denselben Regeln gibt es nicht.
-                  setArtikelId(null);
-                  setZuBearbeiten(artikel);
-                  setTab('katalog');
-                }}
-              >
-                Im Katalog bearbeiten
-              </Button>
-            </div>
+                  onSelect: () => {
+                    setArtikelId(null);
+                    setZuBearbeiten(artikel);
+                    setTab('katalog');
+                  },
+                },
+              ]}
+            />
 
             <div>
               <h3 className="section-label mb-3">Bewegungen</h3>
@@ -1009,13 +910,13 @@ export default function StockView() {
           />
           {wahlTreffer.length === 0 ? (
             <p className="text-sm text-ink-muted">
-              {lagerZeilen.length === 0
+              {wahlListe?.imLager === 0
                 ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                 : 'Kein Lagerartikel passt zur Suche.'}
             </p>
           ) : (
             <ul className="wahl-liste" aria-label="Lagerartikel">
-              {wahlTreffer.slice(0, wahlGezeigt).map((m) => (
+              {wahlTreffer.map((m) => (
                 <li key={m.id}>
                   <button
                     type="button"
@@ -1038,7 +939,7 @@ export default function StockView() {
             </ul>
           )}
           <MehrAnzeigen
-            anzahl={Math.max(0, wahlTreffer.length - wahlGezeigt)}
+            anzahl={Math.max(0, (wahlListe?.treffer ?? 0) - wahlTreffer.length)}
             onClick={() => setWahlGezeigt((n) => n + JE_SEITE)}
           />
         </div>
@@ -1056,6 +957,8 @@ export default function StockView() {
             setEingang(null);
             setBewegungStand((n) => n + 1);
             setOrtStand((n) => n + 1);
+            // Die Liste fragt gleich neu — nicht erst, wenn der Kanal die Änderung meldet.
+            setRunde((n) => n + 1);
             toast.success(text);
           }}
         />
@@ -1072,13 +975,15 @@ export default function StockView() {
             setInventur(null);
             setBewegungStand((n) => n + 1);
             setOrtStand((n) => n + 1);
+            // Die Liste fragt gleich neu — nicht erst, wenn der Kanal die Änderung meldet.
+            setRunde((n) => n + 1);
             toast.success(text);
           }}
         />
       )}
       {umlagern && (
         <UmlagernDialog
-          artikel={lagerZeilen.find((m) => m.id === umlagern.id) ?? umlagern}
+          artikel={artikel?.id === umlagern.id ? artikel : umlagern}
           orte={lo.orte}
           wahl={weitere}
           bestaende={ortMengen(umlagern.id) ?? new Map()}
@@ -1089,6 +994,8 @@ export default function StockView() {
             setUmlagern(null);
             setBewegungStand((n) => n + 1);
             setOrtStand((n) => n + 1);
+            // Die Liste fragt gleich neu — nicht erst, wenn der Kanal die Änderung meldet.
+            setRunde((n) => n + 1);
             toast.success(text);
           }}
         />
@@ -1117,6 +1024,7 @@ export default function StockView() {
           try {
             const raus = await kommissionsartikelImLager(liste.map((m) => m.id));
             setKommission(null);
+            setRunde((n) => n + 1);
             toast.success(raus.length === 1 ? '1 Artikel aus dem Lager genommen' : `${raus.length} Artikel aus dem Lager genommen`);
           } catch (e) {
             toast.error(grundAus(e, 'Die Artikel konnten nicht aus dem Lager genommen werden.'));

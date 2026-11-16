@@ -10,6 +10,7 @@
 import type { Wartung, WartungAusfuehrung } from '@/types';
 import { naechsterTermin } from '@/features/maintenance/wartungsplan';
 import { abfragen, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
+import { zeileAlsObjekt } from './felder';
 
 const WARTUNGEN = 'wartungen';
 const AUSFUEHRUNGEN = 'wartung_ausfuehrungen';
@@ -261,4 +262,37 @@ export async function wartungErledigtVorschlaege(): Promise<WartungErledigtVorsc
     am: String(z.am ?? ''),
     grund: z.grund === 'schein' ? 'schein' : 'abgeschlossen',
   }));
+}
+
+/** Die fälligen Wartungen der Startseite: je Abschnitt die Zahl und die ersten (`wartungen_faellig_stand`). */
+export interface WartungenStand {
+  /** Aktiv, fällig bis zum Stichtag, ohne offene Baustelle. */
+  ohne: { anzahl: number; ueberfaellig: number; zeilen: WithId<Wartung>[] };
+  /** Dasselbe mit offener Baustelle — ohne die mit Vorschlag „erledigt?“. */
+  eingeplant: { anzahl: number; ueberfaellig: number; zeilen: WithId<Wartung>[] };
+}
+
+/**
+ * ZAHL UND DIE ERSTEN STATT ALLER FÄLLIGEN (Durchsicht 15.11.2026, Budget
+ * B3). Die Startseite holte jede fällige Wartung bis zum Stichtag — bis zu
+ * 200, darüber wurden Zahl und Abschnitte still zu niedrig. Die Datenbank
+ * zählt und gibt je Abschnitt die ersten `anzahl` nach dem Fälligkeitstag.
+ */
+export async function wartungenFaelligStand(
+  heute: string,
+  bis: string,
+  anzahl: number,
+  ohne: readonly string[] = [],
+): Promise<WartungenStand> {
+  const { data, error } = await derClient().rpc('wartungen_faellig_stand', {
+    p_heute: heute, p_bis: bis, p_anzahl: anzahl, p_ohne: [...ohne],
+  });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, { anzahl?: number; ueberfaellig?: number; zeilen?: Record<string, unknown>[] } | undefined>;
+  const teil = (t: (typeof d)[string]) => ({
+    anzahl: Number(t?.anzahl ?? 0),
+    ueberfaellig: Number(t?.ueberfaellig ?? 0),
+    zeilen: (t?.zeilen ?? []).map((z) => zeileAlsObjekt<WithId<Wartung>>(WARTUNGEN, z)),
+  });
+  return { ohne: teil(d.ohne), eingeplant: teil(d.eingeplant) };
 }

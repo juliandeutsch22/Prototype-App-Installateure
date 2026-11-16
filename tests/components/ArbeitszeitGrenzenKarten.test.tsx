@@ -178,4 +178,23 @@ describe('Geburtsdatum in der Benutzerakte', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(setGeburtsdatum).toHaveBeenCalledWith('perl', 'u1', '2000-02-03'));
   });
+
+  /*
+    F15 (Nacharbeit): nach dem Entfernen steht „Rückgängig“ — derselbe Weg
+    wie das Eintragen, mit dem Tag, der eben dastand. Gegenprobe: ohne die
+    Änderung hat die Meldung keinen Knopf.
+  */
+  it('entfernt — „Rückgängig“ trägt dasselbe Datum wieder ein', async () => {
+    const nutzer = userEvent.setup();
+    gespeichertesDatum = '2010-01-01';
+    render(<ToastProvider><GeburtsdatumKarte companyId="perl" uid="u1" /></ToastProvider>);
+    const feld = await screen.findByLabelText('Geburtsdatum');
+    await nutzer.clear(feld);
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(setGeburtsdatum).toHaveBeenCalledWith('perl', 'u1', null));
+    await nutzer.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(setGeburtsdatum).toHaveBeenLastCalledWith('perl', 'u1', '2010-01-01'));
+    expect(await screen.findByText('Geburtsdatum wieder eingetragen')).toBeInTheDocument();
+    expect(screen.getByLabelText('Geburtsdatum')).toHaveValue('2010-01-01');
+  });
 });

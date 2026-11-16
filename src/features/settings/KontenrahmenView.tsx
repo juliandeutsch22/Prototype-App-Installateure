@@ -11,6 +11,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
@@ -143,25 +144,39 @@ export default function KontenrahmenView() {
   const [mahnkosten, setMahnkosten] = useState<Zeile>(LEER);
   const [saetze, setSaetze] = useState<Satzzeile[]>([]);
 
+  /** Die Felder aus den gespeicherten Konten — beim Laden, nach dem Speichern und für „Verwerfen“ (U1). */
+  const ausKonten = (rows: WithId<Buchungskonto>[]) => {
+    const eines = (z: Buchungskonto['zweck']) => {
+      const r = rows.find((x) => x.zweck === z);
+      return r ? { id: r.id, konto: r.konto, steuercode: r.steuercode ?? '' } : LEER;
+    };
+    return {
+      debitoren: eines('debitoren'), reverse: eines('reverse_charge'), anzahlungRc: eines('anzahlung_rc'),
+      anzahlungen: nachSatz(rows, 'anzahlung'), bank: eines('bank'), skonto: eines('skonto'),
+      mahnkosten: eines('mahnkosten'), saetze: nachSatz(rows, 'erloes'),
+    };
+  };
+  const uebernehmen = (rows: WithId<Buchungskonto>[]) => {
+    const f = ausKonten(rows);
+    setDebitoren(f.debitoren);
+    setReverse(f.reverse);
+    setAnzahlungRc(f.anzahlungRc);
+    setAnzahlungen(f.anzahlungen);
+    setBank(f.bank);
+    setSkonto(f.skonto);
+    setMahnkosten(f.mahnkosten);
+    setSaetze(f.saetze);
+  };
+
   useEffect(() => {
     if (!betrieb) return;
     buchungskonten(betrieb)
       .then((rows) => {
         setGeladen(rows);
-        const eines = (z: Buchungskonto['zweck']) => {
-          const r = rows.find((x) => x.zweck === z);
-          return r ? { id: r.id, konto: r.konto, steuercode: r.steuercode ?? '' } : LEER;
-        };
-        setDebitoren(eines('debitoren'));
-        setReverse(eines('reverse_charge'));
-        setAnzahlungRc(eines('anzahlung_rc'));
-        setAnzahlungen(nachSatz(rows, 'anzahlung'));
-        setBank(eines('bank'));
-        setSkonto(eines('skonto'));
-        setMahnkosten(eines('mahnkosten'));
-        setSaetze(nachSatz(rows, 'erloes'));
+        uebernehmen(rows);
       })
       .catch((e: Error) => setFehler(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `uebernehmen` setzt nur Zustand
   }, [betrieb]);
 
   /** Was beim Speichern abgewiesen würde — lieber vorher sagen. */
@@ -223,7 +238,11 @@ export default function KontenrahmenView() {
         else await kontoAnlegen(betrieb, g.daten);
       }
 
-      setGeladen(await buchungskonten(betrieb));
+      const neu = await buchungskonten(betrieb);
+      setGeladen(neu);
+      // Neu angelegte Konten tragen jetzt ihre Kennung — ein zweites Speichern legt sie nicht noch einmal an.
+      uebernehmen(neu);
+      setVorschlagDrin(false);
       toast.success('Kontenrahmen gespeichert');
     } catch (err) {
       setFehler((err as Error).message);
@@ -284,12 +303,11 @@ export default function KontenrahmenView() {
             gespeichert wurde der Vorschlag bisher ohne jeden Hinweis darauf.
           */}
           {vorschlagDrin && (
-            <Hinweiszeile stufe="warn">
-              <p>
-                <b>Vorschlag – mit der Kanzlei abstimmen.</b> Die Nummern stammen aus dem
-                österreichischen Einheitskontenrahmen; ob sie zum Kontenplan deiner Kanzlei passen,
-                weiß nur sie. Vor dem ersten Buchungsstapel bitte abgleichen.
-              </p>
+            <Hinweiszeile stufe="warn" einzelheiten={<p>
+              Die Nummern stammen aus dem österreichischen Einheitskontenrahmen; ob sie zum Kontenplan
+              deiner Kanzlei passen, weiß nur sie. Vor dem ersten Buchungsstapel bitte abgleichen.
+            </p>}>
+              <p><b>Vorschlag – mit der Kanzlei abstimmen.</b></p>
             </Hinweiszeile>
           )}
           <div className="flex flex-wrap items-end gap-x-2">
@@ -562,11 +580,14 @@ export default function KontenrahmenView() {
       {einwand && <ErrorState message={einwand} />}
       {fehler && <ErrorState message={fehler} />}
 
-      <div className="fuss-aktionen">
-        <Button type="submit" loading={speichert} disabled={!!einwand}>
-          Kontenrahmen speichern
-        </Button>
-      </div>
+      {/* Die Speicherleiste erscheint erst bei einer Änderung (U1). */}
+      <Speicherleiste
+        geaendert={JSON.stringify({ debitoren, reverse, anzahlungRc, anzahlungen, bank, skonto, mahnkosten, saetze }) !== JSON.stringify(ausKonten(geladen))}
+        speichert={speichert}
+        gesperrt={!!einwand}
+        onVerwerfen={() => { setFehler(null); setVorschlagDrin(false); uebernehmen(geladen); }}
+        speichernText="Kontenrahmen speichern"
+      />
     </form>
   );
 }

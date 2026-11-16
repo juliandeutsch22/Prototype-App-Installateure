@@ -17,6 +17,7 @@
 @import './styles/lot-blatt.css';
 @import './styles/lot-nachrichten.css';
 @import './styles/lot-timer.css';
+@import './styles/lot-bewegung.css';
 
 @tailwind base;
 @tailwind components;
@@ -49,6 +50,8 @@
  * prüfsummengleich, also bleiben sie beim Stand vor Lot stehen.
  */
 :root {
+  /* Das Dreieck der Warnung als Maske (U5): die Farbe kommt aus dem Text, in beiden Sätzen. */
+  --zeichen-warnung: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4 2.5 20h19L12 4ZM12 10v4.5M12 17.5h.01'/%3E%3C/svg%3E");
   color-scheme: light;
 
   --brand: #a85439;
@@ -1198,6 +1201,36 @@ textarea {
   .hinweiszeile b, .hinweiszeile strong { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .hinweiszeile-warn svg { color: var(--warning); }
   .hinweiszeile-fehl svg { color: var(--danger); }
+  /*
+    WARN- UND FEHLERTEXT NIE OHNE ZEICHEN (U5, Durchsicht 15.11.2026; Regel
+    der Linie: „Text und Symbol tragen die Bedeutung“). „Kein Ansprechpartner
+    hinterlegt.“ oder „Zwischenstand — …“ standen nur in Warnfarbe da und
+    lasen sich wie ein Verweis — Terrakotta, Warnung und Gefahr liegen im
+    Ton nah beieinander. Jeder Text in Warn- oder Fehlerfarbe trägt deshalb
+    hier, an EINER Stelle, das Dreieck davor; wer ein eigenes Zeichen mitbringt
+    (`svg` im Element), behält seins. Ausgenommen: Knöpfe und Verweise (sie
+    tragen eine Handlung, kein Urteil), Tabellenzeilen (ein Abzug mit Minus
+    ist ein Betrag) und das Sternchen der Pflichtfelder (`aria-hidden`).
+    Der Wächter steht in `tests/unit/warnzeichen.test.ts`.
+  */
+  :is(p, span, div, strong, small, dd, li, label):is(.text-warning, .text-danger):not(:has(svg)):not([aria-hidden='true']):not([role='menuitem'])::before,
+  :is(.korb-fehler, .zaehl-zeile-fehler, .tag-fehlt, .grenz-verstoss, .lage-wert-warn, .lage-wert-rot, .v-hinweis):not(:has(svg))::before {
+    content: '';
+    display: inline-block;
+    flex: none;
+    width: 0.9375em;
+    height: 0.9375em;
+    margin-right: 0.375em;
+    vertical-align: -0.125em;
+    background: currentColor;
+    -webkit-mask: var(--zeichen-warnung) center / contain no-repeat;
+    mask: var(--zeichen-warnung) center / contain no-repeat;
+  }
+  /* U10, E5: der Wert eines Datums- oder Zeitfelds deutsch darunter — gemessen, also in Plex Mono, leise. */
+  .feld-deutsch { margin: 0; font-family: var(--schrift-mono); font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  /* U9: „Anzeigen“ unter dem einen Satz, 44 px Tastfläche; die Einzelheiten darunter im selben Ton. */
+  .hinweiszeile-anzeigen { display: inline-flex; align-items: center; min-height: 2.75rem; }
+  .hinweiszeile-einzelheiten { margin-bottom: 0.25rem; }
   .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }

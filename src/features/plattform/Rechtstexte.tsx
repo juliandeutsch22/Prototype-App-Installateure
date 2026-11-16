@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { grundAus } from '@/lib/fehlerGrund';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
@@ -391,9 +392,22 @@ function Editor({ art, verlauf, geaendert, zurueck }: {
         message={`Der Entwurf vom ${datum(e?.geaendertAm ?? null)} wird gelöscht. ${g ? `Es gilt weiter Fassung ${g.nummer}.` : ''}`}
         onCancel={() => setVerwerfen(false)}
         onConfirm={async () => {
+          const inhalt = e?.inhalt;
           await rechtstextEntwurfVerwerfen(art);
           setVerwerfen(false);
-          toast.success('Entwurf verworfen');
+          /*
+            RÜCKGÄNGIG (F15, Nacharbeit): den Entwurf mit demselben Inhalt wieder
+            speichern — derselbe Weg wie „Entwurf speichern“. Ein Entwurf hat
+            noch keine Prüfung und keine Hinweise; die entstehen erst beim
+            Veröffentlichen. Geltende Fassungen berührt beides nicht.
+          */
+          toast.success('Entwurf verworfen', inhalt ? {
+            label: 'Rückgängig',
+            onClick: () => void rechtstextEntwurfSpeichern(art, inhalt).then(
+              () => { toast.success('Entwurf wieder da'); void geaendert(); },
+              (f) => toast.error(grundAus(f, 'Rückgängig ging nicht.')),
+            ),
+          } : undefined);
           await geaendert();
         }}
       />

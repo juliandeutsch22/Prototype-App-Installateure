@@ -252,10 +252,10 @@ describe('Die Stammdaten in der Akte', () => {
     zeige();
     await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
-    expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Nicht gespeicherte Änderungen')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), '!');
-    expect(await screen.findByText(/ungespeicherte Änderungen/)).toBeInTheDocument();
+    expect(await screen.findByText('Nicht gespeicherte Änderungen')).toBeInTheDocument();
   });
 
   it('ändert das Profil, statt einen zweiten Zugang anzulegen', async () => {

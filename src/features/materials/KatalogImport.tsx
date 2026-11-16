@@ -249,8 +249,24 @@ export default function KatalogImport({
     return true;
   }
 
+  /*
+    VERWERFEN MITTEN IN DER ÜBERNAHME FRAGT NACH (F15, Nacharbeit). Liegt
+    schon ein Lauf auf dem Server, löscht „Verwerfen“ dessen Zwischenlager
+    endgültig — ein Rückgängig gibt es dafür nicht (die Datei liegt nur auf
+    diesem Gerät; neu einlesen ist der Weg zurück). Ohne Lauf ist nichts
+    gesendet: dann geht es wie bisher ohne Frage zurück zur Dateiwahl.
+  */
+  const [wizardFrage, setWizardFrage] = useState(false);
   async function verwerfen() {
+    if (laufInArbeitRef.current) {
+      setWizardFrage(true);
+      return;
+    }
+    zurueck();
+  }
+  async function verwerfenBestaetigt() {
     const lauf = laufInArbeitRef.current;
+    setWizardFrage(false);
     if (lauf) {
       setBusy(true);
       const weg = await laufWeg(lauf);
@@ -271,6 +287,15 @@ export default function KatalogImport({
   }
 
   const frage = (
+    <>
+    <ConfirmDialog
+      open={wizardFrage}
+      title="Lauf verwerfen?"
+      confirmLabel="Verwerfen"
+      message="Was schon übernommen ist, bleibt im Katalog; die übrigen Zeilen dieses Laufs werden gelöscht. Die Datei lässt sich danach neu einlesen."
+      onCancel={() => setWizardFrage(false)}
+      onConfirm={verwerfenBestaetigt}
+    />
     <ConfirmDialog
       open={!!verwerfenFrage}
       title="Lauf verwerfen?"
@@ -284,6 +309,7 @@ export default function KatalogImport({
         setVerwerfenFrage(null);
       }}
     />
+    </>
   );
 
   if (schritt === 'fertig' && bericht) {

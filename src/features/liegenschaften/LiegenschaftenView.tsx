@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listLiegenschaften, type LiegenschaftZeiger } from '@/lib/db/liegenschaften';
@@ -45,6 +46,8 @@ export default function LiegenschaftenView() {
   const [mehrLaeuft, setMehrLaeuft] = useState(false);
   const [mehrFehler, setMehrFehler] = useState(false);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [neu, setNeu] = useState(false);
 
   const companyId = user?.companyId;

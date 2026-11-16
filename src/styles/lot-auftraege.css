@@ -57,6 +57,22 @@
   */
   .baustelle-zeile { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1.5rem; }
 
+  /*
+    ZUSTAND UND BUDGET IN FESTER ANORDNUNG (U11, Durchsicht 15.11.2026). In
+    der Baustellenliste standen „ohne Projektleitung“, „nahe am Budget“ und
+    das Budget je nach Länge mal nebeneinander, mal untereinander — keine
+    Zeile sah aus wie die nächste. Jetzt: die Zustände untereinander links,
+    das Budget rechts daneben, in jeder Zeile gleich. Nur hier und nicht an
+    `.zeile-gestapelt` allgemein: Lager und Rechnungen tragen dort eine
+    Maßlinie, die neben einem Zustand keinen Platz hat.
+  */
+  .baustellen-gruppe .zeile-gestapelt > .zeile-stand .zeile-zustand { flex-direction: column; align-items: flex-start; }
+  @media (max-width: 1199px) {
+    .baustellen-gruppe .zeile-gestapelt > .zeile-stand { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 0.75rem 1.5rem; }
+    /* Das Budget immer in der rechten Spalte — auch ohne Zustand daneben, damit es nicht von Zeile zu Zeile springt. */
+    .baustellen-gruppe .zeile-gestapelt > .zeile-stand > .zeile-wert { grid-column: 2; text-align: right; }
+  }
+
   /* ── Akten: Daten als Kurzzeilen, die man aufklappt ───────────────────── */
   /* Hinweise unter einer Kurzzeile — immer sichtbar, auch wenn sie zu ist. */
   .akte-hinweis { padding: 0 1rem 0.875rem; }

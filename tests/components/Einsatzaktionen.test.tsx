@@ -42,7 +42,6 @@ function zeichne(props: Partial<Parameters<typeof HeuteEigene>[0]> = {}) {
         materialAn={false}
         scheinVerweis
         planVerweis
-        zeitImKopf
         {...props}
       />
     </MemoryRouter>,
@@ -85,10 +84,12 @@ describe('Einsatzaktionen auf der Startseite (E72, H1)', () => {
     expect(knopf).toHaveAttribute('href', '/time');
   });
 
-  it('auch ohne Zeit im Seitenkopf ist nichts gefüllt — „Andere Zeit“ bleibt erhalten', () => {
-    zeichne({ zeitImKopf: false });
+  it('U3: je Einsatz genau ein Zeitknopf — kein „Andere Zeit“ neben „Wie zuletzt buchen“', () => {
+    zeichne();
     istZweitknopf(screen.getByRole('link', { name: /Wie zuletzt buchen/ }));
-    istZweitknopf(screen.getByRole('link', { name: 'Andere Zeit' }));
+    expect(screen.queryByRole('link', { name: 'Andere Zeit' })).toBeNull();
+    const danach = screen.getByRole('region', { name: 'Danach' });
+    expect(within(danach).getAllByRole('link', { name: /Zeit erfassen|Wie zuletzt/ })).toHaveLength(1);
   });
 
   it('ab dem zweiten Einsatz sind „Zeit erfassen“ und „Schein schreiben“ Zweitknöpfe statt Verweise', () => {
@@ -118,10 +119,17 @@ describe('Einsatzaktionen auf der Startseite (E72, H1)', () => {
     expect(within(danach).getByText('Gemeinde Neudorf').className).toContain('start-einsatz-name');
   });
 
-  it('gleich geblieben: beim Monteur ohne letzte Buchung kein Zeitknopf am ersten Einsatz (der steht im Kopf)', () => {
+  it('U3: ohne letzte Buchung trägt der erste Einsatz „Zeit erfassen“ — der Weg steht am Einsatz, nicht schwebend darüber', () => {
     zeichne({ letzteBuchung: null, einsaetze: [einsatz()] });
-    expect(screen.queryByRole('link', { name: /Zeit erfassen|Wie zuletzt/ })).toBeNull();
+    expect(screen.getAllByRole('link', { name: /Zeit erfassen|Wie zuletzt/ })).toHaveLength(1);
     expect(breit.link('Schein schreiben')).toBeInTheDocument();
+  });
+
+  it('U3: unter „Danach“ dieselbe Leiste wie am ersten Einsatz — Anfordern · Nachricht · Schein', () => {
+    const { container } = zeichne({ wege: { material: true, nachricht: false } });
+    expect(container.querySelectorAll('.einsatz-wegeleiste')).toHaveLength(2);
+    const danach = screen.getByRole('region', { name: 'Danach' });
+    expect(within(danach).getAllByRole('link', { name: 'Schein schreiben' }).some((a) => a.closest('.einsatz-wegeleiste'))).toBe(true);
   });
 });
 
@@ -205,10 +213,12 @@ describe('Wege am Einsatz', () => {
 /* Die Leiste am Handy (D7, E90): dieselben Wege, je ein Drittel, nur unter dem ersten Einsatz. */
 describe('Wegeleiste am Handy (D7, E90)', () => {
   const MIT = { material: true, nachricht: true };
-  it('Anfordern, Nachricht und Schein in einer Leiste — nur am Handy, nur einmal', () => {
+  it('Anfordern, Nachricht und Schein in einer Leiste — nur am Handy, einmal je Einsatz (U3)', () => {
     const { container } = zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1' }), einsatz({ id: 'a2', projectNumber: 'B-2026-0148', projectId: 'p2' })] });
     const leisten = container.querySelectorAll('.einsatz-wegeleiste');
-    expect(leisten).toHaveLength(1);
+    // U3: je Einsatz eine Leiste in derselben Form — der erste und der unter „Danach“.
+    expect(leisten).toHaveLength(2);
+    expect(within(leisten[1] as HTMLElement).getByRole('link', { name: 'Material anfordern' })).toHaveAttribute('href', '/material?projekt=B-2026-0148');
     const leiste = leisten[0] as HTMLElement;
     expect(leiste).toHaveClass('md:hidden');
     expect(within(leiste).getByRole('link', { name: 'Material anfordern' })).toHaveAttribute('href', '/material?projekt=B-2026-0147');

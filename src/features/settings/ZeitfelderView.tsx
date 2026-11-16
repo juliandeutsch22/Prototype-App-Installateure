@@ -1,4 +1,5 @@
 import { istAn } from '@/lib/module';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import StandardZeitfelder from './StandardZeitfelder';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
@@ -133,6 +134,8 @@ export default function ZeitfelderView() {
   const [fassung, setFassung] = useState<ZeitfeldFassung | null>(null);
   const [ladeFehler, setLadeFehler] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [entwurf, setEntwurf] = useState<Entwurf | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);

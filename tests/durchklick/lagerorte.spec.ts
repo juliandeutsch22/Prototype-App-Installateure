@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './grund';
 import { admin, ARTIKEL, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * LAGERORTE UND FAHRZEUGLAGER (M04a, E10) — im echten Browser gegen die
@@ -69,7 +69,8 @@ test('Fahrzeug anlegen, umlagern, aus dem Fahrzeug abhaken, Bestand je Ort, Reto
   await chefSeite.goto('/lager');
   await chefSeite.getByRole('button', { name: ARTIKEL.name }).click();
   const blatt = chefSeite.getByRole('dialog', { name: 'Artikel' });
-  await blatt.getByRole('button', { name: 'Umlagern' }).click();
+  // U4: „Wareneingang“ und „Inventur“ als Knöpfe, „Umlagern“ im ⋯ des Artikelfensters.
+  await (await imMenue(chefSeite, blatt, 'Umlagern')).click();
   const umlagern = chefSeite.getByRole('dialog', { name: /^Umlagern: / });
   // Gewählt über die Kennung des Ortes: hinter dem Namen steht der Bestand dort („Fahrzeug W-DK1 — 0 m“).
   await umlagern.getByLabel('Nach').selectOption(ort);

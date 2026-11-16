@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './grund';
 import { admin, BETRIEB, CHEFIN, PASSWORT } from './aufbau';
 import { anmelden, keineFehlermeldung, menue } from './helfer';
 
@@ -74,10 +74,10 @@ test('Modul ein, Liegenschaft mit Tops und Hausverwaltung, Baustelle für Top 2 
   // 1. Der Administrator schaltet die Liegenschaften ein — ab Werk sind sie aus.
   await anmelden(page, ADMIN.email);
   await page.goto('/settings/module');
-  const schalter = page.getByRole('checkbox', { name: 'Liegenschaften und Tops einschalten' });
+  // Ein Schalter (U6, E3): er speichert beim Tippen, „Module speichern“ gibt es nicht mehr.
+  const schalter = page.getByRole('switch', { name: 'Liegenschaften und Tops' });
   await expect(schalter).not.toBeChecked({ timeout: 20_000 });
-  await schalter.check();
-  await page.getByRole('button', { name: 'Module speichern' }).click();
+  await schalter.click();
   await expect.poll(async () => {
     const { data } = await admin.from('companies').select('modules').eq('id', BETRIEB).single();
     return (data?.modules as Record<string, boolean> | null)?.['kunden.liegenschaften'];

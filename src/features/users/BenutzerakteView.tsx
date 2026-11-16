@@ -10,12 +10,13 @@ import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
 import { canManageAdmins, fuehrtZeitkonto, isTopLevel } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import Speicherleiste from '@/components/Speicherleiste';
 import AktenBereiche, { AktenAngaben, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import NachrichtSchreiben from '@/features/nachrichten/NachrichtSchreiben';
+import { useGespraechOeffnen } from '@/features/nachrichten/useGespraechOeffnen';
 import { useModul } from '@/lib/useModule';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -161,6 +162,8 @@ export default function BenutzerakteView() {
   const geaendert = entwurf !== null && daten !== null && !gleich(entwurf, alsEntwurf(daten));
   // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
   const warnung = useUngespeichertWarnung(geaendert);
+  // Der Weg ins Gespräch auch als Eintrag im ⋯ (U1) — der Hook steht vor jedem frühen Ausstieg.
+  const gespraech = useGespraechOeffnen(uid ?? '');
 
   /*
     EIN ADMINISTRATOR LÄSST SICH NUR VON EINEM ADMINISTRATOR ANFASSEN.
@@ -447,10 +450,16 @@ export default function BenutzerakteView() {
       <AktenKopf zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
         meta={<span className="akten-identitaet"><Marke>{p.role}</Marke>
           {p.active === false && <Zustand stand="storniert">deaktiviert</Zustand>}</span>}
-        action={(darfAendern || schreiben) && <div className="akten-aktionen">
-          {schreiben && <NachrichtSchreiben an={p.uid} variant={darfAendern ? 'secondary' : 'primary'} />}
-          {darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
-        </div>} />
+        /*
+          EINE HAUPTAKTION (U1): „Bearbeiten“, wer ändern darf; sonst das
+          Gespräch. „Nachricht schreiben“ neben „Bearbeiten“ ist der Nebenweg —
+          ab dem Tablet Zweitknopf, am Handy im ⋯. Vorher standen beide am
+          Handy als Balken über die ganze Breite.
+        */
+        action={darfAendern ? <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>
+          : schreiben ? <NachrichtSchreiben an={p.uid} variant="primary" />
+          : null}
+        zweit={darfAendern && schreiben ? { label: 'Nachricht schreiben', onSelect: gespraech.oeffnen } : null} />
       <AktenBereiche kennung="benutzer" kontext={<>
         <Card title="Anmeldekonto"><StammdatenLesen p={p} teil="konto" /></Card>
         <Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>
@@ -939,21 +948,7 @@ function StammdatenFormular({
         rechtsbündig unter dem Formular. So ist „Speichern" nach einer
         Änderung weit oben im Formular zu erreichen, ohne ans Ende zu rollen.
       */}
-      {geaendert && (
-        <Aktionsleiste
-          summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
-          links={
-            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-              Verwerfen
-            </Button>
-          }
-          rechts={
-            <Button onClick={onSpeichern} loading={speichert}>
-              Speichern
-            </Button>
-          }
-        />
-      )}
+      <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={onVerwerfen} onSpeichern={onSpeichern} />
     </div>
   );
 }

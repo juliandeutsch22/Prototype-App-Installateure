@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RowMenu from '@/components/RowMenu';
+import BottomSheet from '@/components/BottomSheet';
+import Fensteraktionen from '@/components/Fensteraktionen';
 
 /**
  * Das Zeilenmenue traegt die seltenen und die gefaehrlichen Aktionen. Zwei
@@ -145,4 +147,31 @@ describe('Zeilenmenue', () => {
     await userEvent.click(screen.getByRole('button', { name: /Rechnung 2026-1001/ }));
     expect(screen.getByRole('menu', { name: 'Aktionen für Rechnung 2026-1001' })).toBeInTheDocument();
   });
+
+  /*
+    IM FENSTER (U4, Durchsicht 15.11.2026): seit Fenster ihre selteneren
+    Handlungen im ⋯ tragen, steht das Menü über einem Fenster, das selbst
+    auf Escape hört. Escape schließt nur das Oberste — das Menü —, und der
+    Fokus steht danach auf „⋯“ im noch offenen Fenster. Gegenprobe: vorher
+    schloss derselbe Tastendruck Menü UND Fenster (rot).
+  */
+  it('im Fenster schließt Escape nur das Menü, ein zweites dann das Fenster', async () => {
+    const zu = vi.fn();
+    render(
+      <BottomSheet open onClose={zu} label="Rechnung" auchBreit titel="Rechnung">
+        <Fensteraktionen about="Rechnung RE-1" haupt={<button type="button">Zahlung erfassen</button>} weitere={aktionen()} />
+      </BottomSheet>,
+    );
+    const knopf = screen.getByRole('button', { name: /Weitere Aktionen/ });
+    await userEvent.click(knopf);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(zu).not.toHaveBeenCalled();
+    expect(knopf).toHaveFocus();
+    // Gleich geblieben: ohne offenes Menü schließt Escape das Fenster wie bisher.
+    await userEvent.keyboard('{Escape}');
+    expect(zu).toHaveBeenCalledOnce();
+  });
+
 });

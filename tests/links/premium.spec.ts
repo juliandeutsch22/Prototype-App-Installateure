@@ -28,8 +28,17 @@ for (const width of [390, 834, 1440]) for (const reducedMotion of ['no-preferenc
     // Das mobile Mehr-Blatt bleibt absichtlich unter der abgebrochenen Rückfrage.
     if (width < 760) { await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); }
     await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
-    await expect(page.getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
+    // Die Speicherleiste steht nur, solange etwas geändert ist (U1).
+    await expect(page.locator('.aktionsleiste')).toHaveCount(0);
     await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
+    /*
+      KONTRAST IM RUHENDEN BILD (16.11.2026). Zieht sich die Speicherleiste
+      zurück (B4), rückt die Seite, und am Handy blendet der kleine Titel im
+      Kopf in 180 ms ein (seit Paket 6). Mitten im Einblenden hat jede Schrift
+      zu wenig Kontrast — axe maß in der CI genau dort (#dad7d2 auf #faf7f1).
+      Geprüft wird, was stehen bleibt.
+    */
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     expect(axe.violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
@@ -45,6 +54,8 @@ test('Premium: mobiles Blatt bleibt bei schnellen Folgen und Ziehen bedienbar', 
     await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); await expect(mehr).toBeFocused();
   }
   await mehr.click();
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = await page.locator('.blatt-griff').boundingBox(); expect(griff).not.toBeNull();
   await page.mouse.move(griff!.x + griff!.width / 2, griff!.y + 10); await page.mouse.down();
   await page.mouse.move(griff!.x + griff!.width / 2, griff!.y + 140, { steps: 8 }); await page.mouse.up();

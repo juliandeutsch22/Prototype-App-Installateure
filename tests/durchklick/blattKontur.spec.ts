@@ -118,6 +118,8 @@ test('Die freie Speicherleiste der Firmendaten bleibt über den Kanten der Blät
     test.skip(w >= 1200, 'Am Schreibtisch steht die Leiste im Fluss, nicht klebend.');
     if (test.info().project.name === 'chromium') await page.setViewportSize({ width: w, height: 844 });
     await page.goto('/settings/firma');
+    // Die Speicherleiste erscheint erst mit einer Änderung (U1); gespeichert wird nichts.
+    await page.getByLabel('Firmenname', { exact: true }).fill('Kontur Prüfung');
     const leiste = '.inhalt .aktionsleiste';
     await expect(page.locator(leiste)).toBeVisible({ timeout: 20_000 });
     await page.waitForLoadState('networkidle');

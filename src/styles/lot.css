@@ -190,6 +190,26 @@
   .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
   .arbeitszeile-inhalt:hover { color: var(--accent-deep); }
   @media (max-width: 759px) { .arbeitszeile-inhalt { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
+  /*
+    AM HANDY DER TEXT ÜBER DIE VOLLE BREITE, DIE AKTIONEN DARUNTER (U8,
+    15.11.2026). Kästchen links und „Aus Lager“ rechts ließen dem Text in
+    den Anforderungen eine Spalte von rund 165 px; Material und Person
+    brachen Wort für Wort. Jetzt steht der Inhalt in der ersten Zeile über
+    die ganze Breite, darunter links das Kästchen, rechts der Schritt — nur,
+    wo es eines von beiden gibt. Beide behalten ihre 44 px Tastfläche.
+  */
+  @media (max-width: 759px) {
+    .arbeitszeile:has(> .arbeitszeile-wahl, > .arbeitszeile-schritt) {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "inhalt inhalt inhalt" "wahl . schritt";
+      column-gap: 0.75rem; row-gap: 0.25rem;
+    }
+    /* Alle Zeilen fluchten am Handy an der Textkante — auch die ohne Kästchen. */
+    .arbeitszeile { padding-left: 1rem; }
+    .arbeitszeile > .arbeitszeile-ohne-wahl { display: none; }
+    .arbeitszeile:has(> .arbeitszeile-wahl, > .arbeitszeile-schritt) > .arbeitszeile-inhalt { grid-area: inhalt; }
+    .arbeitszeile:has(> .arbeitszeile-wahl, > .arbeitszeile-schritt) > .arbeitszeile-wahl { grid-area: wahl; margin-left: -0.6875rem; }
+    .arbeitszeile:has(> .arbeitszeile-wahl, > .arbeitszeile-schritt) > .arbeitszeile-schritt { grid-area: schritt; }
+  }
   /* Der nächste Schritt in einer Zeile ist ein Zweitknopf wie überall (E72, R2) — nicht eine eigene Petrol-Gestalt. */
   .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-weight: 400; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
   .arbeitszeile-schritt:hover { border-color: var(--brand-fixed); }
@@ -302,8 +322,47 @@
      rechts — nicht mehr gestapelt in voller Breite (R7). Passen beide nicht
      in eine Zeile, rückt die Hauptaktion rechtsbündig darunter. */
   .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  /* Fensteraktionen (U4): das ⋯ mit dem Seltenen und Unumkehrbaren ganz links, die Knöpfe rechts. */
+  .fensteraktionen-mehr { display: inline-flex; margin-right: auto; }
+  /* In einem Fuß, der schon Linie und Abstand trägt (Person im Monat, Tag im Monat), keine zweite Linie. */
+  :is(.pf-fuss, .vorschau-fuss) > .fensteraktionen { flex: 1; border-top: 0; padding-top: 0; }
+
+  /* ── Schalter (U6, E3) ─────────────────────────────────────────────────── */
+  /*
+    Für alles, was sofort wirkt. Dieselbe Schiene wie „Dunkle Darstellung“:
+    aus = helle Schiene mit gedämpfter Kontur und grauem Griff links, an =
+    Terrakotta mit hellem Griff rechts und Häkchen. Die Zeile ist 48 px hoch
+    und ganz antippbar (das Etikett gehört zum Knopf). Kein Schatten: der
+    Schalter schwebt nicht.
+  */
+  .schalter-zeile { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3rem; padding-block: 0.25rem; }
+  .schalter-text { display: flex; flex-direction: column; min-width: 0; flex: 1; cursor: pointer; }
+  .schalter-name { font-size: 0.9375rem; line-height: 1.375rem; color: var(--text); overflow-wrap: anywhere; }
+  .schalter-beschreibung { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  .schalter { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 3.5rem; min-height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius); background: none; cursor: pointer; }
+  .schalter:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
+  .schalter-schiene { position: relative; display: block; width: 3rem; height: 1.75rem; border: 1px solid var(--text-muted); border-radius: var(--radius-pill); background: var(--surface-3); transition: background-color var(--motion-state, 160ms) var(--ease-response, ease), border-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .schalter-griff { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--text-muted); color: var(--brand); transition: transform var(--motion-state, 160ms) var(--ease-response, ease); }
+  .schalter[aria-checked='true'] .schalter-schiene { border-color: var(--brand); background: var(--brand); }
+  .schalter[aria-checked='true'] .schalter-griff { transform: translateX(1.25rem); background: var(--brand-fg); }
+  .schalter:hover:not(:disabled) .schalter-schiene { border-color: var(--text); }
+  .schalter[aria-checked='true']:hover:not(:disabled) .schalter-schiene { border-color: var(--brand); }
+  /* Gesperrt bleibt lesbar (V10 9.3): nicht durchsichtig, sondern ruhig — der Zeiger sagt den Rest. */
+  .schalter:disabled { cursor: not-allowed; }
+  .schalter-zeile[data-gesperrt] .schalter-text { cursor: not-allowed; }
+  .schalter-zeile[data-gesperrt] .schalter-name { color: var(--text-muted); }
+  .schalter-allein { min-height: 0; padding: 0; flex: none; }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
+  /* E4-Vorschlag: beide Sätze nebeneinander, unabhängig von der gewählten Darstellung. */
+  .muster-gefahr { display: grid; gap: 1.5rem; }
+  .muster-gefahr-paar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin-bottom: 0.75rem; }
+  @media (min-width: 760px) { .muster-gefahr-paar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .muster-gefahr-probe { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: 0.875rem; }
+  .muster-gefahr-titel { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .muster-gefahr-reihe { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .muster-gefahr-zeile { display: flex; align-items: center; gap: 0.375rem; }
+  .muster-gefahr-knopf { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border-radius: var(--radius); }
   .muster-farbe { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; font-size: 0.875rem; }
   .muster-feld { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 }

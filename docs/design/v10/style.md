@@ -121,6 +121,38 @@ Woche/Monat/Tag sowie Personen/Baustellen verwenden kompakte Texttabs mit einer 
 
 Große Arbeitstagkarten beschriften Pause, Weiter und Stopp mit kurzen Textlabels. Die kompakte mobile Arbeitstagkarte und die globale Timer-Leiste dürfen bewährte Symbole ohne sichtbare Zusatzlabels verwenden. Alle Iconbuttons benötigen verständliche `aria-label`-Texte und ausreichend große Ziele. Lade-, Speicher-, Deaktivierungs-, Fehler- und Fokuszustände bleiben sichtbar und funktional; die vorhandene Breitenreservierung von Buttons darf nicht verloren gehen.
 
+## Hauptaktion, Neu und Fenster · Durchsicht 15.11.2026 (U1–U4)
+
+Die Hauptaktion stand am Handy an fünf verschiedenen Stellen. Seit der Durchsicht gibt es genau drei Muster, und jedes ist ein Baustein — keine Konvention, die jede Seite neu auslegt. Die Musterseite zeigt sie unter „Hauptaktion: drei Muster“; die Wächter in `tests/unit/bedienregeln.test.ts` halten sie im Quelltext.
+
+1. **Liste** — eine kompakte Aktion rechts unten über der Fußinsel (`PageHeader.action`, am Handy im Daumenbereich). Ab dem Tablet steht sie rechts im Seitenkopf.
+2. **Akte** — eine kompakte Aktion an derselben Stelle (`AktenKopf.action`), alles Weitere im ⋯ des Seitenkopfs (`AktenKopf.weitere`). Der eine häufige Nebenweg (`AktenKopf.zweit`, etwa „Bearbeiten“ neben „Einsatz planen“) steht ab dem Tablet als Zweitknopf links neben der Hauptaktion und am Handy als erster Eintrag im ⋯. Eine Gruppe von Knöpfen als Hauptaktion gibt es nicht mehr — sie wurde am Handy zu Balken über die ganze Breite.
+3. **Formular und Einstellung** — eine klebende Speicherleiste (`Speicherleiste`), überall gleich: sie erscheint erst, wenn etwas vom gespeicherten Stand abweicht, „Verwerfen“ links, „Speichern“ rechts, darüber ein Satz zum Stand; nach bestätigtem Schreiben „Gespeichert“ im selben Knopf. In einem Blatt klebt sie am unteren Rand des Blatts, frei am unteren Rand über der Fußinsel. Seltenes, das nur Felder füllt („Auf Standardwerte zurücksetzen“), steht im ⋯ des Seitenkopfs.
+
+**Neu anlegen (U2).** Am Handy öffnet „Neu …“ immer ein Blatt von unten; die Seite zeigt zuerst den Bestand. Ab dem Tablet darf das Formular als Blatt neben dem Bestand stehen. Baustein: `NeuFormular` (am Handy `BottomSheet`, ab dem Tablet `Card`), die Hauptaktion im Seitenkopf öffnet es. Ein Neu-Ablauf, der eine eigene Seite ist (Schein, Angebot, Rechnung als Arbeitsbereich mit Vorschau), bleibt eine Seite.
+
+**Keine Aktion doppelt (U3).** Was ein Blatt auf dem Bildschirm schon trägt, steht nicht noch einmal schwebend darüber. Je Einsatz eine Aktionszeile in einer Form.
+
+**Fenster (U4).** Ein Fenster hat eine gefüllte Hauptaktion rechts, höchstens eine zweite (gerahmt) links daneben, alles Weitere im ⋯ ganz links (`Fensteraktionen`). Unumkehrbares (Löschen, Stornieren) steht immer im ⋯, nie als Knopf neben dem nächsten Schritt. Eine Knopfreihe trägt höchstens zwei Knöpfe und höchstens eine Hauptaktion; die Rückfrage (`ConfirmDialog`) bleibt, wie sie ist — ihr Bestätigen ist der Schritt selbst.
+
+## Schalter und Kästchen · Durchsicht 15.11.2026 (U6, E3)
+
+Ein **Schalter** (`Schalter`) für alles, was sofort wirkt: Module, Meldungen, eine Pflicht für den ganzen Betrieb, ein Filter der Ansicht. Er ist ein echter Knopf mit `role="switch"` und `aria-checked`, schaltet mit Leertaste und Enter, und die ganze Zeile samt Etikett ist das Ziel. Den Zustand tragen Lage, Farbe und ein Häkchen im Griff — Farbe allein nie. Braucht ein Wechsel eine Rückfrage (ein Modul, an dem etwas hängt), springt der Schalter erst nach der Bestätigung um; scheitert das Speichern, steht er wieder, wo er war, und der Grund steht daneben. Während er schreibt, ist er gesperrt.
+
+Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Speichern“ gilt, und für das Abhaken einer Liste (Rüstliste). „ein“/„aus“ als Wort neben einem Kästchen gibt es nicht. Wächter: `tests/unit/schalterRegel.test.ts`.
+
+## Warnung, lange Hinweise und Datumsfelder · Durchsicht 15.11.2026 (U5, U9, U10)
+
+**Warn- und Fehlertext nie ohne Zeichen (U5).** Jeder Text in Warn- oder Fehlerfarbe trägt das Dreieck davor — als Regel an einer Stelle in `src/index.css` (`:is(.text-warning, .text-danger)` samt den eigenen Meldungsklassen), nicht an jeder Fundstelle. Wer ein eigenes Zeichen mitbringt (`svg` im Element), behält seins. Ausgenommen sind Knöpfe und Verweise, Abzüge in Summentabellen (ein Betrag mit Minus) und das Sternchen der Pflichtfelder. Wächter: `tests/unit/warnzeichen.test.ts`. Ein Vorschlag, die Gefahr vom Terrakotta abzusetzen (E4), steht nur zum Ansehen auf der Musterseite; eingebaut wird er erst nach der Freigabe.
+
+**Lange Warntexte: ein Satz plus „Anzeigen“ (U9).** Auf einer Seite steht von einer Warnung der eine Satz, der sagt, was los ist; was ihn erklärt oder aufzählt, steht in `Hinweiszeile.einzelheiten` und kommt auf „Anzeigen“. In einem Fenster und an einer Warnung mit Knopf bleibt der Text offen — dort ist er die Grundlage der Entscheidung, wie in einer Rückfrage. Wo die Zahlen der Warnung die Auskunft selbst sind, sagt `offenWeil`, warum. Wächter: `tests/unit/warntextKurz.test.ts` (über 160 Zeichen gilt als lang).
+
+**Datums- und Zeitfelder (U10, E5).** Das Rad des Geräts bleibt. Wo das Gerät das Feld nicht deutsch zeichnet („11/15/2026“, „07:00 AM“), steht darunter der Wert deutsch: TT.MM.JJJJ, HH:MM, in Plex Mono und leise (`InputField`, `zeitfeldDeutsch`). Gefragt wird nach dem Format der Gerätesprache, nicht nach ihrem Kürzel: ein britisches Gerät zeichnet die Uhrzeit wie wir, das Datum nicht — dort steht nur unter dem Datum eine Zeile. Jedes Datums- und Zeitfeld läuft über `InputField` (Wächter in `tests/unit/zeitfeldDeutsch.test.ts`).
+
+## Listen in fester Ordnung · Durchsicht 15.11.2026 (U11–U13)
+
+In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat. In der Zeiterfassung am Schreibtisch ist die Liste breiter als das Formular (U12). Die Mitarbeiterübersicht zeigt im Vergleich am Handy je Person eine kompakte Zeile mit Name, Stand und Gesamtsaldo; Saldo Monat, Gebucht und Soll stehen im Fenster der Person, wie am Schreibtisch. „Alle Tage vergleichen“ und die Woche behalten Streifen und Tagesfelder — die sind dort der Inhalt (U13).
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.

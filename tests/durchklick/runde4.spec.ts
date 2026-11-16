@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './grund';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR, PASSWORT } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 
@@ -72,17 +72,23 @@ test.describe('Mitarbeiterübersicht', () => {
     await page.locator('.ue-person').filter({ hasText: RITA.name }).click();
     const person = page.getByRole('dialog', { name: new RegExp(RITA.name) });
     const fehlende = person.getByRole('region', { name: 'Arbeitstage ohne Buchung' });
-    await expect(fehlende.locator('ul')).toBeVisible();
+    /*
+      Die Liste selbst, ohne ihren Geist: beim Zuklappen (B10) gleitet eine
+      stumme Kopie (`data-geist`, inert) noch kurz hinaus. Zugeklappt heißt:
+      die echte Liste ist weg — der Geist geht von selbst.
+    */
+    const liste = fehlende.locator('ul:not([data-geist])');
+    await expect(liste).toBeVisible();
     const urspruenglichesFenster = page.viewportSize()!;
     await page.setViewportSize({ width: 390, height: 844 });
     const fehlendeSchalter = fehlende.getByRole('button', { name: /Arbeitstage? ohne Buchung/ });
     await expect(fehlendeSchalter).toHaveAttribute('aria-expanded', 'false');
-    await expect(fehlende.locator('ul')).toBeHidden();
+    await expect(liste).toBeHidden();
     await fehlendeSchalter.focus();
     await page.keyboard.press('Enter');
-    await expect(fehlende.locator('ul')).toBeVisible();
+    await expect(liste).toBeVisible();
     await page.keyboard.press('Space');
-    await expect(fehlende.locator('ul')).toBeHidden();
+    await expect(liste).toBeHidden();
     await person.getByRole('button', { name: 'Kalender anzeigen', exact: true }).click();
     const kalender = person.getByRole('group', { name: `${RITA.name}, Monatskalender` });
     await expect(kalender.getByRole('button').first()).toBeVisible();
@@ -91,7 +97,7 @@ test.describe('Mitarbeiterübersicht', () => {
     expect(zelle!.width).toBeGreaterThanOrEqual(44);
     await kalender.locator('.pk-tag-fehlt').first().click();
     await expect(fehlendeSchalter).toHaveAttribute('aria-expanded', 'true');
-    await expect(fehlende.locator('ul')).toBeVisible();
+    await expect(liste).toBeVisible();
     await person.getByRole('button', { name: 'Schließen', exact: true }).click();
     await page.setViewportSize(urspruenglichesFenster);
     await page.getByRole('button', { name: 'Alle Tage vergleichen', exact: true }).click();

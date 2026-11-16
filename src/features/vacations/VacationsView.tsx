@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { istAn } from '@/lib/module';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -53,6 +54,8 @@ import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
 import Card from '@/components/Card';
+import NeuFormular from '@/components/NeuFormular';
+import { useAmHandy } from '@/lib/breiten';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand, type Stand } from '@/components/Badge';
@@ -418,6 +421,11 @@ export default function VacationsView() {
   }, [laden_]);
 
   const [genehmigtVersuch, setGenehmigtVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => {
+    setGenehmigtVersuch((v) => v + 1);
+    return laden_();
+  });
   useEffect(() => {
     if (!user || !darfEntscheiden) return;
     let weg = false;
@@ -723,6 +731,21 @@ export default function VacationsView() {
   }, [user, art, zaStundenweise, von, bis, betriebsurlaube, eigene]);
 
   /** Nach dem Absenden steht die Maske für den nächsten Antrag bereit. */
+  /*
+    „NEU …“ AM HANDY ALS BLATT VON UNTEN (U2, Durchsicht 15.11.2026). Vorher
+    stand „Antrag stellen“ offen vor „Meine Anträge“, und die Liste rutschte
+    eine Bildschirmhöhe nach unten. Jetzt zeigt die Seite am Handy zuerst den
+    Bestand; „Antrag stellen“ im Seitenkopf öffnet das Formular als Blatt,
+    nach dem Einreichen geht es zu. Ab dem Tablet steht es wie bisher daneben.
+  */
+  const amHandy = useAmHandy();
+  const [neuOffen, setNeuOffen] = useState(false);
+  const [betriebNeuOffen, setBetriebNeuOffen] = useState(false);
+  function nachEinreichen() {
+    formularLeeren();
+    setNeuOffen(false);
+  }
+
   function formularLeeren() {
     setNotiz('');
     setVon(todayStr());
@@ -770,7 +793,7 @@ export default function VacationsView() {
         notiz: notiz.trim(),
       });
       toast.success('Antrag eingereicht');
-      formularLeeren();
+      nachEinreichen();
       await laden_();
     } catch (err) {
       setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
@@ -824,7 +847,7 @@ export default function VacationsView() {
         notiz: notiz.trim(),
       });
       toast.success('Antrag auf Zeitausgleich eingereicht');
-      formularLeeren();
+      nachEinreichen();
       await laden_();
     } catch (err) {
       setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
@@ -850,7 +873,7 @@ export default function VacationsView() {
     try {
       const r = await krankmeldungSpeichern({ von, bis, notiz: notiz.trim(), melderName: user.name });
       toast.success(`Krankmeldung eingetragen — ${ergebnisText(r)}. Gute Besserung!`);
-      formularLeeren();
+      nachEinreichen();
       setEigeneKrank(await listEigeneKrankmeldungen(user.companyId, user.uid).catch(() => eigeneKrank));
     } catch (err) {
       setError(grundAus(err, 'Die Krankmeldung konnte nicht eingetragen werden.'));
@@ -1291,6 +1314,11 @@ export default function VacationsView() {
         title="Urlaub"
         subtitle="Urlaub, Zeitausgleich, Sonderurlaub und Krankmeldung"
         hilfe="„Beantragt“ zählt die Tage aus deinen Anträgen, über die noch nicht entschieden ist."
+        action={amHandy && ersterStand && (!buero || reiter === 'antraege') ? (
+          <Button onClick={() => setNeuOffen(true)}>Antrag stellen</Button>
+        ) : amHandy && buero && reiter === 'betrieb' ? (
+          <Button onClick={() => setBetriebNeuOffen(true)}>Betriebsurlaub anlegen</Button>
+        ) : undefined}
         stand={!ersterStand ? (
           <SkeletonMetrics count={1} />
         ) : profil && fuehrtZeitkonto(profil) ? (
@@ -1332,7 +1360,7 @@ export default function VacationsView() {
       )}
 
       {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} planung={planung} />}
-      {buero && reiter === 'betrieb' && <BetriebsurlaubReiter companyId={user.companyId} meinName={user.name} />}
+      {buero && reiter === 'betrieb' && <BetriebsurlaubReiter companyId={user.companyId} meinName={user.name} neuOffen={betriebNeuOffen} onNeuOffen={setBetriebNeuOffen} />}
 
       {(!buero || reiter === 'antraege') && (
       <>
@@ -1385,7 +1413,7 @@ export default function VacationsView() {
         gleich neben dem Formular. Am Handy und Tablet untereinander.
       */}
       <div className="zeit-raster">
-      <Card className="zeit-formularkarte" title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
+      <NeuFormular className="zeit-formularkarte" titel={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'} offen={neuOffen} onSchliessen={() => setNeuOffen(false)}>
         {/*
           DIE ART STEHT VOR DEM FORMULAR: Sonderurlaub, Pflegefreistellung und
           unbezahlter Urlaub haben ein eigenes (`FreistellungFormular`), mit
@@ -1446,9 +1474,10 @@ export default function VacationsView() {
             user={user}
             company={company}
             eigene={eigeneFrei}
-            onGestellt={() =>
-              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined)
-            }
+            onGestellt={() => {
+              setNeuOffen(false);
+              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined);
+            }}
           />
         ) : istFreistellung(art) ? (
           <FreistellungFormular
@@ -1459,9 +1488,10 @@ export default function VacationsView() {
             profil={profil}
             company={company}
             eigene={eigeneFrei}
-            onGestellt={() =>
-              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined)
-            }
+            onGestellt={() => {
+              setNeuOffen(false);
+              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined);
+            }}
           />
         ) : (
         <form onSubmit={beantragen} className="space-y-4">
@@ -1702,7 +1732,7 @@ export default function VacationsView() {
           </div>
         </form>
         )}
-      </Card>
+      </NeuFormular>
 
       <div className="zeit-spalte">
       {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
