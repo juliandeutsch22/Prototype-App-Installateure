@@ -71,6 +71,18 @@ test('Jedes Blatt liegt auf dem Raster — auf allen Seiten der Geschäftsführu
     '/customers', `/customers/${kunde!.id}`, '/wartungen', '/invoices', '/costing', '/time', '/vacations',
     '/accounting', '/user-mgmt', '/material', '/lager', '/anforderungen', '/settings', '/settings/firma',
   ];
+  /*
+    OHNE VORLADEN, wie die Vorschau der Linkprüfung (`vorladenAbschalten`).
+    Diese Prüfung lädt die App sechzigmal ganz neu, und jedes Mal holte das
+    Vorladen im Leerlauf alle Ansichten der Navigation — im
+    Entwicklungsserver Hunderte einzelne Module (gemessen 761 statt 318
+    Anfragen je Seite). Im langen Lauf verweigerte der Browser dann Anfragen
+    (net::ERR_INSUFFICIENT_RESOURCES, zuerst an vorgeladenen Modulen des
+    Urlaubs auf /user-mgmt, dann die nächste Seite). Mit der Lage der Blätter
+    hat das Vorladen nichts zu tun; abgeschaltet wird es über den
+    Datensparmodus des Geräts, den die App ohnehin befolgt.
+  */
+  await page.addInitScript(() => Object.defineProperty(navigator, 'connection', { value: { saveData: true }, configurable: true }));
   await anmelden(page, CHEFIN.email);
   const fehler: string[] = [];
   let gemessen = 0;
