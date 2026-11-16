@@ -60,7 +60,6 @@ import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
 import { AUFFAELLIG_AB_TAGEN } from '@/features/worksheets/unverrechnet';
 import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
-import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { fmtMin, getISOWeek, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -272,7 +271,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(offeneAnforderungen(orders, u.heute), u),
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
-    erlaubt(unterMindestmenge(d.knapp ?? []), u),
+    d.knapp ? erlaubt(unterMindestmenge(d.knapp), u) : null,
     urlaubAbschnitt(d, u),
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
@@ -318,10 +317,10 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
     out.push({
       key: 'knapp',
       label: 'Knappe Artikel',
-      wert: d.knapp.length,
+      wert: d.knapp.anzahl,
       zusatz: 'unter Mindestmenge',
       to: ZIEL.lagerKnapp,
-      leer: d.knapp.length === 0,
+      leer: d.knapp.anzahl === 0,
     });
   }
   return out;
@@ -449,9 +448,9 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
-    erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
+    d.wartungen ? erlaubt(wartungenOhneBaustelle(d.wartungen.ohne, u.heute), u) : null,
     // A9: eingeplante Wartungen bleiben stehen, bis jemand „Erledigt“ einträgt.
-    erlaubt(wartungenEingeplant(d.wartungen ?? [], d.wartungVorschlaege ?? [], u.heute), u),
+    erlaubt(wartungenEingeplant(d.wartungen?.eingeplant ?? { anzahl: 0, ueberfaellig: 0, zeilen: [] }, d.wartungVorschlaege ?? [], u.heute), u),
     erlaubt(eilanforderungen(d.orders ?? []), u),
     // Über den Annahme-Link angenommen (M02a): bis jemand aus der Führung das Angebot öffnet.
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
@@ -618,16 +617,18 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: `seit ${tagKurz(d.basiszinsFehltAb)}`, ton: 'fehl' },
     }));
   }
-  const wartungen = (d.wartungen ?? [])
-    .filter((w) => w.aktiv && !w.offeneBaustelle)
-    .map((w) => ({ w, b: beurteile(w, h) }));
-  const wUeber = wartungen.filter((x) => x.b.stand === 'überfällig').sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm));
-  if (wUeber.length) {
+  /*
+    Ohne Baustelle: die Zahlen zählt die Datenbank, die Zeilen kommen nach dem
+    Fälligkeitstag — die überfälligen also zuerst, die erste ist die älteste.
+  */
+  const wOhne = d.wartungen?.ohne;
+  const wUeberErste = wOhne && wOhne.ueberfaellig > 0 ? wOhne.zeilen[0] : undefined;
+  if (wOhne && wUeberErste) {
     themen.push(wenn(ZIEL.wartungenOhneBaustelle, {
       key: 'wartung-ueber', wann: 'ueberfaellig',
-      titel: `${anzahl(wUeber.length, 'Wartung', 'Wartungen')} ohne Baustelle`,
-      detail: `${wUeber[0].w.customerName}, fällig ${tagKurz(wUeber[0].w.faelligAm)}`,
-      status: { text: tageWort(tageZwischen(wUeber[0].w.faelligAm, h)), ton: 'fehl' },
+      titel: `${anzahl(wOhne.ueberfaellig, 'Wartung', 'Wartungen')} ohne Baustelle`,
+      detail: `${wUeberErste.customerName}, fällig ${tagKurz(wUeberErste.faelligAm)}`,
+      status: { text: tageWort(tageZwischen(wUeberErste.faelligAm, h)), ton: 'fehl' },
     }));
   }
   // A9: eingeplante Wartungen, die erledigt aussehen — ein Handgriff, sonst entsteht der nächste Termin nie.
@@ -798,11 +799,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'nachfragen', ton: 'warn' },
     }));
   }
-  const wBald = wartungen.filter((x) => x.b.stand === 'fällig');
-  if (wBald.length) {
+  const wBald = wOhne ? wOhne.anzahl - wOhne.ueberfaellig : 0;
+  if (wBald > 0) {
     themen.push(wenn(ZIEL.wartungenOhneBaustelle, {
       key: 'wartung-bald', wann: 'woche',
-      titel: `${anzahl(wBald.length, 'Wartung', 'Wartungen')} demnächst fällig`,
+      titel: `${anzahl(wBald, 'Wartung', 'Wartungen')} demnächst fällig`,
       detail: 'noch ohne Baustelle',
       status: { text: 'einplanen', ton: 'leise' },
     }));
@@ -835,11 +836,11 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         status: { text: 'erinnern', ton: 'leise' },
       }));
     }
-    if ((d.knapp ?? []).length) {
+    if (d.knapp && d.knapp.anzahl > 0) {
       themen.push(wenn(ZIEL.lagerKnapp, {
         key: 'knapp', wann: 'woche',
-        titel: `${anzahl(d.knapp!.length, 'Artikel', 'Artikel')} unter Mindestmenge`,
-        detail: d.knapp![0].name,
+        titel: `${anzahl(d.knapp.anzahl, 'Artikel', 'Artikel')} unter Mindestmenge`,
+        detail: d.knapp.ersterNachName ?? '',
         status: { text: 'nachbestellen', ton: 'leise' },
       }));
     }

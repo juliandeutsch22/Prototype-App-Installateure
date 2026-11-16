@@ -54,7 +54,8 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(spaeter('projekte')),
   listProjectsByNumbers: vi.fn(async () => []),
 }));
-vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(spaeter('wartungen')) }));
+// Seit 15.11.2026 die Zahl und die ersten aus der Datenbank (`wartungen_faellig_stand`) — gleich mit den Vorschlägen.
+vi.mock('@/lib/db/wartungen', () => ({ wartungenFaelligStand: vi.fn(spaeter('wartungen')), wartungErledigtVorschlaege: vi.fn(async () => []) }));
 
 const { team, buchhaltung, leitung } = await import('@/features/dashboard/start/laden');
 const k = { user: { uid: 'gf', companyId: 'c1', role: 'Geschäftsführung' as const, name: 'Chefin' }, company: null, heute: '2026-10-10' };
@@ -132,12 +133,13 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
   it('Leitung: die Wartungen gehen mit den Baustellen los, nicht nach dem Budget', async () => {
     const lauf = leitung(k, { einsatzplanung: false, wartung: true, budget: true });
     await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['projekte', 'wartungen'])));
-    offen.wartungen([{ id: 'w1' }]);
+    const stand = { ohne: { anzahl: 1, ueberfaellig: 0, zeilen: [{ id: 'w1' }] }, eingeplant: { anzahl: 0, ueberfaellig: 0, zeilen: [] } };
+    offen.wartungen(stand);
     offen.projekte([{ id: 'p1', projectNumber: 'B-1', estimatedHours: 10 }]);
     await vi.waitFor(() => expect(gefragt).toContain('stunden'));
     offen.stunden([]);
     const d = await lauf;
-    expect(d.wartungen).toEqual([{ id: 'w1' }]);
+    expect(d.wartungen).toEqual(stand);
     expect(d.budget).toHaveLength(1);
   });
 

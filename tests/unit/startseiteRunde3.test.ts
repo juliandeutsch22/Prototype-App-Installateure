@@ -35,8 +35,8 @@ describe('Tage nach einer Präposition (G2)', () => {
 
   it('eine Wartung in mehr als einer Woche steht „in 12 Tagen“ an', () => {
     const w = { id: 'w', companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme',
-      intervallMonate: 12, faelligAm: '2026-10-18', aktiv: true } as Wartung;
-    const a = wartungenOhneBaustelle([w], HEUTE)!;
+      intervallMonate: 12, faelligAm: '2026-10-18', aktiv: true } as Wartung & { id: string };
+    const a = wartungenOhneBaustelle({ anzahl: 1, ueberfaellig: 0, zeilen: [w] }, HEUTE)!;
     expect(a.zeilen[0].status?.text).toBe('in 12 Tagen');
   });
 
@@ -49,17 +49,38 @@ describe('Tage nach einer Präposition (G2)', () => {
 
 describe('Unter Mindestmenge (G3)', () => {
   it('nennt eine fehlende Menge „1 Stk fehlt“ statt „-1 Stk frei“', () => {
-    const a = unterMindestmenge([{ id: 'a', name: 'Pressfitting', unit: 'Stk', frei: -1, mindestmenge: 5 }])!;
+    const a = unterMindestmenge({ anzahl: 1, ersterNachName: 'Pressfitting', zeilen: [{ id: 'a', name: 'Pressfitting', unit: 'Stk', frei: -1, mindestmenge: 5 }] })!;
     expect(a.zeilen[0].detail).toBe('1 Stk fehlt · Mindestmenge 5');
     expect(a.zeilen[0].detail).not.toMatch(/-\d/);
   });
 
   it('lässt null und positive Mengen als „frei“ stehen', () => {
-    const a = unterMindestmenge([
+    const a = unterMindestmenge({ anzahl: 2, ersterNachName: 'Bogen', zeilen: [
       { id: 'b', name: 'Bogen', unit: 'Stk', frei: 0, mindestmenge: 5 },
       { id: 'c', name: 'Rohr', unit: 'm', frei: 2.5, mindestmenge: 10 },
-    ])!;
+    ] })!;
     expect(a.zeilen.map((z) => z.detail)).toEqual(['0 Stk frei · Mindestmenge 5', '2,5 m frei · Mindestmenge 10']);
+  });
+
+  /*
+    DIE ZAHL ÜBER ALLE, GEZEIGT NUR DREI (Durchsicht 15.11.2026, Budget B3):
+    die Startseite holt die dringendsten und die Zahl, nicht jeden knappen
+    Artikel. Abschnitt, Kennzahl und Wochenhinweis nennen dieselbe Zahl.
+  */
+  it('nennt die Zahl über alle, zeigt drei und führt mit „weitere“ in die Lagerliste', () => {
+    const zeilen = [1, 2, 3].map((i) => ({ id: `k${i}`, name: `Artikel ${i}`, unit: 'Stk', frei: i, mindestmenge: null }));
+    const a = unterMindestmenge({ anzahl: 192, ersterNachName: 'Abflussrohr', zeilen })!;
+    expect(a.anzahl).toBe(192);
+    expect(a.zeilen).toHaveLength(3);
+    expect(a.weiter).toEqual({ to: '/lager?filter=knapp' });
+    const s = startseite({ knapp: { anzahl: 192, ersterNachName: 'Abflussrohr', zeilen } }, { rolle: 'verwaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: true });
+    expect(s.kennzahlen.find((k) => k.key === 'knapp')).toMatchObject({ wert: 192 });
+  });
+
+  it('bleibt gleich: ohne knappe Artikel kein Abschnitt; bis drei ohne „weitere“', () => {
+    expect(unterMindestmenge({ anzahl: 0, ersterNachName: null, zeilen: [] })).toBeNull();
+    const a = unterMindestmenge({ anzahl: 1, ersterNachName: 'Bogen', zeilen: [{ id: 'b', name: 'Bogen', unit: 'Stk', frei: 0, mindestmenge: 5 }] })!;
+    expect(a.weiter).toBeUndefined();
   });
 });
 

@@ -397,18 +397,18 @@ describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
     await nutzer.type(screen.getByLabelText('Suche'), 'Artikel 1');
     rerender(
       <ToastProvider>
-        <MaterialCatalog suche="Artikel 24" lagerartikel={[]} />
+        <MaterialCatalog suche="Artikel 24" knappImLager={0} />
       </ToastProvider>,
     );
     expect(screen.getByLabelText('Suche')).toHaveValue('Artikel 1');
   });
 
-  it('„knapp“ im Kopf kommt aus den Lagerartikeln, nicht aus der gezeigten Seite', async () => {
+  // Seit 15.11.2026 zählt die Datenbank die knappen Lagerartikel (`lager_liste`, `knapp_bestand`); das Lager reicht die Zahl durch.
+  it('„knapp“ im Kopf kommt aus der Zählung über alle Lagerartikel, nicht aus der gezeigten Seite', async () => {
     materialien = viele(25);
-    const knapp = { id: 'k1', companyId: 'perl', name: 'Zylinder knapp', stock: 1, lagerartikel: true } as WithId<Material>;
     render(
       <ToastProvider>
-        <MaterialCatalog lagerartikel={[knapp]} />
+        <MaterialCatalog knappImLager={1} />
       </ToastProvider>,
     );
     await screen.findByText('Artikel 00');

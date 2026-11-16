@@ -461,8 +461,19 @@ export default function AdminOrdersView() {
   /** Teilfehler der Sammelaktion — je Zeile, damit man sieht, welche hängen blieb. */
   const [zeilenFehler, setZeilenFehler] = useState<Record<string, string>>({});
 
+  /*
+    DIE JÜNGSTEN BRAUCHEN NUR „ERLEDIGT“ UND „RETOUREN“ (Durchsicht
+    15.11.2026, Budget B3): „Laufend“ und die Einkaufsliste kommen aus dem
+    Arbeitsstand, die Suche vom Server. Vorher kamen die jüngsten 200 bei
+    jedem Öffnen mit — auch dort, wo keine davon zu sehen war. Einmal
+    gebraucht, bleibt das Abo stehen, damit der Wechsel zurück nicht neu lädt.
+  */
+  const [juengsteGebraucht, setJuengsteGebraucht] = useState(false);
   useEffect(() => {
-    if (!user) return;
+    if (tab === 'archiv' || tab === 'retouren') setJuengsteGebraucht(true);
+  }, [tab]);
+  useEffect(() => {
+    if (!user || !juengsteGebraucht) return;
     const unsub = subscribeAllOrders(
       user.companyId,
       holgrenze,
@@ -478,7 +489,7 @@ export default function AdminOrdersView() {
       },
     );
     return unsub;
-  }, [user, holgrenze, neuLaden]);
+  }, [user, holgrenze, neuLaden, juengsteGebraucht]);
 
   /*
     RETOUREN, DIE AUF DIE ANNAHME WARTEN (M7): ohne Altersgrenze, damit keine

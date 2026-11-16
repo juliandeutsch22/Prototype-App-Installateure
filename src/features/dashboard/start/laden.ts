@@ -16,7 +16,6 @@ import type {
   Role,
   Termin,
   Vacation,
-  Wartung,
 } from '@/types';
 import { getUserByUid, listPasswortAnfragen, listUsers } from '@/lib/db/users';
 import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen, unverrechneteStunden } from '@/lib/db/timeEntries';
@@ -34,7 +33,8 @@ import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
 import { materialdeckung } from '@/lib/db/materialdeckung';
 import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
-import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { lagerListe, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { JE_ABSCHNITT } from './abschnitte';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnetStand, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
@@ -48,7 +48,7 @@ import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { zeitkorrekturenLaden, type Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
-import { listFaelligeWartungen, wartungErledigtVorschlaege, type WartungErledigtVorschlag } from '@/lib/db/wartungen';
+import { wartungenFaelligStand, wartungErledigtVorschlaege, type WartungErledigtVorschlag, type WartungenStand } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import { listBasiszinssaetze } from '@/lib/db/basiszins';
 import {
@@ -76,7 +76,7 @@ import { budgetStand } from '@/features/projects/baustellenLage';
 import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
 import {
   type BudgetZeile,
-  type KnapperArtikel,
+  type KnappStand,
   type MaterialFehltZeile,
   type TagesBaustelle,
   type FehlenZeile,
@@ -159,7 +159,7 @@ export interface StartDaten {
   // Lager
   orders?: MaterialOrder[];
   lagerPosten?: EinkaufPosten[];
-  knapp?: KnapperArtikel[];
+  knapp?: KnappStand;
   // Buchhaltung
   /** Nur die Köpfe: Hinweise und Mahnlauf lesen keine Positionen (Nachweis mit dreifachem Bestand, 19.10.2026). */
   unbezahlt?: (RechnungsKopf & { id: string })[];
@@ -191,7 +191,8 @@ export interface StartDaten {
   ohneEinsatz?: { projectNumber: string; zuletzt?: string }[];
   /** Einsätze der nächsten sieben Tage, deren Material nicht gedeckt ist (M04b). */
   materialFehlt?: MaterialFehltZeile[];
-  wartungen?: Wartung[];
+  /** Fällige Wartungen je Abschnitt: Zahl und die ersten (`wartungen_faellig_stand`). */
+  wartungen?: WartungenStand;
   /** Eingeplante Wartungen, die erledigt aussehen (A9) — nur für die Führung gefüllt. */
   wartungVorschlaege?: WartungErledigtVorschlag[];
   heuteBetrieb?: TagesBaustelle[];
@@ -485,14 +486,33 @@ export async function lager(
   return { orders, lagerPosten: posten, knapp: bestand };
 }
 
-async function knappeArtikel(): Promise<KnapperArtikel[]> {
+async function knappeArtikel(): Promise<KnappStand> {
   /*
-    Gerechnet in der Datenbank (`lager_knapp`, Ladezeit 19.10.2026): dieselbe
-    Regel wie die Lagerliste (`istKnapp` — unter der Mindestmenge, ohne
-    Mindestmenge ab der Grenze), über alle Lagerartikel. Bis hierher kamen
-    dafür jeder Lagerartikel und sein Freies in den Browser.
+    Gerechnet in der Datenbank (Ladezeit 19.10.2026): dieselbe Regel wie die
+    Lagerliste (`istKnapp` — unter der Mindestmenge, ohne Mindestmenge ab der
+    Grenze, nie ausgelaufen), über alle Lagerartikel.
+
+    NUR, WAS GEZEIGT WIRD (Durchsicht 15.11.2026, Budget B3): die Zahl und
+    ein Abschnitt voll der dringendsten aus der Lagerliste (`lager_liste`,
+    gefiltert auf „knapp“), dazu der erste nach dem Namen für den
+    Wochenhinweis — gleichzeitig. Bis dahin kam jeder knappe Artikel
+    (`lager_knapp`, gewachsener Bestand: 192).
   */
-  return lagerKnapp(LOW_STOCK_THRESHOLD);
+  const [dringend, nachName] = await Promise.all([
+    lagerListe({ filter: 'knapp', reihenfolge: 'frei', anzahl: JE_ABSCHNITT, grenze: LOW_STOCK_THRESHOLD }),
+    lagerListe({ filter: 'knapp', reihenfolge: 'name', anzahl: 1, grenze: LOW_STOCK_THRESHOLD }),
+  ]);
+  return {
+    anzahl: dringend.treffer,
+    zeilen: dringend.zeilen.map((m) => ({
+      id: m.id,
+      name: m.name,
+      ...(m.unit ? { unit: m.unit } : {}),
+      mindestmenge: m.mindestmenge ?? null,
+      frei: m.free,
+    })),
+    ersterNachName: nachName.zeilen[0]?.name ?? null,
+  };
 }
 
 // ──────────────────────────────────────────────────────────── Buchhaltung ──
@@ -642,9 +662,24 @@ export async function leitung(
     (`VORLAUF_TAGE`): ein Monat voraus war im Februar zwei Tage kürzer, und
     was die Liste „fällig“ nennt, fehlte hier.
   */
-  const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, tageVerschoben(heute, VORLAUF_TAGE)), []) : undefined;
   // A9: was erledigt aussieht — scheitert es, fehlt nur der Vorschlag.
   const wartungVorschlaege = was.wartung ? still(() => wartungErledigtVorschlaege(), []) : undefined;
+  /*
+    ZAHL UND DIE ERSTEN JE ABSCHNITT (Durchsicht 15.11.2026, Budget B3):
+    vorher jede fällige Wartung bis zum Stichtag, höchstens 200 — darüber
+    stimmten die Zahlen nicht mehr. Gleich mit den Vorschlägen losgeschickt;
+    gibt es Vorschläge, wird ohne deren Wartungen noch einmal gezählt — sie
+    stehen in eigenen Zeilen.
+  */
+  const wartungBis = tageVerschoben(heute, VORLAUF_TAGE);
+  const wartungen = wartungVorschlaege
+    ? Promise.all([
+      still(() => wartungenFaelligStand(heute, wartungBis, JE_ABSCHNITT), undefined),
+      wartungVorschlaege,
+    ]).then(([stand, v]) => (stand && v.length
+      ? still(() => wartungenFaelligStand(heute, wartungBis, JE_ABSCHNITT, v.map((x) => x.wartungId)), undefined)
+      : stand))
+    : undefined;
   const projekteZusage = listActiveProjects(user.companyId);
   /*
     Der Budgetstand braucht nur die Baustellen, nicht Belegschaft und
@@ -753,7 +788,10 @@ export async function leitung(
 
   if (budget) out.budget = await budget;
 
-  if (wartungen) out.wartungen = await wartungen;
+  if (wartungen) {
+    const stand = await wartungen;
+    if (stand) out.wartungen = stand;
+  }
   if (wartungVorschlaege) out.wartungVorschlaege = await wartungVorschlaege;
   if (material) out.materialFehlt = await material;
   return out;

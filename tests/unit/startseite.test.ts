@@ -415,17 +415,25 @@ describe('Projektleitung', () => {
     });
   });
 
-  it('Wartungen: überfällige zuerst und rot, eingeplante gar nicht', () => {
+  /*
+    Seit 15.11.2026 (Budget B3) wählt, ordnet und zählt die Datenbank
+    (`wartungen_faellig_stand`: nur ohne Baustelle, nach dem Fälligkeitstag;
+    geprüft in `tests/supabase/wartungenFaelligStand.test.ts`). Hier, wie die
+    Startseite die Zeilen zeigt und die Zahl über alle nennt.
+  */
+  it('Wartungen: überfällige zuerst und rot — die Zahl über alle, drei Zeilen', () => {
     const w = (teil: Partial<Wartung> & { id: string }) =>
-      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
-    const a = wartungenOhneBaustelle([
-      w({ id: 'bald', faelligAm: '2026-10-03' }),
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung & { id: string };
+    const a = wartungenOhneBaustelle({ anzahl: 240, ueberfaellig: 1, zeilen: [
       w({ id: 'weg', faelligAm: '2026-09-22' }),
-      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
-    ], HEUTE)!;
+      w({ id: 'bald', faelligAm: '2026-10-03' }),
+    ] }, HEUTE)!;
     expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-weg', 'wartung-bald']);
     expect(a.zeilen[0].status?.ton).toBe('fehl');
     expect(a.zeilen[1].status).toEqual({ text: 'diese Woche', ton: 'warn' });
+    expect(a.anzahl).toBe(240);
+    expect(a.weiter).toEqual({ to: ZIEL.wartungenOhneBaustelle });
+    expect(wartungenOhneBaustelle({ anzahl: 0, ueberfaellig: 0, zeilen: [] }, HEUTE)).toBeNull();
   });
 
   /*
@@ -434,19 +442,20 @@ describe('Projektleitung', () => {
   */
   it('eingeplante Wartungen: erst die mit Vorschlag (Sprung in „Erledigt“), dann die fälligen mit Weg zur Baustelle', () => {
     const w = (teil: Partial<Wartung> & { id: string }) =>
-      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
-    const a = wartungenEingeplant([
-      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
-      w({ id: 'erledigt', faelligAm: '2026-09-10', offeneBaustelle: 'PR-8' }),
-      w({ id: 'spaeter', faelligAm: '2027-05-01', offeneBaustelle: 'PR-7' }),
-      w({ id: 'ohne', faelligAm: '2026-09-20' }),
-    ], [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }], HEUTE)!;
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung & { id: string };
+    // Die Datenbank gibt nur die fälligen mit offener Baustelle und ohne Vorschlag.
+    const a = wartungenEingeplant(
+      { anzahl: 1, ueberfaellig: 1, zeilen: [w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' })] },
+      [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }],
+      HEUTE,
+    )!;
     expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-erledigt-erledigt', 'wartung-eingeplant-geplant']);
     expect(a.zeilen[0]).toMatchObject({
       detail: 'Schein vom 25.09.2026 auf PR-8 unterschrieben', status: { ton: 'warn' }, to: '/wartungen?erledigt=erledigt&am=2026-09-25',
     });
     expect(a.zeilen[1]).toMatchObject({ status: { text: 'überfällig', ton: 'fehl' }, to: ZIEL.baustelle('PR-9') });
-    expect(wartungenEingeplant([w({ id: 'ohne' })], [], HEUTE)).toBeNull();
+    expect(a.anzahl).toBe(2);
+    expect(wartungenEingeplant({ anzahl: 0, ueberfaellig: 0, zeilen: [] }, [], HEUTE)).toBeNull();
   });
 
   it('Auslastung: verplante durch verfügbare Personentage, ohne Feiertag und Abwesenheit', () => {

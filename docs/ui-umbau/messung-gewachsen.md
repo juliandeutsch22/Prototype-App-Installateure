@@ -53,6 +53,51 @@ Aufräumen stehen (gelöscht wird als Eigentümer der Datenbank, lokal
 Messung stehen in `messung-gewachsen-vor-l22.json` und
 `messung-gewachsen-vor-l22-monteur.json`.
 
+## Nacharbeit: Antworten über dem Budget B3 (Welle 4, 16.11.2026)
+
+**Befund.** Lager, Anforderungen, Baustellen und die Startseite der
+Geschäftsführung holten mehr als 50 Zeilen je Anfrage (Tabellen unten,
+Stand L22). Je Seite geprüft, ob die Ansicht die Zeilen braucht:
+
+- **Lager** zeigte 20 Artikel, holte aber jeden Lagerartikel (2.000 Zeilen in
+  6 Anfragen), sein Freies (`lager_frei`, 1.000 in 2) und die jüngsten 200
+  Anforderungen (zweimal), um im Browser zu suchen, zu filtern, nach dem
+  Freien zu sortieren und Knapp, Fehlt und Reserviert zu zählen. Das rechnet
+  jetzt die Datenbank nach denselben Regeln
+  (`supabase/migrations/20261118030000_lager_liste.sql`, `lager_liste`): die
+  gezeigte Seite und die Zahlen über alle; „und N weitere anzeigen“ holt die
+  nächsten 20, die Suche (auch über Nummern der Großhändler) geht über alle.
+  Neu gefragt wird, wenn der Kanal eine Änderung an Artikeln oder
+  Anforderungen meldet. Artikelwahl, weiterer Ort und Seitenfenster fragen
+  dieselbe Funktion.
+- **Startseite:** die knappen Artikel (`lager_knapp`, 192) und die fälligen
+  Wartungen (200 — dort war Schluss, darüber stimmten die Zahlen nicht mehr)
+  kamen ganz, gezeigt werden je drei. Jetzt Zahl und die drei dringendsten
+  aus `lager_liste` und aus `wartungen_faellig_stand`
+  (`20261118031000_wartungen_faellig_stand.sql`, je Abschnitt Zahl,
+  überfällig und die ersten nach dem Fälligkeitstag).
+- **Anforderungen:** die jüngsten 200 (zweimal geholt) brauchen nur „Erledigt“
+  und „Retouren“; sie kommen jetzt erst, wenn einer dieser Reiter offen ist.
+
+Gemessen mit `messung.mjs --quelle=…` gegen einen eigenen Stapel mit demselben
+gewachsenen Bestand (Median aus drei Läufen, Handy-Profil wie unten). Während
+der Messung „vorher“ lief auf demselben Rechner ein Prüflauf gegen einen
+zweiten Stapel: die Zeiten sind nur grob vergleichbar, Zeilen, Anfragen und
+Datenmengen hängen davon nicht ab.
+
+| Seite | vorher | nachher |
+|---|---|---|
+| Lager | bereit 5,1 s · 444 KB · 21 DB-Anfragen · 117 KB DB-Daten · grösste Liste 2.000 (materials) | bereit 3,7 s · 330 KB · 15 DB-Anfragen · 6 KB · keine Antwort über 50 Zeilen |
+| Start (Geschäftsführung) | bereit 5,2 s · 444 KB · 84 KB DB-Daten · wartungen 200, lager_knapp 192 | bereit 4,7 s · 424 KB · 64 KB · beide unter 50 |
+| Anforderungen | bereit 3,8 s · 365 KB · 47 KB · material_orders 560 in 6 Anfragen | bereit 3,8 s · 335 KB · 17 KB · material_orders 160 in 4 Anfragen |
+| übrige Seiten | 4,0–6,3 s | 3,4–5,0 s (an ihnen nichts geändert — der Unterschied ist die Last daneben) |
+
+**Noch über dem Budget** (nicht in dieser Nacharbeit gebaut, benannt in
+`docs/grenzen-durchsicht-2026-10-24.md`): Anforderungen „Laufend“ (der
+Arbeitsstand, 160 offene), Baustellen (die jüngsten 300 und alle laufenden,
+720), die offenen Rechnungen der Startseite (198) sowie die übrigen Seiten der
+Liste unten, die nicht Teil dieses Auftrags waren.
+
 <!-- messung-monteur:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
 Gemessen am 15.11.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, erster Besuch ohne Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Monteur (`monteur2`) des Testbetriebs `ui-testbestand`.
 

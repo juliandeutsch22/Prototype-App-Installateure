@@ -135,7 +135,14 @@ const DATEN = {
     zaehleOffeneQuotes: "D.angebote.filter((q) => q.status === 'Entwurf' || q.status === 'Versendet').length",
   },
   // Die Ausführungen sind keine Anlagen: mit `*` bekam der Verlauf Anlagen ohne `am` und brach ab (K4, 13.10.2026).
-  wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]' },
+  /*
+    Fällige Wartungen der Startseite (15.11.2026): je Abschnitt Zahl,
+    überfällig und die ersten — als Liste geraten, stürzte die Startseite ab.
+  */
+  wartungen: {
+    '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]',
+    wartungenFaelligStand: "((h) => { const f = D.wartungen.filter((w) => w.aktiv !== false && w.faelligAm); const teil = (xs) => ({ anzahl: xs.length, ueberfaellig: xs.filter((w) => w.faelligAm < h).length, zeilen: [...xs].sort((a, b) => a.faelligAm.localeCompare(b.faelligAm)).slice(0, 3) }); return { ohne: teil(f.filter((w) => !w.offeneBaustelle)), eingeplant: teil(f.filter((w) => w.offeneBaustelle)) }; })(new Date().toISOString().slice(0, 10))",
+  },
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },
   laeufe: { ladeLauf: 'null' },
   monatsbilanzen: { bilanzMarker: 'null' },
@@ -180,7 +187,19 @@ const FEST = {
     'export const katalogSeite = () => A({ zeilen: D.materialien, gesamt: D.materialien.length });\n' +
     'export const katalogAnzahl = () => A(D.materialien.length);\n' +
     'export const sucheKatalog = () => A(D.materialien);\n' +
-    'export const katalogBeobachten = () => () => {};\n',
+    'export const katalogBeobachten = () => () => {};\n' +
+    /*
+      SEIT 15.11.2026 rechnet die Datenbank die Lagerliste (`lager_liste`):
+      die gezeigte Seite und die Zahlen über alle. Hier dieselbe Form aus den
+      Beispielartikeln — als Liste geraten, stünde das Lager leer.
+    */
+    'export const lagerListe = (f) => {\n' +
+    '  const q = (f.begriff ?? \'\').trim().toLowerCase();\n' +
+    '  const alle = D.materialien.filter((m) => m.lagerartikel !== false).map((m) => ({ ...m, reserved: 0, geplant: 0, free: m.stock ?? 0 }));\n' +
+    '  const treffer = alle.filter((m) => !q || [m.name, m.category, m.articleNumber].some((v) => (v ?? \'\').toLowerCase().includes(q)));\n' +
+    '  return A({ zeilen: treffer.slice(0, f.anzahl), treffer: treffer.length, imLager: alle.length, knapp: 0, knappBestand: 0, fehlt: 0, reserviert: 0, warengruppen: [] });\n' +
+    '};\n' +
+    'export const lagerBeobachten = () => () => {};\n',
   materialOrders:
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',

@@ -210,6 +210,8 @@ vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
   listLagerartikel: vi.fn(async () => []),
   lagerKnapp: vi.fn(async () => []),
+  // Seit 15.11.2026 fragt die Startseite die knappen über die Lagerliste — hier keine.
+  lagerListe: vi.fn(async () => ({ zeilen: [], treffer: 0, imLager: 0, knapp: 0, knappBestand: 0, fehlt: 0, reserviert: 0, warengruppen: [] })),
   lagerFrei: vi.fn(async () => new Map()),
 }));
 /** Die offenen Forderungen, wie `listUnpaidInvoiceKoepfe` sie liefert. */

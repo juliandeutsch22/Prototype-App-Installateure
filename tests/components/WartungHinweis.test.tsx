@@ -24,12 +24,19 @@ vi.mock('@/lib/time', async () => {
 });
 
 let faellig: (Wartung & { id: string })[] = [];
-// Die Signatur steht am Doppelgänger, nicht an seinen Parametern: der Test
-// liest später `mock.calls[0][1]` — den Stichtag — und braucht dafür Typen.
-const listFaelligeWartungen =
-  vi.fn<(a0: string, a1: string) => Promise<(Wartung & { id: string })[]>>(async () => faellig);
+/*
+  Seit 15.11.2026 zählt die Datenbank (`wartungen_faellig_stand`, Budget B3:
+  vorher kam jede fällige Wartung für zwei Zahlen) — hier aus `faellig`
+  nachgebildet: aktiv, fällig bis zum Stichtag, überfällig vor heute.
+  `mock.calls[0][1]` ist weiter der Stichtag.
+*/
+const wartungenFaelligStand = vi.fn(async (...[h, bis]: [string, string, number]) => {
+  const f = faellig.filter((x) => x.aktiv && x.faelligAm <= bis);
+  const teil = (xs: typeof f) => ({ anzahl: xs.length, ueberfaellig: xs.filter((x) => x.faelligAm < h).length, zeilen: [] });
+  return { ohne: teil(f.filter((x) => !x.offeneBaustelle)), eingeplant: teil(f.filter((x) => !!x.offeneBaustelle)) };
+});
 vi.mock('@/lib/db/wartungen', () => ({
-  listFaelligeWartungen: (c: string, b: string) => listFaelligeWartungen(c, b),
+  wartungenFaelligStand: (h: string, b: string, n: number) => wartungenFaelligStand(h, b, n),
 }));
 
 let modulAn = true;
@@ -67,13 +74,13 @@ beforeEach(() => {
   faellig = [];
   modulAn = true;
   authWert.user.role = 'Geschäftsführung';
-  listFaelligeWartungen.mockClear();
+  wartungenFaelligStand.mockClear();
 });
 
 describe('Wenn nichts ansteht', () => {
   it('steht gar nichts da', async () => {
     const { container } = zeige();
-    await waitFor(() => expect(listFaelligeWartungen).toHaveBeenCalled());
+    await waitFor(() => expect(wartungenFaelligStand).toHaveBeenCalled());
     expect(container.textContent).toBe('');
   });
 });
@@ -101,8 +108,8 @@ describe('Wenn etwas ansteht', () => {
   */
   it('fragt einen Monat im Voraus, nicht nur bis heute', async () => {
     zeige();
-    await waitFor(() => expect(listFaelligeWartungen).toHaveBeenCalled());
-    expect(listFaelligeWartungen.mock.calls[0][1]).toBe('2026-07-01');
+    await waitFor(() => expect(wartungenFaelligStand).toHaveBeenCalled());
+    expect(wartungenFaelligStand.mock.calls[0][1]).toBe('2026-07-01');
   });
 });
 
@@ -118,7 +125,7 @@ describe('Derselbe Vorlauf wie die Wartungsliste', () => {
     faellig = [w('a', '2027-03-01')];
     zeige();
     expect(await screen.findByText('Eine Wartung steht an')).toBeTruthy();
-    expect(listFaelligeWartungen.mock.calls[0][1]).toBe('2027-03-02');
+    expect(wartungenFaelligStand.mock.calls[0][1]).toBe('2027-03-02');
     expect(screen.getByText(/Fällig in den nächsten 30 Tagen/)).toBeTruthy();
   });
 
@@ -140,7 +147,7 @@ describe('Wer den Hinweis sieht', () => {
       wäre der Ausgangszustand und bewiese nichts.
     */
     await waitFor(() => expect(container.textContent).toBe(''));
-    expect(listFaelligeWartungen).not.toHaveBeenCalled();
+    expect(wartungenFaelligStand).not.toHaveBeenCalled();
   });
 
   it('die Verwaltung schon — sie ruft beim Kunden an', async () => {
@@ -155,6 +162,6 @@ describe('Wer den Hinweis sieht', () => {
     modulAn = false;
     const { container } = zeige();
     await waitFor(() => expect(container.textContent).toBe(''));
-    expect(listFaelligeWartungen).not.toHaveBeenCalled();
+    expect(wartungenFaelligStand).not.toHaveBeenCalled();
   });
 });

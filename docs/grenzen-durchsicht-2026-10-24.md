@@ -920,3 +920,40 @@ Ende unter „Mit Welle 3 entfallen“.
   entfallen mit den Befunden 3 und 4.
 - **L5 offen** (Welle 2, „Nicht als Grenze geführt“) — gebaut; es bleibt die
   fachliche Grenze der Monatsrechnung oben.
+
+## Nacharbeit zur Durchsicht vom 15.11.2026 (Welle 4) — Grenzen und offene Punkte
+
+Aus den vier Befunden der Nacharbeit (Stand §111).
+
+- **Messbestand nur mit Eigentümerrechten** (Rechte): `tests/supabase/aufraeumen.ts`
+  lässt `ui-testbestand` nur stehen, wenn es als Eigentümer der Datenbank
+  löschen kann (lokal `supabase_admin`, sonst `SUPABASE_DB_ADMIN_URL`) — ohne
+  Auslöser und ohne Prüfung der Fremdschlüssel, sonst kostet es neben dem
+  Bestand über eine Minute. Ohne diesen Zugang leert es wie bisher, samt
+  Messbestand, und sagt es.
+- **Budget B3, noch offen** (nicht gebaut in dieser Nacharbeit; keine Grenze,
+  sondern Arbeit, die aussteht):
+  - *Anforderungen „Laufend“*: der Arbeitsstand (jede offene Anforderung, im
+    gewachsenen Bestand 160) kommt ganz, weil Gruppen, Zahlen, Einkaufsliste
+    und Filter der Startseite im Browser über alle rechnen. Nächster Schritt:
+    Gruppen und Einkaufsliste mit Zahl und erster Seite aus der Datenbank,
+    wie `lager_liste`.
+  - *Baustellen*: die jüngsten 300 und alle laufenden (zusammen 720) für
+    Liste, Schriftfeld und die Filter der Startseite. Nächster Schritt:
+    Zählungen (aktiv, Ende überschritten) aus der Datenbank, die laufenden nur
+    unter einem Filter der Startseite, die Liste je Statusgruppe seitenweise.
+  - *Offene Rechnungen der Startseite* (198 Köpfe): Mahnlauf, „überfällig,
+    nicht mahnbar“, Rücklass und die Summen werten jede offene Forderung nach
+    den Regeln in `features/invoices` aus (`mahnlauf`, `zahlstand`) — dieselben,
+    die Rechnungen und Mahnlauf nutzen. Die Menge wächst mit den unbezahlten
+    Rechnungen, nicht mit den Jahren. Nächster Schritt, ohne eine zweite
+    Fassung der Regeln: die Regeln nach `shared/` und die Auswertung in eine
+    Datenbankfunktion, die Zahlen und die ersten Zeilen gibt.
+- **Lager ohne Rechnung im Browser** (Richtigkeit): kommt die Antwort der
+  Datenbank nicht, steht ein Fehler mit „Erneut versuchen“ statt einer eigenen
+  Rechnung des Reservierten. Die eigene Rechnung griff bisher nur in diesem
+  Fall und zählte anders als die Datenbank (jede offene Anforderung, Zuordnung
+  über den Namen) — zwei Zahlen für „frei“ wären die schlechtere Auskunft.
+- **Eine schon liegende `vite.config.js`** (Altbestand): sie entsteht nicht
+  mehr, wird aber nicht automatisch gelöscht — einmal
+  `rm -f vite.config.js vite.config.d.ts`.

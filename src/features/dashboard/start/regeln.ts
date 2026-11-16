@@ -1,4 +1,4 @@
-import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { canEditTime, darfUrlaubEntscheiden, isTopLevel } from '@/lib/permissions';
@@ -13,7 +13,7 @@ import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
 import { fmtDauer, fmtStunden, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
-import { abschnitt, type Abschnitt, type Zeile } from './abschnitte';
+import { abschnitt, JE_ABSCHNITT, type Abschnitt, type Zeile } from './abschnitte';
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } from '@/features/orders/anforderungStand';
 import { BUDGET_AB_PROZENT, endeVorbei, ohneProjektleiter, type BudgetZeile } from '@/features/projects/baustellenLage';
 
@@ -23,7 +23,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
-import type { WartungErledigtVorschlag } from '@/lib/db/wartungen';
+import type { WartungErledigtVorschlag, WartungenStand } from '@/lib/db/wartungen';
 import type { OffeneEingaenge } from './laden';
 
 /**
@@ -198,9 +198,26 @@ export interface KnapperArtikel {
   mindestmenge?: number | null;
 }
 
-export function unterMindestmenge(artikel: KnapperArtikel[]): Abschnitt | null {
-  const zeilen: Zeile[] = [...artikel]
+/**
+ * Die knappen Lagerartikel der Startseite (Durchsicht 15.11.2026, Budget B3):
+ * die Zahl über alle und nur die, die gezeigt werden — die dringendsten
+ * (nach dem Freien) und der erste nach dem Namen für den Wochenhinweis.
+ * Vorher kam jeder knappe Artikel (gewachsener Bestand: 192), um drei zu
+ * zeigen.
+ */
+export interface KnappStand {
+  anzahl: number;
+  /** Die dringendsten, nach dem Freien und dem Namen — höchstens ein Abschnitt voll. */
+  zeilen: KnapperArtikel[];
+  /** Der erste nach dem Namen (wie bisher im Wochenhinweis). */
+  ersterNachName: string | null;
+}
+
+export function unterMindestmenge(stand: KnappStand): Abschnitt | null {
+  if (stand.anzahl === 0) return null;
+  const zeilen: Zeile[] = [...stand.zeilen]
     .sort((a, b) => a.frei - b.frei || a.name.localeCompare(b.name, 'de'))
+    .slice(0, JE_ABSCHNITT)
     .map((m) => ({
       key: `knapp-${m.id}`,
       titel: m.name,
@@ -218,7 +235,14 @@ export function unterMindestmenge(artikel: KnapperArtikel[]): Abschnitt | null {
       status: m.frei <= 0 ? { text: 'leer', ton: 'fehl' } : { text: 'knapp', ton: 'warn' },
       to: ZIEL.lagerKnapp,
     }));
-  return abschnitt('knapp', 'Unter Mindestmenge', zeilen, ZIEL.lagerKnapp);
+  // Wie `abschnitt`: die Zahl über alle, „und N weitere →“ auf die gefilterte Lagerliste.
+  return {
+    key: 'knapp',
+    titel: 'Unter Mindestmenge',
+    anzahl: stand.anzahl,
+    zeilen,
+    weiter: stand.anzahl > zeilen.length ? { to: ZIEL.lagerKnapp } : undefined,
+  };
 }
 
 /** Bestellt, heute erwartet — Anforderungen und eigene Posten des Büros. */
@@ -783,11 +807,10 @@ export function ohneEinsatz(
  * Baustelle. Vorschläge zuerst — dort ist ein Handgriff fällig.
  */
 export function wartungenEingeplant(
-  wartungen: Wartung[],
+  eingeplant: WartungenStand['eingeplant'],
   vorschlaege: WartungErledigtVorschlag[],
   heute: string,
 ): Abschnitt | null {
-  const mitVorschlag = new Set(vorschlaege.map((v) => v.wartungId));
   const vorschlagZeilen: Zeile[] = vorschlaege.map((v) => ({
     key: `wartung-erledigt-${v.wartungId}`,
     titel: `${v.anlage} ${v.kunde}`.trim(),
@@ -797,11 +820,9 @@ export function wartungenEingeplant(
     status: { text: `erledigt am ${tagKurz(v.am)}?`, ton: 'warn' as const },
     to: ZIEL.wartungErledigt(v.wartungId, v.am),
   }));
-  const offen: Zeile[] = wartungen
-    .filter((w) => w.aktiv && w.offeneBaustelle && !mitVorschlag.has(w.id))
+  // Die Datenbank gibt nur fällige mit offener Baustelle und ohne Vorschlag, nach dem Fälligkeitstag.
+  const offen: Zeile[] = eingeplant.zeilen
     .map((w) => ({ w, b: beurteile(w, heute) }))
-    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
-    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
     .map(({ w, b }) => ({
       key: `wartung-eingeplant-${w.id}`,
       titel: `${w.anlage} ${w.customerName}`.trim(),
@@ -809,16 +830,13 @@ export function wartungenEingeplant(
       status: b.stand === 'überfällig' ? { text: 'überfällig', ton: 'fehl' as const } : { text: 'eingeplant', ton: 'leise' as const },
       to: ZIEL.baustelle(w.offeneBaustelle!),
     }));
-  return abschnitt('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], ZIEL.wartungen);
+  return abschnittMitZahl('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], vorschlaege.length + eingeplant.anzahl, ZIEL.wartungen);
 }
 
 /** Fällige Wartungen ohne offene Baustelle — überfällige zuerst. */
-export function wartungenOhneBaustelle(wartungen: Wartung[], heute: string): Abschnitt | null {
-  const zeilen: Zeile[] = wartungen
-    .filter((w) => w.aktiv && !w.offeneBaustelle)
+export function wartungenOhneBaustelle(ohne: WartungenStand['ohne'], heute: string): Abschnitt | null {
+  const zeilen: Zeile[] = ohne.zeilen
     .map((w) => ({ w, b: beurteile(w, heute) }))
-    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
-    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
     .map(({ w, b }) => {
       const tage = tageZwischen(heute, w.faelligAm);
       return {
@@ -831,7 +849,18 @@ export function wartungenOhneBaustelle(wartungen: Wartung[], heute: string): Abs
         to: ZIEL.wartungenOhneBaustelle,
       };
     });
-  return abschnitt('wartung', 'Fällige Wartungen ohne Baustelle', zeilen, ZIEL.wartungenOhneBaustelle);
+  return abschnittMitZahl('wartung', 'Fällige Wartungen ohne Baustelle', zeilen, ohne.anzahl, ZIEL.wartungenOhneBaustelle);
+}
+
+/**
+ * Wie `abschnitt`, wenn die Datenbank nur die ersten Zeilen gibt und die Zahl
+ * über alle dazu: höchstens ein Abschnitt voll, „und N weitere →“ auf die
+ * gefilterte Seite.
+ */
+function abschnittMitZahl(key: string, titel: string, alle: Zeile[], anzahl: number, weiterTo: string): Abschnitt | null {
+  if (anzahl === 0) return null;
+  const zeilen = alle.slice(0, JE_ABSCHNITT);
+  return { key, titel, anzahl, zeilen, weiter: anzahl > zeilen.length ? { to: weiterTo } : undefined };
 }
 
 export function eilanforderungen(orders: MaterialOrder[]): Abschnitt | null {

@@ -7,6 +7,8 @@ import { ToastProvider } from '@/components/Toast';
 import type { Lagerbestand, Lagerort, Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
+import type { LagerListeFrage } from '@/lib/db/materials';
+import { lagerListeNachgebildet } from './lagerListeNachbildung';
 
 /**
  * DAS LAGER JE ORT (SHK-Ausbau M04a, E10) — Ansicht.
@@ -36,19 +38,26 @@ const AUSSEN: Lagerort = { id: 'ort-aussen', companyId: 'perl', art: 'lager', be
 let materialien: WithId<Material>[] = [];
 let orte: Lagerort[] = [];
 let amOrt: Record<string, Lagerbestand[]> = {};
+/** Nach welchem Ort die Lagerliste gefragt wurde (`null` = Hauptlager). */
+const ortGefragt: (string | null)[] = [];
 
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  subscribeLagerartikel: (_c: string, cb: (rows: WithId<Material>[]) => void) => {
-    cb(materialien);
-    return () => undefined;
+  // Seit 15.11.2026 aus der Datenbank (`lager_liste`), hier nachgebildet — am weiteren Ort mit dessen Bestand.
+  lagerListe: (f: LagerListeFrage) => {
+    ortGefragt.push(f.ort ?? null);
+    return lagerListeNachgebildet(f, {
+      materialien,
+      stand: async () => new Map(),
+      amOrt: async (ort) => new Map((amOrt[ort] ?? []).map((b) => [b.materialId, Number(b.menge)])),
+    });
   },
+  lagerBeobachten: () => () => undefined,
   katalogAnzahl: async () => materialien.length,
   katalogBeobachten: () => () => undefined,
   lagerEingang: vi.fn(),
   lagerInventur: (...a: unknown[]) => inventur(...a),
   listLagerbewegungen: async () => [],
-  lagerFrei: async () => { throw new Error('nicht geladen'); },
   // M03a: die Suche über Nummern der Großhändler — hier ohne Treffer.
   NUMMER_AB: 3,
   nummernTreffer: async () => new Map(),
@@ -58,12 +67,6 @@ vi.mock('@/lib/db/einkauf', () => ({
   listGrosshaendler: vi.fn(async () => []),
   lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
   GELIEFERT_ZURUECK_TAGE: 14,
-}));
-vi.mock('@/lib/db/materialOrders', () => ({
-  subscribeAllOrders: (_c: string, _m: number, cb: (rows: unknown[]) => void) => {
-    cb([]);
-    return () => undefined;
-  },
 }));
 
 const umlagern = vi.fn();

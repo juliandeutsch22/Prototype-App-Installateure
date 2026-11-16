@@ -386,7 +386,8 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     await statusWaehlen('In Bearbeitung');
     expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
     expect(screen.queryByText('Status: In Bearbeitung')).not.toBeInTheDocument();
-    await waitFor(() => expect(abos).toBeGreaterThan(1));
+    // „Laufend“ steht auf dem Arbeitsstand — er wird neu geholt.
+    await waitFor(() => expect(offeneAbos).toBeGreaterThan(1));
   });
 
   it('„Aus Lager“, das nichts mehr traf: Hinweis statt „abholbereit“', async () => {
@@ -413,6 +414,35 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     zeige();
     await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     expect(await screen.findByText('Kupferrohr 15mm: aus dem Lager — abholbereit')).toBeInTheDocument();
+    expect(offeneAbos).toBe(1);
+  });
+});
+
+/*
+  NUR, WAS DER REITER ZEIGT (Durchsicht 15.11.2026, Budget B3): die jüngsten
+  200 Anforderungen brauchen nur „Erledigt“ und „Retouren“; „Laufend“ und die
+  Einkaufsliste kommen aus dem Arbeitsstand. Gegenprobe: mit dem Stand davor
+  holt „Laufend“ sie mit (rot).
+*/
+describe('Anforderungen — die jüngsten erst, wenn ein Reiter sie zeigt', () => {
+  it('„Laufend“ holt sie nicht; „Erledigt“ holt sie einmal, und zurück bleibt es dabei', async () => {
+    anforderungen = [anforderung({ id: 'o1' }), anforderung({ id: 'e1', status: 'Erledigt', materialName: 'Fitting erledigt' })];
+    zeige();
+    expect(await screen.findByText(/Kupferrohr 15mm/)).toBeInTheDocument();
+    expect(abos).toBe(0);
+    await userEvent.click(await waitFor(() => handlung({ name: 'Erledigt' })));
+    expect(await screen.findByText(/Fitting erledigt/)).toBeInTheDocument();
+    expect(abos).toBe(1);
+    await userEvent.click(handlung({ name: 'Laufend' }));
+    expect(await screen.findByText(/Kupferrohr 15mm/)).toBeInTheDocument();
+    expect(abos).toBe(1);
+  });
+
+  it('bleibt gleich: unter „Retouren“ stehen die erfassten Retouren da', async () => {
+    anforderungen = [anforderung({ id: 'r1', transactionType: 'return', status: 'Erledigt', materialName: 'Retoure Bogen' })];
+    zeige();
+    await userEvent.click(await waitFor(() => handlung({ name: /^Retouren/ })));
+    expect(await screen.findByText(/Retoure Bogen/)).toBeInTheDocument();
     expect(abos).toBe(1);
   });
 });
