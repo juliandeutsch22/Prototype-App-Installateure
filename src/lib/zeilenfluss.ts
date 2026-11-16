@@ -33,8 +33,10 @@ import { inSeitenRuhe, seitenwechselRuhe } from './seitenRuhe';
  * die Zeilen darunter rücken ebenso von ihrer alten Stelle nach.
  *
  * NUR WO ES ETWAS ERKLÄRT: höchstens drei Zeilen auf einmal (ein Filter,
- * der zwanzig Zeilen tauscht, ist kein „diese Zeile ging“), nicht in der
- * ersten Zeit nach einem Seitenwechsel und nie bei „Bewegung reduzieren“.
+ * der zwanzig Zeilen tauscht, ist kein „diese Zeile ging“), kein Austausch
+ * der ganzen Liste in einem Zug (derselbe Filter bei einer kurzen Liste:
+ * „Abgeschlossen“ → „Laufend“ mit je einer Zeile), nicht in der ersten Zeit
+ * nach einem Seitenwechsel und nie bei „Bewegung reduzieren“.
  *
  * DER FOKUS GEHT NICHT VERLOREN. Stand er in der gegangenen Zeile (der
  * Knopf „Löschen“), landete er bisher auf der Seite selbst; Tab begann von
@@ -181,9 +183,17 @@ export function zeilenflussHalten(wurzel: HTMLElement): () => void {
     for (const [l, { gegangen, neu }] of je) {
       for (const g of gegangen) fokusRetten(g.zeile, l, g.danach, g.davor, zuletzt);
       if (!bewegen || gegangen.length + neu.length > HOECHSTENS || !kannBewegen(l)) continue;
-      for (const g of gegangen) zusammenklappen(l, g.zeile, g.danach);
       // Neu ist eine Zeile nur in einer Liste, die schon Zeilen hatte — das erste Füllen ist Laden (B8).
       const schonDa = [...l.children].some((k) => istZeile(k) && !neu.includes(k as HTMLElement));
+      /*
+        AUSTAUSCH STATT ABGANG: gehen alle Zeilen und kommen im selben Zug
+        andere, hat jemand die Ansicht gewechselt (ein Filter einer kurzen
+        Liste). Ein Abbild, das dann über den neuen Zeilen zusammenklappt,
+        erklärt nichts — und stand beim schnellen Zurückwechseln doppelt
+        neben derselben Zeile (Durchklick listenLuft, 16.11.2026).
+      */
+      if (!schonDa && gegangen.length && neu.length) continue;
+      for (const g of gegangen) zusammenklappen(l, g.zeile, g.danach);
       if (schonDa) for (const n of neu) einblenden(l, n);
     }
   });

@@ -121,3 +121,52 @@ describe('B3 neue Zeile', () => {
     }
   });
 });
+
+/*
+  AUSTAUSCH DER GANZEN LISTE (16.11.2026, Durchklick listenLuft): ein Filter
+  einer kurzen Liste nimmt alle Zeilen und bringt im selben Zug andere. Das
+  ist kein „diese Zeile ging“ — kein Abbild, keine Bewegung. Gleich bleibt:
+  geht eine Zeile allein, klappt ihr Abbild zusammen. Gegenprobe: ohne die
+  Regel entsteht beim Austausch ein Abbild (rot).
+*/
+describe('B2 Austausch', () => {
+  const mitBewegung = async (tun: (ul: HTMLUListElement) => void) => {
+    const aufrufe: Element[] = [];
+    Object.defineProperty(HTMLElement.prototype, 'animate', {
+      configurable: true,
+      value(this: HTMLElement) { aufrufe.push(this); return { onfinish: null, oncancel: null } as unknown as Animation; },
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    try {
+      const ul = liste(1) as HTMLUListElement;
+      const stop = zeilenflussHalten(document.body);
+      await new Promise((r) => setTimeout(r, 650)); // Ruhe nach dem Start
+      tun(ul);
+      await mikro();
+      stop();
+      return { ul, aufrufe };
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate');
+    }
+  };
+  const zeile = (text: string) => {
+    const li = document.createElement('li');
+    li.className = 'zeile';
+    li.textContent = text;
+    return li;
+  };
+
+  it('alle Zeilen gehen, andere kommen im selben Zug: kein Abbild, keine Bewegung', async () => {
+    const { ul, aufrufe } = await mitBewegung((ul) => {
+      ul.children[0].remove();
+      ul.append(zeile('Laufend 1'), zeile('Laufend 2'));
+    });
+    expect(ul.querySelectorAll('[data-geist]')).toHaveLength(0);
+    expect(aufrufe).toEqual([]);
+  });
+
+  it('gleich geblieben: geht die einzige Zeile allein, klappt ihr Abbild zusammen', async () => {
+    const { ul } = await mitBewegung((ul) => { ul.children[0].remove(); });
+    expect(ul.querySelectorAll('[data-geist]')).toHaveLength(1);
+  });
+});

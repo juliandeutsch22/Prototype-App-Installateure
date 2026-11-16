@@ -157,6 +157,18 @@ test('Nachkalkulation: kurze Zeile, Aufstellung im Seitenfenster, Wechsel ohne N
 
   // Die laufenden sind im Hintergrund schon gerechnet: der Wechsel zeigt sie ohne Platzhalter.
   await page.waitForLoadState('networkidle');
+  /*
+    Ein Wechsel der Ansicht ist ein Austausch, kein „diese Zeile ging“ (B2):
+    kein Abbild einer gegangenen Zeile klappt über den neuen zusammen.
+    Gezählt wird jedes, das entsteht — auch eines, das nur 160 ms lebt.
+  */
+  await page.evaluate(() => {
+    const w = window as unknown as { geister: number };
+    w.geister = 0;
+    new MutationObserver((e) => {
+      for (const m of e) for (const n of m.addedNodes) if (n instanceof HTMLElement && n.hasAttribute('data-geist')) w.geister += 1;
+    }).observe(document.body, { childList: true, subtree: true });
+  });
   const gruppe = page.getByRole('group', { name: 'Baustellen' });
   await gruppe.getByRole('button', { name: 'Laufend' }).click();
   await expect(page.locator('.karte [aria-busy="true"]')).toHaveCount(0);
@@ -164,6 +176,7 @@ test('Nachkalkulation: kurze Zeile, Aufstellung im Seitenfenster, Wechsel ohne N
   await gruppe.getByRole('button', { name: 'Abgeschlossen' }).click();
   await expect(page.locator('.karte [aria-busy="true"]')).toHaveCount(0);
   await expect(zeile).toBeVisible({ timeout: 500 });
+  expect(await page.evaluate(() => (window as unknown as { geister: number }).geister)).toBe(0);
   await keineFehlermeldung(page);
 });
 
