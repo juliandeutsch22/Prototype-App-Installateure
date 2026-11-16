@@ -31,6 +31,14 @@ for (const width of [390, 834, 1440]) for (const reducedMotion of ['no-preferenc
     // Die Speicherleiste steht nur, solange etwas geändert ist (U1).
     await expect(page.locator('.aktionsleiste')).toHaveCount(0);
     await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
+    /*
+      KONTRAST IM RUHENDEN BILD (16.11.2026). Zieht sich die Speicherleiste
+      zurück (B4), rückt die Seite, und am Handy blendet der kleine Titel im
+      Kopf in 180 ms ein (seit Paket 6). Mitten im Einblenden hat jede Schrift
+      zu wenig Kontrast — axe maß in der CI genau dort (#dad7d2 auf #faf7f1).
+      Geprüft wird, was stehen bleibt.
+    */
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     expect(axe.violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

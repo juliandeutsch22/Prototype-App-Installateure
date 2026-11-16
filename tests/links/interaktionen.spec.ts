@@ -121,6 +121,13 @@ test('Echte Touchgesten: seitlich fest, Tabelle bedienbar, vertikal scrollbar un
     const breit = document.createElement('div'); breit.style.cssText = 'width:900px;height:60px;background:linear-gradient(90deg,#ccc,#aaa)'; breit.textContent = 'Breite Tabelleninhalte bleiben erreichbar'; tabelle.append(breit);
     body.prepend(probe, tabelle);
   });
+  /*
+    ERST MESSEN, WENN DAS FENSTER STEHT (16.11.2026). Seit B1 fährt es 220 ms
+    von unten herein; gemessen mitten in der Bewegung lag die Probe tiefer,
+    als sie danach stand, und der letzte Wisch traf eine andere Stelle des
+    Bogens — das Fenster blieb offen (rot in der CI, örtlich ebenso).
+  */
+  await expect.poll(() => dialog.evaluate((d) => d.getAnimations({ subtree: true }).length)).toBe(0);
   const cdp = await page.context().newCDPSession(page);
   const box = (await page.locator('#fingerprobe').boundingBox())!;
   await finger(page, cdp, box.x + 50, box.y + 25, 180, 20);
@@ -150,7 +157,9 @@ test('Echte Touchgesten: seitlich fest, Tabelle bedienbar, vertikal scrollbar un
     el.scrollTop = 0;
     await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   });
-  await finger(page, cdp, box.x + 50, box.y + 25, 0, 180);
+  // Die Probe steht nach dem Zurückrollen wieder oben: dort neu gemessen.
+  const oben = (await page.locator('#fingerprobe').boundingBox())!;
+  await finger(page, cdp, oben.x + 50, oben.y + 25, 0, 180);
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
 });

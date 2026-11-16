@@ -13,6 +13,19 @@ import { test, expect, type Page, type CDPSession } from '@playwright/test';
   eine Pause trifft je nach Rechner einen anderen Augenblick der Bewegung.
 */
 
+/*
+  DER WEG BILD FÜR BILD NUR IN CHROMIUM (16.11.2026). Chromium setzt den
+  Start einer Animation auf das erste Bild, in dem sie gemalt wird; WebKit
+  auf den Augenblick des Anlegens. Bis WebKit das nächste Bild malt, ist eine
+  Bewegung von 160 ms dort schon 30 ms (gemessen hier) bis 200 ms (CI) alt —
+  je nach Rechner sah eine Prüfung nur noch ihr Ende. Code und CSS der
+  Bewegungen sind in beiden Maschinen dieselben; den Weg prüft deshalb
+  Chromium, WebKit prüft Endbild und reduzierte Bewegung (Grenze: Gerät, in
+  `docs/grenzen-durchsicht-2026-10-24.md`).
+*/
+const wegNurInChromium = (browserName: string) =>
+  test.skip(browserName === 'webkit', 'WebKit setzt den Start beim Anlegen: der Weg Bild für Bild ist dort nicht verlässlich messbar.');
+
 const pfad = (route: string, rolle = 'Administrator') => `./?pfad=${encodeURIComponent(route)}&rolle=${rolle}`;
 
 /** Die Beobachter der Bewegungen laden nach dem ersten Bild nach (`Layout`): erst danach wirken sie. */
@@ -32,9 +45,11 @@ async function aufzeichnen(page: Page, sel: string, eigenschaft: 'transform' | '
       const el = document.querySelector(sel as string);
       if (el && t0 < 0) t0 = performance.now();
       if (t0 >= 0) w.spur.push([performance.now() - t0, el ? getComputedStyle(el)[eigenschaft as 'transform'] : '—']);
-      if (t0 < 0 || (performance.now() - t0 < (ms as number) && el)) requestAnimationFrame(bild);
+      // Erscheint das Element nie (schon wieder zu, bevor ein Bild es zeigte), endet die Spur nach 2 s leer statt nie.
+      if (t0 < 0 ? performance.now() - start < 2000 : performance.now() - t0 < (ms as number) && el) requestAnimationFrame(bild);
       else w.spurFertig = true;
     };
+    const start = performance.now();
     requestAnimationFrame(bild);
   }, [sel, eigenschaft, ms] as const);
 }
@@ -51,7 +66,8 @@ function versatz(m: string): [number, number] {
 test.describe('B1 Blatt von unten', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test('fährt von unten herein und steht am Ende ohne Versatz', async ({ page }) => {
+  test('fährt von unten herein und steht am Ende ohne Versatz', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/'));
     await expect(page.locator('.unten button').filter({ hasText: 'Mehr' })).toBeVisible();
@@ -64,7 +80,8 @@ test.describe('B1 Blatt von unten', () => {
     for (let i = 1; i < s.length; i++) expect(s[i]).toBeLessThanOrEqual(s[i - 1] + 0.5);
   });
 
-  test('schließt nach unten und gibt erst danach den Platz frei', async ({ page }) => {
+  test('schließt nach unten und gibt erst danach den Platz frei', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/'));
     await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
@@ -78,7 +95,7 @@ test.describe('B1 Blatt von unten', () => {
     await expect(dialog).toHaveCount(0);
   });
 
-  test('weggezogen fährt es aus der Lage des Fingers weiter, ohne zurückzuspringen', async ({ page }) => {
+  test('weggezogen fährt es aus der Lage des Fingers weiter, ohne zurückzuspringen', async ({ page, browserName }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/'));
     await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
@@ -90,8 +107,11 @@ test.describe('B1 Blatt von unten', () => {
     await aufzeichnen(page, '.blatt', 'transform', 300);
     await page.mouse.up();
     const s = (await spur(page)).filter(([, m]) => m !== '—').map(([, m]) => versatz(m)[1]);
-    expect(s[0]).toBeGreaterThan(140);
-    for (let i = 1; i < s.length; i++) expect(s[i]).toBeGreaterThanOrEqual(s[i - 1] - 0.5);
+    // Der Weg nur in Chromium (siehe oben); dass das Blatt zugeht, überall.
+    if (browserName !== 'webkit') {
+      expect(s[0]).toBeGreaterThan(140);
+      for (let i = 1; i < s.length; i++) expect(s[i]).toBeGreaterThanOrEqual(s[i - 1] - 0.5);
+    }
     await expect(page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true })).toHaveCount(0);
   });
 
@@ -109,7 +129,8 @@ test.describe('B1 Blatt von unten', () => {
 
 test.describe('B1 Seitenfenster ab dem Tablet', () => {
   test.use({ viewport: { width: 834, height: 1112 }, hasTouch: true });
-  test('kommt von rechts', async ({ page }) => {
+  test('kommt von rechts', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/invoices'));
     await expect(page.getByRole('button', { name: 'Hilfe zu dieser Seite' }).first()).toBeVisible();
@@ -133,7 +154,7 @@ async function listeMitZeilen(page: Page) {
 test.describe('B2 Zeile verschwindet', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  for (const reduziert of [false, true]) test(`klappt zusammen, Nachbarn rücken nach${reduziert ? ' — reduziert: sofort, dasselbe Endbild' : ''}`, async ({ page }) => {
+  for (const reduziert of [false, true]) test(`klappt zusammen, Nachbarn rücken nach${reduziert ? ' — reduziert: sofort, dasselbe Endbild' : ''}`, async ({ page, browserName }) => {
     await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
     await page.goto(pfad('/time'));
     await listeMitZeilen(page);
@@ -163,7 +184,8 @@ test.describe('B2 Zeile verschwindet', () => {
     expect(Math.abs(ergebnis.vorher - ergebnis.hoehe - ergebnis.endeOben)).toBeLessThan(1.5);
     if (reduziert) {
       expect(ergebnis.bilder.every((b) => !b.geist && b.y === 0)).toBe(true);
-    } else {
+    } else if (browserName !== 'webkit') {
+      // Der Weg nur in Chromium (siehe oben); das Endbild oben gilt überall.
       expect(ergebnis.bilder[0].geist).toBe(true);
       // Der Nachbar startet an seiner alten Stelle (sichtbar) und gleitet hinauf.
       expect(ergebnis.bilder[0].y).toBeGreaterThan(ergebnis.hoehe * 0.5);
@@ -241,14 +263,17 @@ test.describe('B3 Zeile kommt dazu', () => {
     return { bilder, auswahlRgb };
   }, art);
 
-  test('blendet ein, trägt kurz die Auswahlfläche, Nachbarn rücken von oben nach', async ({ page }) => {
+  test('blendet ein, trägt kurz die Auswahlfläche, Nachbarn rücken von oben nach', async ({ page, browserName }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/time'));
     await listeMitZeilen(page);
     const { bilder, auswahlRgb } = await einfuegen(page, 'neu');
-    expect(bilder[0].deck).toBeLessThan(1);
-    expect(bilder[0].grund).toBe(auswahlRgb);
-    expect(bilder[0].y).toBeLessThan(-10);
+    // Der Weg nur in Chromium (siehe oben); das Endbild gilt überall.
+    if (browserName !== 'webkit') {
+      expect(bilder[0].deck).toBeLessThan(1);
+      expect(bilder[0].grund).toBe(auswahlRgb);
+      expect(bilder[0].y).toBeLessThan(-10);
+    }
     expect(bilder[bilder.length - 1].y).toBe(0);
     expect(bilder[bilder.length - 1].deck).toBe(1);
   });
@@ -277,7 +302,8 @@ test.describe('B5 Unterlinie gleitet', () => {
     { route: '/settings/firma', role: 'link' as const, name: 'Personal', breite: 390 },
     { route: '/customers/k1', role: 'tab' as const, name: 'Stammdaten', breite: 390 },
     { route: '/invoices', role: 'button' as const, name: 'Erledigt', breite: 1440 },
-  ]) for (const reduziert of [false, true]) test(`${fall.route} → ${fall.name}${reduziert ? ' — reduziert: sofort' : ''}`, async ({ page }) => {
+  ]) for (const reduziert of [false, true]) test(`${fall.route} → ${fall.name}${reduziert ? ' — reduziert: sofort' : ''}`, async ({ page, browserName }) => {
+    if (!reduziert) wegNurInChromium(browserName);
     await page.setViewportSize({ width: fall.breite, height: 900 });
     await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
     await page.goto(pfad(fall.route));
@@ -354,7 +380,8 @@ test.describe('B7 Arbeitstag Start/Pause/Stopp', () => {
     return page.evaluate(() => (window as unknown as { tag: Array<{ stand?: string; deck: number; knopf: string }> }).tag);
   }
 
-  test('der Inhalt blendet mit der Fläche ein, der neue Knopf kommt aus der Verkleinerung', async ({ page }) => {
+  test('der Inhalt blendet mit der Fläche ein, der neue Knopf kommt aus der Verkleinerung', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const tag = await starten(page);
     expect(tag[0].stand).toBe('laeuft');
@@ -401,7 +428,8 @@ test.describe('B4 Speichern bestätigt', () => {
     return { leiste, feld, haken: await page.evaluate(() => (window as unknown as { haken: number[] }).haken) };
   }
 
-  test('der Haken zeichnet sich, dann zieht sich die Leiste zurück; eine Änderung holt sie sofort', async ({ page }) => {
+  test('der Haken zeichnet sich, dann zieht sich die Leiste zurück; eine Änderung holt sie sofort', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const { leiste, feld, haken } = await aendernUndSpeichern(page);
     expect(haken[0]).toBeGreaterThan(5);
@@ -475,7 +503,8 @@ test.describe('B8 Platzhalter gehen in Inhalt über', () => {
     return bilder;
   }, ms);
 
-  test('der gesehene Platzhalter blendet aus, während der Inhalt einblendet', async ({ page }) => {
+  test('der gesehene Platzhalter blendet aus, während der Inhalt einblendet', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/time'));
     await listeMitZeilen(page);
@@ -582,7 +611,8 @@ test.describe('B10 Aufklappen', () => {
     return page.evaluate(() => (window as unknown as { klapp: Array<{ geist: boolean; y: number }> }).klapp);
   }
 
-  test('zuklappen: der Inhalt klappt als Abbild zusammen, die Woche darunter gleitet hinauf; aufklappen umgekehrt', async ({ page }) => {
+  test('zuklappen: der Inhalt klappt als Abbild zusammen, die Woche darunter gleitet hinauf; aufklappen umgekehrt', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/time'));
     await listeMitZeilen(page);
@@ -609,7 +639,8 @@ test.describe('B10 Aufklappen', () => {
 
 test.describe('B10 Aufklappen — <details>', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-  test('der Inhalt blendet von oben ein; das Schließen hinterlässt kein Abbild', async ({ page }) => {
+  test('der Inhalt blendet von oben ein; das Schließen hinterlässt kein Abbild', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/time'));
     const kopf = page.locator('details > summary').filter({ hasText: 'Änderungsprotokoll' });
@@ -661,14 +692,15 @@ test.describe('B11 Fehler am Feld', () => {
     await expect(page.locator('.aktionsleiste').getByRole('button', { name: 'Speichern' })).toBeVisible();
   };
 
-  test('nach „Speichern“: das Feld ruckt kurz, der Fokus springt hin und es steht im Bild', async ({ page }) => {
+  test('nach „Speichern“: das Feld ruckt kurz, der Fokus springt hin und es steht im Bild', async ({ page, browserName }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/settings/firma'));
     await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
     await beobachterBereit(page);
     await etwasAendern(page);
     const r = await abweisen(page, false);
-    expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
+    // Der Ruck Bild für Bild nur in Chromium (siehe oben); Endlage, Fokus und Lage im Bild überall.
+    if (browserName !== 'webkit') expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
     expect(r.lagen[r.lagen.length - 1]).toBe(0);
     expect(r.fokus).toBe(true);
     expect(r.imBild).toBe(true);
@@ -716,7 +748,8 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
     return page.evaluate(() => (window as unknown as { seite: number[] }).seite);
   };
 
-  test('die Akte kommt von rechts, zurück kommt die Liste von links; quer bleibt ohne Seitenbewegung', async ({ page }) => {
+  test('die Akte kommt von rechts, zurück kommt die Liste von links; quer bleibt ohne Seitenbewegung', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/customers'));
     const zeile = page.locator('li.zeile .zeile-ziel').first();
