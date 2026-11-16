@@ -98,6 +98,12 @@ Arbeitsstand, 160 offene), Baustellen (die jüngsten 300 und alle laufenden,
 720), die offenen Rechnungen der Startseite (198) sowie die übrigen Seiten der
 Liste unten, die nicht Teil dieses Auftrags waren.
 
+**Nacharbeit, Teil 1 — Anforderungen „Laufend“** (`20261118032000_anforderungen_laufend.sql`):
+je Gruppe Zahl und die gezeigten 20 aus der Datenbank, gefiltert wie von der
+Startseite verlangt; der ganze Arbeitsstand nur noch für die Einkaufsliste.
+Gemessen (eigener Stapel, ein Lauf): grösste Antwort 160 → 8 Zeilen, bereit
+3,8 → 3,6 s.
+
 <!-- messung-monteur:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
 Gemessen am 15.11.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, erster Besuch ohne Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Monteur (`monteur2`) des Testbetriebs `ui-testbestand`.
 

@@ -56,6 +56,36 @@ const sucheAnforderungen = vi.fn(async (_c: string, begriff: string) =>
   [...anforderungen, ...nurAufDemServer].filter((o) =>
     [o.materialName, o.userName, o.projectNumber, o.note].some((v) => v?.toLowerCase().includes(begriff.toLowerCase()))));
 
+/** Wie oft „Laufend“ gefragt wurde, und mit welchen Angaben. */
+const laufendFragen: Array<{ filter?: string | null; projekt?: string | null; anzahl: Record<string, number> }> = [];
+let laufendGeaendert: () => void = () => undefined;
+async function laufendNachgebildet(f: { heute: string; jetzt: number; filter?: string | null; projekt?: string | null; anzahl: Record<string, number> }) {
+  laufendFragen.push(f);
+  if (ladefehler) throw new Error(ladefehler);
+  const { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig } = await import('@/features/orders/anforderungStand');
+  const offen = anforderungen.filter((o) => o.transactionType === 'order' && ['Offen', 'In Bearbeitung', 'Abholbereit'].includes(o.status));
+  const passt = (o: WithId<MaterialOrder>) => {
+    switch (f.filter) {
+      case 'offen': return o.status === 'Offen';
+      case 'eil': return !!o.isUrgent && (o.status === 'Offen' || o.status === 'In Bearbeitung');
+      case 'abholbereit-alt': return istAbholbereitAlt(o, f.jetzt);
+      case 'bestellt-ueberfaellig': return istLieferungUeberfaellig(o, f.heute);
+      case 'lieferung-heute': return istLieferungHeute(o, f.heute);
+      default: return true;
+    }
+  };
+  const gefiltert = offen.filter((o) => (!f.projekt || o.projectNumber === f.projekt) && passt(o));
+  return {
+    gruppen: (['Offen', 'In Bearbeitung', 'Abholbereit'] as const).map((status) => {
+      const alle = gefiltert.filter((o) => o.status === status)
+        .sort((a, b) => Number(!!b.isUrgent) - Number(!!a.isUrgent) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+      return { status, anzahl: alle.length, zeilen: alle.slice(0, f.anzahl[status] ?? 20) };
+    }),
+    projekte: [...new Set(offen.map((o) => o.projectNumber).filter((p): p is string => !!p))].sort(),
+    zuBestellen: offen.filter((o) => o.beschaffung === 'einkauf' && !o.geliefertAm && !o.bestelltAm).length,
+  };
+}
+
 vi.mock('@/lib/db/materialOrders', () => ({
   ORDER_STATUS_FLOW: ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'],
   ANFORDERUNG_TREFFER: 100,
@@ -85,6 +115,17 @@ vi.mock('@/lib/db/materialOrders', () => ({
       cb(anforderungen.filter((o) => o.transactionType === 'order'
         && ['Offen', 'In Bearbeitung', 'Abholbereit'].includes(o.status)));
     }
+    return () => undefined;
+  },
+  /*
+    „Laufend“ seit 15.11.2026 aus der Datenbank (`anforderungen_laufend`;
+    gleiche Regeln prüft `tests/supabase/anforderungenLaufend.test.ts`) — hier
+    aus `anforderungen` nachgebildet: je Gruppe Zahl und erste Zeilen.
+  */
+  anforderungenLaufend: (f: { heute: string; jetzt: number; filter?: string | null; projekt?: string | null; anzahl: Record<string, number> }) =>
+    laufendNachgebildet(f),
+  anforderungenBeobachten: (_c: string, melde: () => void) => {
+    laufendGeaendert = melde;
     return () => undefined;
   },
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
@@ -198,6 +239,7 @@ beforeEach(() => {
   loeschen.mockReset();
   loeschen.mockResolvedValue({ art: 'geloescht', gegenbuchung: [] });
   offeneAbos = 0;
+  laufendFragen.length = 0;
   eiligSetzen.mockReset();
   eiligSetzen.mockResolvedValue(undefined);
   ausLager.mockReset();
@@ -386,8 +428,8 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     await statusWaehlen('In Bearbeitung');
     expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
     expect(screen.queryByText('Status: In Bearbeitung')).not.toBeInTheDocument();
-    // „Laufend“ steht auf dem Arbeitsstand — er wird neu geholt.
-    await waitFor(() => expect(offeneAbos).toBeGreaterThan(1));
+    // „Laufend“ fragt die Datenbank neu.
+    await waitFor(() => expect(laufendFragen.length).toBeGreaterThan(1));
   });
 
   it('„Aus Lager“, das nichts mehr traf: Hinweis statt „abholbereit“', async () => {
@@ -414,7 +456,7 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     zeige();
     await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     expect(await screen.findByText('Kupferrohr 15mm: aus dem Lager — abholbereit')).toBeInTheDocument();
-    expect(offeneAbos).toBe(1);
+    expect(laufendFragen).toHaveLength(1);
   });
 });
 
@@ -424,6 +466,47 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
   Einkaufsliste kommen aus dem Arbeitsstand. Gegenprobe: mit dem Stand davor
   holt „Laufend“ sie mit (rot).
 */
+/*
+  „LAUFEND“ NUR MIT DER GEZEIGTEN SEITE (Durchsicht 15.11.2026, Budget B3):
+  je Gruppe 20 und die Zahl über alle aus der Datenbank; „und N weitere“
+  fragt mehr. Der ganze Arbeitsstand nur für die Einkaufsliste. Gegenprobe:
+  mit dem Stand davor wird der Arbeitsstand schon für „Laufend“ abonniert
+  und die Datenbank nie gefragt (rot).
+*/
+describe('Anforderungen — „Laufend“ seitenweise aus der Datenbank', () => {
+  const viele = () => Array.from({ length: 25 }, (_, i) =>
+    anforderung({ id: `o${i}`, materialName: `Fitting ${String(i).padStart(2, '0')}`, createdAt: 1_000 + i }));
+
+  it('zeigt 20 je Gruppe, zählt alle und holt mit „weitere“ mehr — ohne den Arbeitsstand zu abonnieren', async () => {
+    anforderungen = viele();
+    zeige();
+    expect(await screen.findByText('Fitting 00')).toBeInTheDocument();
+    expect(screen.queryByText('Fitting 20')).not.toBeInTheDocument();
+    expect(offeneAbos).toBe(0);
+    expect(laufendFragen[0].anzahl).toEqual({ Offen: 20, 'In Bearbeitung': 20, Abholbereit: 20 });
+    await userEvent.click(await waitFor(() => handlung({ name: 'und 5 weitere anzeigen' })));
+    expect(await screen.findByText('Fitting 24')).toBeInTheDocument();
+    expect(laufendFragen[laufendFragen.length - 1].anzahl.Offen).toBe(40);
+  });
+
+  it('eine Änderung im Kanal fragt „Laufend“ neu', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    expect(await screen.findByText(/Kupferrohr 15mm/)).toBeInTheDocument();
+    anforderungen = [...anforderungen, anforderung({ id: 'o2', materialName: 'Neues Eckventil' })];
+    await act(async () => laufendGeaendert());
+    expect(await screen.findByText(/Neues Eckventil/)).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: der Arbeitsstand kommt für die Einkaufsliste', async () => {
+    anforderungen = [anforderung({ id: 'e1', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1', materialName: 'Bestellfitting' })];
+    zeige();
+    await userEvent.click(await bereich(/^Einkauf/));
+    expect(await screen.findByText(/Bestellfitting/)).toBeInTheDocument();
+    expect(offeneAbos).toBe(1);
+  });
+});
+
 describe('Anforderungen — die jüngsten erst, wenn ein Reiter sie zeigt', () => {
   it('„Laufend“ holt sie nicht; „Erledigt“ holt sie einmal, und zurück bleibt es dabei', async () => {
     anforderungen = [anforderung({ id: 'o1' }), anforderung({ id: 'e1', status: 'Erledigt', materialName: 'Fitting erledigt' })];
@@ -875,7 +958,8 @@ describe('Anforderungen — der Arbeitsstand reicht hinter die jüngsten 200', (
     anforderungen = [...erledigte, anforderung({ id: 'alt', materialName: 'Altes Eckventil' })];
     zeige();
     expect(await screen.findByText('Altes Eckventil')).toBeInTheDocument();
-    expect(offeneAbos).toBeGreaterThan(0);
+    // Seit 15.11.2026 aus der Datenbank, über alle offenen — nicht aus den jüngsten.
+    expect(laufendFragen.length).toBeGreaterThan(0);
   });
 
   it('… und auf der Einkaufsliste, samt Zahl am Reiter', async () => {

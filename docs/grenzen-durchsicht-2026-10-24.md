@@ -933,11 +933,11 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
   Messbestand, und sagt es.
 - **Budget B3, noch offen** (nicht gebaut in dieser Nacharbeit; keine Grenze,
   sondern Arbeit, die aussteht):
-  - *Anforderungen „Laufend“*: der Arbeitsstand (jede offene Anforderung, im
-    gewachsenen Bestand 160) kommt ganz, weil Gruppen, Zahlen, Einkaufsliste
-    und Filter der Startseite im Browser über alle rechnen. Nächster Schritt:
-    Gruppen und Einkaufsliste mit Zahl und erster Seite aus der Datenbank,
-    wie `lager_liste`.
+  - *Anforderungen „Laufend“* — **erledigt** (Nacharbeit, Teil 1):
+    `anforderungen_laufend` gibt je Gruppe Zahl und gezeigte Seite, gefiltert
+    wie von der Startseite verlangt, dazu Baustellen der Auswahl und die Zahl
+    am Reiter „Einkauf“; der ganze Arbeitsstand kommt nur noch für die
+    Einkaufsliste, die jede offene Bestellung je Großhändler zusammenfasst.
   - *Baustellen*: die jüngsten 300 und alle laufenden (zusammen 720) für
     Liste, Schriftfeld und die Filter der Startseite. Nächster Schritt:
     Zählungen (aktiv, Ende überschritten) aus der Datenbank, die laufenden nur

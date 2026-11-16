@@ -6,6 +6,9 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
   subscribeOffeneAnforderungen,
+  anforderungenLaufend,
+  anforderungenBeobachten,
+  type AnforderungenLaufend,
   subscribeWartendeRetouren,
   retoureAnnehmen,
   sucheAnforderungen,
@@ -38,7 +41,6 @@ import { abholTeil, teilwahl } from './teilmengeWahl';
 import { zahlAlsText } from '@/lib/zahl';
 import { darfEinkaufSehen } from '@/lib/permissions';
 import { istAn } from '@/lib/module';
-import { aufEinkaufsliste as aufDerListe } from './einkauf';
 import type { EinkaufPosten, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
@@ -504,8 +506,18 @@ export default function AdminOrdersView() {
   /** Annehmen (M7): Menge, die ankam, und Zustand am Regal. */
   const [annahme, setAnnahme] = useState<{ o: WithId<MaterialOrder>; menge: string; zustand: 'neu' | 'gebraucht' | 'defekt' } | null>(null);
 
+  /*
+    DER GANZE ARBEITSSTAND NUR FÜR DIE EINKAUFSLISTE (Durchsicht 15.11.2026,
+    Budget B3): sie fasst jede offene Bestellung je Großhändler zusammen.
+    „Laufend“ fragt seine Seite selbst (unten). Einmal gebraucht, bleibt das
+    Abo stehen.
+  */
+  const [einkaufGebraucht, setEinkaufGebraucht] = useState(false);
   useEffect(() => {
-    if (!user) return;
+    if (tab === 'einkauf') setEinkaufGebraucht(true);
+  }, [tab]);
+  useEffect(() => {
+    if (!user || !einkaufGebraucht) return;
     return subscribeOffeneAnforderungen(
       user.companyId,
       (rows) => {
@@ -518,7 +530,49 @@ export default function AdminOrdersView() {
         setArbeitLaedt(false);
       },
     );
-  }, [user, neuLaden]);
+  }, [user, neuLaden, einkaufGebraucht]);
+
+  /*
+    „LAUFEND“ AUS DER DATENBANK (Durchsicht 15.11.2026, Budget B3): je
+    Gruppe die Zahl und so viele Zeilen, wie gezeigt werden — gefiltert wie
+    von der Startseite verlangt und nach Baustelle. Vorher kam dafür jede
+    offene Anforderung als Live-Liste. Neu gefragt, wenn der Kanal eine
+    Änderung meldet oder eine Aktion auf einem veralteten Stand lief.
+  */
+  const [laufend, setLaufend] = useState<AnforderungenLaufend | null>(null);
+  const [laufendFehler, setLaufendFehler] = useState<string | null>(null);
+  const [laufendRunde, setLaufendRunde] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    try {
+      return anforderungenBeobachten(user.companyId, () => setLaufendRunde((n) => n + 1));
+    } catch {
+      return undefined;
+    }
+  }, [user]);
+  const laufendFilter = tab === 'aktiv' ? adressFilter : null;
+  const jeGruppeSchluessel = JSON.stringify(jeGruppe);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    const zahl = JSON.parse(jeGruppeSchluessel) as Record<string, number>;
+    anforderungenLaufend({
+      heute: todayStr(),
+      jetzt: Date.now(),
+      filter: laufendFilter,
+      projekt: projectFilter || null,
+      anzahl: Object.fromEntries(['Offen', 'In Bearbeitung', 'Abholbereit'].map((st) => [st, zahl[st] ?? JE_GRUPPE])),
+    })
+      .then((l) => {
+        if (weg) return;
+        setLaufend(l);
+        setLaufendFehler(null);
+      })
+      .catch((e: Error) => { if (!weg) setLaufendFehler(e.message); });
+    return () => { weg = true; };
+  }, [user, laufendFilter, projectFilter, jeGruppeSchluessel, laufendRunde, neuLaden]);
+  /** Die Zeilen, die „Laufend“ gerade zeigt — für Seitenfenster und Auswahl. */
+  const laufendZeilen = useMemo(() => (laufend?.gruppen ?? []).flatMap((g) => g.zeilen), [laufend]);
 
   /*
     LÖSCHEN NENNT SEINE FOLGE (Prüfbericht 10.11.2026). Eine verbuchte
@@ -608,24 +662,26 @@ export default function AdminOrdersView() {
    * davon. Der Arbeitsstand zuerst: er ist für Offenes der jüngere Stand.
    */
   const bekannte = useMemo(() => {
-    const ids = new Set(arbeitsstand.map((o) => o.id));
-    const geladen = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    const offenBekannt = [...laufendZeilen, ...arbeitsstand.filter((o) => !laufendZeilen.some((l) => l.id === o.id))];
+    const ids = new Set(offenBekannt.map((o) => o.id));
+    const geladen = [...offenBekannt, ...orders.filter((o) => !ids.has(o.id))];
     for (const o of geladen) ids.add(o.id);
     // M7: auch die wartenden Retouren außerhalb der Altersgrenze öffnen sich.
     const alle = [...geladen, ...wartende.filter((o) => !ids.has(o.id))];
     if (!serverTreffer) return alle;
     for (const o of alle) ids.add(o.id);
     return [...alle, ...serverTreffer.filter((o) => !ids.has(o.id))];
-  }, [arbeitsstand, orders, wartende, serverTreffer]);
+  }, [laufendZeilen, arbeitsstand, orders, wartende, serverTreffer]);
 
   /** Die Anforderungen (ohne Retouren) unter den geladenen — für „Erledigt“. */
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
   /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
   const zuBestellen = useMemo(
     () =>
-      arbeitsstand.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
+      // Die Anforderungen zählt die Datenbank (`anforderungen_laufend`), die eigenen Posten stehen hier.
+      (laufend?.zuBestellen ?? 0) +
       lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
-    [arbeitsstand, lagerPosten],
+    [laufend, lagerPosten],
   );
   /*
     Die wartenden zuerst (M7) — sie sind Arbeit; danach die erfassten, wie
@@ -639,8 +695,8 @@ export default function AdminOrdersView() {
   }, [orders, wartende]);
 
   const projectOptions = useMemo(
-    () => [...new Set([...arbeitsstand, ...purchases].map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
-    [arbeitsstand, purchases],
+    () => [...new Set([...(laufend?.projekte ?? []), ...purchases.map((o) => o.projectNumber)].filter(Boolean))].sort() as string[],
+    [laufend, purchases],
   );
 
   const rows = useMemo(() => {
@@ -648,7 +704,7 @@ export default function AdminOrdersView() {
     // „Laufend“ aus dem Arbeitsstand, „Erledigt“ aus den geladenen.
     const kaeufe = serverTreffer
       ? serverTreffer.filter((o) => o.transactionType !== 'return')
-      : tab === 'aktiv' ? arbeitsstand : purchases;
+      : tab === 'aktiv' ? laufendZeilen : purchases;
     const rueck = serverTreffer ? serverTreffer.filter((o) => o.transactionType === 'return') : returns;
     const base =
       tab === 'retouren'
@@ -658,6 +714,7 @@ export default function AdminOrdersView() {
           : kaeufe.filter((o) => o.status !== 'Erledigt');
     const heute = todayStr();
     const jetzt = Date.now();
+    // Ohne Suche hat die Datenbank „Laufend“ schon nach Startseite und Baustelle gefiltert — nochmals schadet nicht.
     const gefiltert = adressFilter && tab === 'aktiv'
       ? base.filter((o) => passtZuFilter(o, adressFilter, heute, jetzt))
       : base;
@@ -672,7 +729,7 @@ export default function AdminOrdersView() {
         v?.toLowerCase().includes(q),
       ),
     );
-  }, [tab, arbeitsstand, purchases, returns, projectFilter, suchbegriff, adressFilter, serverTreffer]);
+  }, [tab, laufendZeilen, purchases, returns, projectFilter, suchbegriff, adressFilter, serverTreffer]);
 
   /**
    * Offene Anforderungen nach Arbeitsschritt gruppiert, Eilfälle oben.
@@ -684,17 +741,23 @@ export default function AdminOrdersView() {
    */
   const aktivGruppen = useMemo(() => {
     if (tab !== 'aktiv') return [];
+    // Ohne Suche: Gruppen, Zahlen und Reihenfolge der Datenbank (über alle offenen).
+    if (!suchbegriff && laufend) {
+      return laufend.gruppen
+        .filter((g) => g.anzahl > 0)
+        .map((g) => ({ titel: g.status, anzahl: g.anzahl, zeilen: g.zeilen }));
+    }
     const reihenfolge: MaterialOrder['status'][] = ['Offen', 'In Bearbeitung', 'Abholbereit'];
     return reihenfolge
-      .map((status) => ({
-        titel: status,
-        zeilen: rows
+      .map((status) => {
+        const zeilen = rows
           .filter((o) => o.status === status)
           // Eil zuerst, dann die ältesten: wer am längsten wartet, steht oben.
-          .sort((a, b) => Number(!!b.isUrgent) - Number(!!a.isUrgent) || byNewest(b, a)),
-      }))
+          .sort((a, b) => Number(!!b.isUrgent) - Number(!!a.isUrgent) || byNewest(b, a));
+        return { titel: status, anzahl: zeilen.length, zeilen };
+      })
       .filter((g) => g.zeilen.length > 0);
-  }, [tab, rows]);
+  }, [tab, rows, suchbegriff, laufend]);
 
   /** Erledigtes und Retouren nach Tag gruppiert, neueste zuerst. */
   const tagesGruppen = useMemo(() => {
@@ -1098,13 +1161,13 @@ export default function AdminOrdersView() {
               Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
-          {(tab === 'aktiv' ? arbeitLaedt : loading) ? (
+          {(tab === 'aktiv' ? laufend === null && !laufendFehler : loading) ? (
             <div className="p-4">
               <SkeletonList rows={4} />
             </div>
-          ) : (tab === 'aktiv' ? arbeitFehler : error) ? (
+          ) : (tab === 'aktiv' ? laufendFehler : error) ? (
             <div className="p-4">
-              <ErrorState message={(tab === 'aktiv' ? arbeitFehler : error) ?? ''} />
+              <ErrorState message={(tab === 'aktiv' ? laufendFehler : error) ?? ''} />
             </div>
           ) : rows.length === 0 ? (
             /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
@@ -1141,7 +1204,7 @@ export default function AdminOrdersView() {
                 const zeigen = jeGruppe[g.titel] ?? JE_GRUPPE;
                 return (
                   <div key={g.titel}>
-                    <Abschnitt titel={g.titel} anzahl={g.zeilen.length} />
+                    <Abschnitt titel={g.titel} anzahl={g.anzahl} />
                     <ul>
                       {g.zeilen.slice(0, zeigen).map((o) => {
                         const s = schrittFuer(o);
@@ -1187,7 +1250,7 @@ export default function AdminOrdersView() {
                       })}
                     </ul>
                     <MehrAnzeigen
-                      anzahl={Math.max(0, g.zeilen.length - zeigen)}
+                      anzahl={Math.max(0, g.anzahl - Math.min(zeigen, g.zeilen.length))}
                       onClick={() => setJeGruppe((j) => ({ ...j, [g.titel]: zeigen + JE_GRUPPE }))}
                     />
                   </div>
