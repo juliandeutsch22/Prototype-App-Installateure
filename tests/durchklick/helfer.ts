@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { PASSWORT } from './aufbau';
 
 /**
@@ -92,4 +92,20 @@ export async function zeitFormularOeffnen(page: Page): Promise<void> {
   await expect(neu.or(feld).first()).toBeVisible({ timeout: 20_000 });
   if (await neu.isVisible()) await neu.click();
   await expect(feld).toBeVisible();
+}
+
+/**
+ * EIN EINTRAG IM ⋯ EINES FENSTERS ODER EINER AKTE (U4, Durchsicht 15.11.2026).
+ * Fenster tragen seit U4 eine Hauptaktion und höchstens eine zweite als
+ * Knopf, alles Weitere und alles Unumkehrbare steht im ⋯ (`Fensteraktionen`).
+ * Öffnet das ⋯ in `im` — es muss genau eines geben — und gibt den Eintrag
+ * zurück; der Klick darauf löst die Handlung aus. Das Menü hängt am Ende von
+ * `body`, also außerhalb des Fensters: wer es von hier aus bedient, prüft
+ * gleich mit, dass das Fenster dabei nicht zugeht.
+ */
+export async function imMenue(page: Page, im: Locator, eintrag: string | RegExp): Promise<Locator> {
+  await im.getByRole('button', { name: /^Weitere Aktionen für / }).click();
+  const menue = page.getByRole('menu');
+  await expect(menue).toBeVisible();
+  return menue.getByRole('menuitem', typeof eintrag === 'string' ? { name: eintrag, exact: true } : { name: eintrag });
 }

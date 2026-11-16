@@ -40,7 +40,14 @@ test('im Blatt wischen scrollt das Blatt, nicht die Seite dahinter', async ({ pa
   const cdp = await page.context().newCDPSession(page);
   const seite = () => page.evaluate(() => Math.round(window.scrollY));
 
-  await page.getByRole('button', { name: 'Neuer Kunde' }).last().click();
+  /*
+    Die Seite steht bei 300 px: die schwebende Hauptaktion ist zum Kreis
+    rechts eingezogen (B9), und nur der Kreis nimmt Tipps an — dort tippt
+    man, nicht in die Mitte der früheren Beschriftung.
+  */
+  const neu = page.getByRole('button', { name: 'Neuer Kunde' }).last();
+  const knopf = (await neu.boundingBox())!;
+  await neu.click({ position: { x: knopf.width - 24, y: knopf.height / 2 } });
   const blatt = page.getByRole('dialog', { name: 'Neuen Kunden anlegen' });
   await expect(blatt).toBeVisible();
   const start = await seite();

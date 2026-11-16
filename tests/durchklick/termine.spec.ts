@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * TERMINE VON ANFANG BIS ENDE (Plan 10.4):
@@ -130,7 +130,8 @@ test('Termin aus der Woche über das ⋯ des Seitenkopfs — und im Monat aus de
   const dieserMonat = page.getByRole('button', { name: 'Zurück zu diesem Monat' });
   if (await dieserMonat.count()) await dieserMonat.click();
   await page.getByRole('button', { name: /heute, 1 Termin.*alle Einsätze des Tages/ }).click({ timeout: 15_000 });
-  await page.getByRole('dialog').getByRole('button', { name: 'Termin anlegen' }).click();
+  // U4: in der Vorschau steht „Termin anlegen“ im ⋯ des Fußes; das Menü darf die Vorschau nicht schließen.
+  await (await imMenue(page, page.getByRole('dialog'), 'Termin anlegen')).click();
   const imMonat = page.getByRole('dialog', { name: 'Termin anlegen' });
   await expect(imMonat.getByLabel('Tag')).toHaveValue(heute());
   await imMonat.getByRole('button', { name: 'Abbrechen' }).click();

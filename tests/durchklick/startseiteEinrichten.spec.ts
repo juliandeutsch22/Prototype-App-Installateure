@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BETRIEB, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * DIE STARTSEITE SELBST EINRICHTEN (E68) — in Chromium, am Telefon und auf
@@ -43,7 +43,8 @@ test('Startseite anpassen: Zahl abwählen, Bereich ausblenden, bleibt nach dem N
 
   await page.getByRole('button', { name: 'Weitere Aktionen für Startseite' }).click();
   await page.getByRole('menuitem', { name: 'Startseite anpassen …' }).click();
-  await page.getByRole('dialog', { name: 'Startseite anpassen' }).getByRole('button', { name: 'Vorgabe wiederherstellen' }).click();
+  // U4: „Abbrechen“ und „Speichern“ als Knöpfe, „Vorgabe wiederherstellen“ im ⋯ des Fensters.
+  await (await imMenue(page, page.getByRole('dialog', { name: 'Startseite anpassen' }), 'Vorgabe wiederherstellen')).click();
   await expect(urlaub).toBeVisible({ timeout: 15_000 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await keineFehlermeldung(page);

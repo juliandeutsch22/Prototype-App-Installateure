@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * RECHNUNG PER MAIL AUS DER APP (Durchsicht 15.11.2026, F16) — der ganze Weg
@@ -44,7 +44,9 @@ test('Rechnung per Mail: vorbelegt senden, Mail mit PDF kommt an, steht im Verla
   await anmelden(page, CHEFIN.email);
   await page.goto(`/invoices?suche=${NUMMER}&oeffnen=${rechnung.data!.id}`);
   const fenster = page.getByRole('dialog', { name: `Rechnung ${NUMMER}` });
-  await fenster.getByRole('button', { name: 'Per Mail senden …' }).click({ timeout: 20_000 });
+  // U4: Hauptaktion „Zahlung erfassen“, daneben „PDF laden“ — „Per Mail senden …“ steht im ⋯ des Fensters.
+  await expect(fenster).toBeVisible({ timeout: 20_000 });
+  await (await imMenue(page, fenster, 'Per Mail senden …')).click();
 
   const mail = page.getByRole('dialog', { name: 'Rechnung per Mail' });
   await expect(mail.getByLabel(/^An/)).toHaveValue('huber@kunde.test');

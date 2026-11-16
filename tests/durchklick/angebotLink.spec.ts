@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { admin, BETRIEB, CHEFIN } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * ANGEBOTSANNAHME PER LINK (M02a, A06) — im echten Browser gegen die echte
@@ -80,7 +80,8 @@ test('Büro erzeugt den Link, der Kunde nimmt am Handy an, das Büro sieht die B
   const feld = fenster.getByLabel(/Link für den Kunden — nur jetzt sichtbar/);
   await expect(feld).toHaveValue(/\/angebot\/annehmen#[A-Za-z0-9_-]{43}$/);
   const adresse = await feld.inputValue();
-  await expect(fenster.getByRole('link', { name: 'Per Mail-Programm senden' })).toHaveAttribute('href', /^mailto:/);
+  // U4: „Kopieren“ und „Fertig“ als Knöpfe, das Mailprogramm im ⋯ — weiter ein echter mailto-Verweis.
+  await expect(await imMenue(page, fenster, 'Per Mail-Programm senden')).toHaveAttribute('href', /^mailto:/);
   await fenster.getByRole('button', { name: 'Fertig' }).click();
   const karte = page.locator('section', { has: page.getByRole('heading', { name: 'Annahme per Link' }) }).first();
   // Die Bindefrist liegt weiter als ein Jahr: der Link gilt ein Jahr.

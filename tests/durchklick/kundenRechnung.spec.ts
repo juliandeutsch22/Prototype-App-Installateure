@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * DIE RECHNUNG ÖFFNET SICH IN DER KUNDENAKTE (Auftrag 03.11.2026: „die
@@ -63,7 +63,8 @@ test('Kundenakte: Rechnung im Fenster lesen, als PDF laden, zum Bearbeiten öffn
 
   // Zum Bearbeiten: die Rechnungen, mit derselben Rechnung schon offen.
   await karte.getByRole('button', { name: new RegExp(NUMMER) }).click();
-  await page.getByRole('dialog', { name: `Rechnung ${NUMMER}` }).getByRole('button', { name: 'In Rechnungen bearbeiten' }).click();
+  // U4: „PDF laden“ ist der Knopf, der Weg zum Bearbeiten steht im ⋯ des Fensters.
+  await (await imMenue(page, page.getByRole('dialog', { name: `Rechnung ${NUMMER}` }), 'In Rechnungen bearbeiten')).click();
   await expect(page).toHaveURL(/\/invoices/);
   const dort = page.getByRole('dialog', { name: `Rechnung ${NUMMER}` });
   await expect(dort.getByRole('button', { name: 'Zahlung erfassen' })).toBeVisible({ timeout: 15_000 });

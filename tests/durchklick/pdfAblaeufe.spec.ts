@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { test, expect, type Download, type Page } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, imMenue, keineFehlermeldung } from './helfer';
 
 /**
  * PDF-ABLÄUFE IM ECHTEN BROWSER (Auftrag 14.11.2026: „checke auch die
@@ -130,7 +130,8 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
 
     // 1. Die erste Mahnung aus dem Fenster — sie wird dabei gespeichert.
     await oeffnen();
-    await fenster.getByRole('button', { name: 'Zahlungserinnerung erzeugen' }).click();
+    // U4: Hauptaktion „Zahlung erfassen“, daneben „PDF laden“; Mahnen, Storno und Stornobeleg im ⋯.
+    await (await imMenue(page, fenster, 'Zahlungserinnerung erzeugen')).click();
     const rueckfrage = page.getByRole('dialog').filter({ hasText: 'Zahlungserinnerung' });
     const [mahnung] = await Promise.all([
       page.waitForEvent('download', { timeout: 30_000 }),
@@ -149,7 +150,7 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
     await istPdfMit(wieder, NR);
 
     // 3. Stornieren — mit Grund.
-    await fenster.getByRole('button', { name: 'Stornieren', exact: true }).click();
+    await (await imMenue(page, fenster, 'Stornieren')).click();
     const storno = page.getByRole('dialog').filter({ hasText: 'Rechnung stornieren?' });
     await storno.getByLabel(/Grund/).fill('Falscher Kunde');
     await storno.getByRole('button', { name: 'Stornieren' }).click();
@@ -159,7 +160,7 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
     await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
     await page.getByRole('group', { name: 'Rechnungen zeigen' }).getByRole('button', { name: 'Erledigt' }).click();
     await oeffnen();
-    await fenster.getByRole('button', { name: 'Stornorechnung ausstellen …' }).click();
+    await (await imMenue(page, fenster, 'Stornorechnung ausstellen …')).click();
     const ausstellen = page.getByRole('dialog').filter({ hasText: 'Stornorechnung ausstellen?' });
     const [beleg] = await Promise.all([
       page.waitForEvent('download', { timeout: 30_000 }),
@@ -174,9 +175,10 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
     // 5. Und erneut — dieselbe Nummer, kein zweiter Beleg.
     await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
     await oeffnen();
+    const stornoPdf = await imMenue(page, fenster, 'Stornorechnung (PDF)');
     const [nochmal] = await Promise.all([
       page.waitForEvent('download', { timeout: 30_000 }),
-      fenster.getByRole('button', { name: 'Stornorechnung (PDF)' }).click(),
+      stornoPdf.click(),
     ]);
     expect(nochmal.suggestedFilename()).toBe(`Stornorechnung_${stornoNr}.pdf`);
     const { data: danach } = await admin.from('invoices').select('storno_nummer').eq('id', rechnung!.id).single();

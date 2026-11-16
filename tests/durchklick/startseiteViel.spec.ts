@@ -205,10 +205,12 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       expect(einsatz!.y + einsatz!.height).toBeLessThanOrEqual(aufgaben!.y);
       if (breite < 760) {
         // Das bisherige Menü bleibt erhalten; die Zeitaktion sitzt darüber.
+        // U3: sie steht am Einsatz, nicht zusätzlich schwebend im Seitenkopf.
         const menue = page.locator('nav.unten');
         await expect(menue).toBeVisible();
         await expect(menue.locator('.unten-text')).toHaveText(['Start', 'Zeit', 'Plan', 'Material', 'Mehr']);
-        const zeit = await page.locator('.seitenkopf').getByRole('link', { name: 'Zeit erfassen' }).boundingBox();
+        await expect(page.locator('.seitenkopf').getByRole('link', { name: 'Zeit erfassen' })).toHaveCount(0);
+        const zeit = await page.getByRole('region', { name: /Dein Einsatz heute/ }).getByRole('link', { name: /^(Zeit erfassen|Wie zuletzt)/ }).first().boundingBox();
         const navigation = await menue.boundingBox();
         expect(zeit!.y + zeit!.height).toBeLessThanOrEqual(navigation!.y);
         await menue.getByRole('button', { name: /^Mehr/ }).click();
