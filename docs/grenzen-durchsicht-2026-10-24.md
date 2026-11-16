@@ -1001,3 +1001,9 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
   nur Chromium. Die Handy-Ansicht prüft dort `telefon-chromium` (dieselben
   Wege bei 390 px mit Finger); Eigenheiten von Safari selbst sieht erst die
   CI mit `webkit-telefon`.
+- **Bewegungen Bild für Bild nur in Chromium** (Gerät): WebKit setzt den
+  Start einer Animation beim Anlegen, nicht beim ersten gemalten Bild; wie
+  weit eine Bewegung beim ersten Bild schon ist, hängt dort vom Rechner ab
+  (gemessen 30 ms lokal, bis 200 ms in der CI). Code und CSS der Bewegungen
+  sind in beiden Maschinen dieselben; WebKit prüft Endbild und reduzierte
+  Bewegung.
