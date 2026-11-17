@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { zielAus, type Last, type Ziel } from './umplanen';
+import { rollSchritt } from './mitrollen';
 
 /*
   ZIEHEN UND ABLEGEN IM WOCHENPLAN (E88) — mit Zeiger-Ereignissen, nicht
@@ -15,6 +16,11 @@ import { zielAus, type Last, type Ziel } from './umplanen';
     seine Leiste (`onAnheben`); wer dann bewegt, zieht, wer loslässt, hat die
     Leiste vor sich.
   - Escape bricht ab; danach geschieht nichts.
+  - MITROLLEN (E96): steht der Zeiger beim Ziehen am Rand des Rasters
+    (`data-mitrollen`, ab der Kante von Kopf und Namensspalte) oder am oberen
+    bzw. unteren Rand des Fensters, rollt es je Bild — schneller, je näher am
+    Rand (`mitrollen.ts`). Danach gilt die Zelle, die jetzt unter dem Zeiger
+    liegt.
 
   Das Ziel ist die Zelle unter dem Zeiger (`data-ziel-tag`,
   `data-ziel-person`); sie trägt beim Darüberziehen `data-ziel-aktiv`.
@@ -66,22 +72,28 @@ export function useZiehen({
     zieht: boolean;
     timer: number | null;
     ziel: HTMLElement | null;
+    /** Wo der Zeiger zuletzt stand — das Mitrollen läuft je Bild, nicht je Bewegung. */
+    x: number;
+    y: number;
   } | null>(null);
+  const rollBild = useRef<number | null>(null);
   const landung = useRef<number | null>(null);
   const ablegenRef = useRef(onAblegen);
   const anhebenRef = useRef(onAnheben);
   ablegenRef.current = onAblegen;
   anhebenRef.current = onAnheben;
 
-  const zielMarkieren = (el: HTMLElement | null) => {
+  const zielMarkieren = useCallback((el: HTMLElement | null) => {
     const l = lauf.current;
     if (!l || l.ziel === el) return;
     l.ziel?.removeAttribute('data-ziel-aktiv');
     el?.setAttribute('data-ziel-aktiv', '');
     l.ziel = el;
-  };
+  }, []);
 
   const ende = useCallback(() => {
+    if (rollBild.current) cancelAnimationFrame(rollBild.current);
+    rollBild.current = null;
     const l = lauf.current;
     if (l?.timer) window.clearTimeout(l.timer);
     l?.ziel?.removeAttribute('data-ziel-aktiv');
@@ -90,10 +102,54 @@ export function useZiehen({
     setSchatten(null);
   }, []);
 
-  // Ein laufender Flug endet mit der Seite — kein Zeitgeber überlebt das Raster.
+  // Ein laufender Flug und das Mitrollen enden mit der Seite — kein Zeitgeber überlebt das Raster.
   useEffect(() => () => {
     if (landung.current) window.clearTimeout(landung.current);
+    if (rollBild.current) cancelAnimationFrame(rollBild.current);
   }, []);
+
+  /*
+    JE BILD: rollen, wo der Zeiger am Rand steht, und danach die Zelle unter
+    ihm neu bestimmen — unter einem stillstehenden Zeiger zieht das Raster
+    vorbei. Läuft nur, solange gezogen wird; `ende` hält sie an.
+  */
+  const mitrollen = useCallback(() => {
+    if (rollBild.current) return;
+    const bild = () => {
+      const l = lauf.current;
+      if (!l?.zieht) {
+        rollBild.current = null;
+        return;
+      }
+      let gerollt = false;
+      const bereich = document.elementFromPoint(l.x, l.y)?.closest<HTMLElement>('[data-mitrollen]');
+      if (bereich) {
+        const r = bereich.getBoundingClientRect();
+        // Ohne Rollbalken: clientWidth/-Height sind die sichtbare Fläche.
+        const aussen = { links: r.left, oben: r.top, rechts: r.left + bereich.clientLeft + bereich.clientWidth, unten: r.top + bereich.clientTop + bereich.clientHeight };
+        const ecke = bereich.querySelector<HTMLElement>('[data-rollecke]')?.getBoundingClientRect();
+        const frei = ecke ? { ...aussen, links: Math.max(aussen.links, ecke.right), oben: Math.max(aussen.oben, ecke.bottom) } : aussen;
+        const { dx, dy } = rollSchritt(frei, aussen, l.x, l.y);
+        if (dx || dy) {
+          const [links, oben] = [bereich.scrollLeft, bereich.scrollTop];
+          bereich.scrollLeft += dx;
+          bereich.scrollTop += dy;
+          gerollt = bereich.scrollLeft !== links || bereich.scrollTop !== oben;
+        }
+      }
+      // Die Seite selbst rollt nur senkrecht — seitlich rollt sie nie (Hülle des Rasters).
+      const fenster = { links: 0, oben: 0, rechts: window.innerWidth, unten: window.innerHeight };
+      const { dy: seite } = rollSchritt({ ...fenster, links: -Infinity, rechts: Infinity }, fenster, l.x, l.y);
+      if (seite) {
+        const vorher = window.scrollY;
+        window.scrollBy(0, seite);
+        gerollt = gerollt || window.scrollY !== vorher;
+      }
+      if (gerollt) zielMarkieren(document.elementFromPoint(l.x, l.y)?.closest<HTMLElement>('[data-ziel-tag][data-ziel-person]') ?? null);
+      rollBild.current = requestAnimationFrame(bild);
+    };
+    rollBild.current = requestAnimationFrame(bild);
+  }, [zielMarkieren]);
 
   useEffect(() => {
     // Der Finger hat angehoben: ab jetzt rollt die Seite nicht mehr mit, er zieht.
@@ -113,7 +169,10 @@ export function useZiehen({
         if (weit < (l.finger ? FINGER_SCHWELLE : MAUS_SCHWELLE)) return;
         l.zieht = true;
         document.documentElement.setAttribute('data-zieht', '');
+        mitrollen();
       }
+      l.x = e.clientX;
+      l.y = e.clientY;
       const unter = document.elementFromPoint(e.clientX, e.clientY);
       zielMarkieren(unter?.closest<HTMLElement>('[data-ziel-tag][data-ziel-person]') ?? null);
       setSchatten({ last: l.last, x: e.clientX, y: e.clientY, kopieren: e.altKey });
@@ -168,7 +227,7 @@ export function useZiehen({
       window.removeEventListener('keydown', taste);
       window.removeEventListener('touchmove', beruehrung);
     };
-  }, [ende]);
+  }, [ende, mitrollen, zielMarkieren]);
 
   /** Die Eigenschaften für das, was sich ziehen lässt. */
   const griff = useCallback(
@@ -184,6 +243,7 @@ export function useZiehen({
         const finger = e.pointerType !== 'mouse';
         const l = {
           last, x0: e.clientX, y0: e.clientY, finger, angehoben: false, zieht: false, timer: null as number | null, ziel: null,
+          x: e.clientX, y: e.clientY,
         };
         lauf.current = l;
         if (finger) {

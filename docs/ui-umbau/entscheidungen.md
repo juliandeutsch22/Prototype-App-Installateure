@@ -4066,3 +4066,45 @@ Instagram-iOS-App“.
   ihrer Insel (`--surface-2`), nicht auf dem Blatt; dort hatte `#66787d` nur
   4,2 : 1. `--inaktiv-symbol` ist `#5f7176` (4,7 : 1), geprüft gegen die Insel
   in `lotGrundwerte.test.ts`.
+
+**E96 — Einsätze mit heller Petrol-Kontur, „Noch einzuplanen“ als Schublade, Mitrollen beim Ziehen (17.11.2026).**
+Auftrag: „das drag und drop für baustellen muss besser gelöst werden, es ist
+derzeit eine wurst nach unten die viel länger als der restliche content auf
+der seite ist. auch sollte bei den einsatzkacheln nicht nur links die border
+sein sondern eine durchgängige und vielleicht in einem der helleren
+farbtöne“; nach den Beispielbildern: „die border noch 1 px dicker“.
+
+- **Einsatzkacheln:** 2 px Kontur rundum im hellen Petrol der Auswahlkontur
+  (`--auswahl-kontur`, hell `#A9C8CE`, dunkel `#2F5A64`), beim
+  Darüberfahren voll Petrol; vorher 1 px grau mit 3 px Petrol links. Die
+  Polsterung gibt ab, was die Kontur dazunimmt — der Text steht wo vorher
+  (Tablet, Schreibtisch). Gilt für Raster (Personen und Baustellen, auch
+  „Team-Woche“ und die Tagesliste am Handy), das Ziehbild und die Ablage.
+  Ausgewählt bleibt ganz Petrol. Ein Termin behält die feine graue Linie.
+  Die Balken der Monatsansicht bleiben, wie sie sind: es sind einzeilige
+  Balken auf getönter Fläche, keine Kacheln; eine Kontur rundum nähme
+  ihnen die Höhe für den Namen.
+- **„Noch einzuplanen“ als Schublade** (nur am Schreibtisch, wie seit E88):
+  so hoch wie das Raster (die Liste rollt in sich, mindestens 22 rem), 15 rem
+  breit; zwei Zeilen je Baustelle (Kunde und Kurzbezeichnung, darunter die
+  Nummer; ein langer Name endet mit „…“, ganz steht er beim Darüberfahren
+  und im Namen des Knopfs); die Zahl unter dem Titel („15 Baustellen · auf
+  Person und Tag ziehen“); ab neun Baustellen ein Suchfeld (jedes Wort in
+  Kunde, Nummer oder Kurzbezeichnung); „weitere anzeigen“ in der Liste;
+  einklappbar zu einer schmalen Leiste mit der Zahl — das Raster bekommt die
+  ganze Woche. Eingeklappt bleibt je Person auf diesem Gerät gemerkt (im
+  Speicher des Browsers: eine Ansicht, keine Angabe über die Person). Ein
+  Klick plant wie bisher. Am Tablet und Handy bleibt das Fenster „Noch
+  einzuplanen …“.
+- **Mitrollen beim Ziehen:** fährt man beim Ziehen (Maus, oder am Tablet nach
+  dem langen Drücken) an den Rand des Rasters, rollt es mit — seitlich und
+  senkrecht, der Rand beginnt an der festen Namensspalte und am festen Kopf;
+  am oberen und unteren Rand des Fensters rollt die Seite. Je näher am Rand,
+  desto schneller (bis 18 px je Bild); danach gilt die Zelle, die jetzt
+  unter dem Zeiger liegt. Ohne Ziehen rollt am Rand nichts.
+- **Prüfungen:** `einsatzbalken.test.ts` (Kontur an Raster, Ziehbild und
+  Ablage; Text an derselben Stelle; Termin grau — Gegenprobe: der Stand
+  davor ist rot), `ablage.test.ts`, `mitrollen.test.ts`, die Ablage in
+  `WochenplanView.test.tsx` und im Browser `tests/links/planungAblage.spec.ts`
+  (Höhe gleich Raster bei 3.195 Baustellen, eingeklappt ganze Woche,
+  Mitrollen rechts/links/unten; Gegenprobe mit dem Stand davor rot).

@@ -1677,7 +1677,9 @@ describe('Einsatzplanung — Planlinie', () => {
     await screen.findByRole('row', { name: /Max Mustermann/ });
     expect(screen.queryByRole('list', { name: 'Stand der Planung' })).toBeNull();
     const a = within(ablage()!);
-    expect(a.getByRole('heading', { name: 'Noch einzuplanen (1)' })).toBeInTheDocument();
+    // E96: die Zahl steht unter dem Titel, nicht mehr in Klammern dahinter.
+    expect(a.getByRole('heading', { name: 'Noch einzuplanen' })).toBeInTheDocument();
+    expect(a.getByText(/Baustelle · auf Person und Tag ziehen/)).toHaveTextContent('1 Baustelle · auf Person und Tag ziehen');
     expect(a.getByRole('button', { name: /Familie Huber \(2026-042\) einplanen/ })).toBeInTheDocument();
   });
 
@@ -1693,6 +1695,85 @@ describe('Einsatzplanung — Planlinie', () => {
     } finally {
       vi.mocked(projekte.listActiveProjects).mockImplementation(async () => BAUSTELLEN);
     }
+  });
+
+  /*
+    E96 (17.11.2026): DIE ABLAGE ALS SCHUBLADE — zwei Zeilen je Baustelle,
+    ab neun Baustellen ein Suchfeld, einklappbar und je Person gemerkt. Die
+    Höhe (so hoch wie das Raster) prüft der Browser (`bewegungen.spec.ts`).
+    Gegenprobe: am Stand davor gab es weder Suchfeld noch Einklappen, und die
+    Nummer stand in einer eigenen dritten Zeile unter der Kurzbezeichnung.
+  */
+  describe('E96 Schublade', () => {
+    const viele = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        id: `v${i}`, companyId: 'perl', projectNumber: `2026-1${String(i).padStart(2, '0')}`,
+        customerName: i === 3 ? 'Bäckerei Hofer' : `Familie ${String.fromCharCode(65 + i)}`, bezeichnung: i === 3 ? 'Heizung' : undefined, status: 'Aktiv',
+      }) as Project);
+    afterEach(() => {
+      window.localStorage.clear();
+      vi.mocked(projekte.listActiveProjects).mockImplementation(async () => BAUSTELLEN);
+    });
+
+    it('zwei Zeilen: Kunde und Kurzbezeichnung oben, die Nummer darunter', async () => {
+      vi.mocked(projekte.listActiveProjects).mockImplementation(async () => [{ ...BAUSTELLEN[0], bezeichnung: 'Bad' } as Project]);
+      zeige();
+      const knopf = await screen.findByRole('button', { name: 'Familie Huber · Bad (2026-042) einplanen' });
+      const [oben, unten] = [...knopf.children] as HTMLElement[];
+      expect(oben).toHaveClass('ablage-zeile');
+      expect(oben).toHaveTextContent('Familie HuberBad');
+      expect(unten).toHaveTextContent('2026-042');
+      expect(knopf.children).toHaveLength(2);
+      // Abgeschnitten steht der ganze Name beim Darüberfahren.
+      expect(knopf).toHaveAttribute('title', 'Familie Huber · Bad (2026-042)');
+    });
+
+    it('gleich geblieben: bis acht Baustellen kein Suchfeld; ein Klick plant wie bisher', async () => {
+      zeige();
+      const a = within((await screen.findAllByRole('complementary', { name: 'Noch einzuplanen' }))[0]);
+      expect(a.queryByRole('searchbox')).toBeNull();
+      await userEvent.click(a.getByRole('button', { name: /Familie Huber \(2026-042\) einplanen/ }));
+      const dialog = within(screen.getByRole('dialog', { name: 'Einsatz planen' }));
+      await waitFor(() => expect(dialog.getByRole('combobox', { name: /Baustelle/ })).toHaveValue('2026-042'));
+    });
+
+    it('ab neun Baustellen ein Suchfeld: Kunde, Nummer, Kurzbezeichnung', async () => {
+      vi.mocked(projekte.listActiveProjects).mockImplementation(async () => viele(9));
+      zeige();
+      const ablage = await screen.findByRole('complementary', { name: 'Noch einzuplanen' });
+      const a = within(ablage);
+      expect(a.getByText(/Baustellen · auf Person und Tag ziehen/)).toHaveTextContent('9 Baustellen · auf Person und Tag ziehen');
+      const feld = a.getByRole('searchbox', { name: 'Noch einzuplanen durchsuchen' });
+      await userEvent.type(feld, 'heiz');
+      expect(a.getAllByRole('button', { name: /einplanen$/ }).map((b) => b.getAttribute('aria-label'))).toEqual(['Bäckerei Hofer · Heizung (2026-103) einplanen']);
+      await userEvent.clear(feld);
+      await userEvent.type(feld, '2026-105');
+      expect(a.getAllByRole('button', { name: /einplanen$/ })).toHaveLength(1);
+      await userEvent.clear(feld);
+      await userEvent.type(feld, 'gibt es nicht');
+      expect(a.queryAllByRole('button', { name: /einplanen$/ })).toHaveLength(0);
+      expect(a.getByText('Keine Baustelle passt zu „gibt es nicht“.')).toBeInTheDocument();
+      // Die Zahl bleibt die aller Baustellen — die Suche grenzt nur die Liste ein.
+      expect(a.getByText(/Baustellen · auf Person und Tag ziehen/)).toHaveTextContent('9 Baustellen');
+    });
+
+    it('einklappen: schmale Leiste mit Zahl, und es bleibt eingeklappt — für diese Person', async () => {
+      const { unmount } = zeige();
+      const ablage = await screen.findByRole('complementary', { name: 'Noch einzuplanen' });
+      await userEvent.click(within(ablage).getByRole('button', { name: 'Noch einzuplanen einklappen' }));
+      const zu = screen.getByRole('complementary', { name: 'Noch einzuplanen' });
+      expect(zu).toHaveAttribute('data-zu');
+      expect(within(zu).queryByRole('button', { name: /einplanen$/ })).toBeNull();
+      expect(within(zu).getByRole('button', { name: 'Noch einzuplanen (1) aufklappen' })).toHaveAttribute('aria-expanded', 'false');
+      unmount();
+      // Wieder geöffnet: eingeklappt.
+      zeige();
+      const wieder = await screen.findByRole('complementary', { name: 'Noch einzuplanen' });
+      expect(wieder).toHaveAttribute('data-zu');
+      await userEvent.click(within(wieder).getByRole('button', { name: 'Noch einzuplanen (1) aufklappen' }));
+      expect(screen.getByRole('complementary', { name: 'Noch einzuplanen' })).not.toHaveAttribute('data-zu');
+      expect(window.localStorage.getItem('senklot.planung.ablageZu.pl')).toBeNull();
+    });
   });
 
   it('Gegenprobe: ist jede Baustelle eingeplant, gibt es keine Ablage — und im Monat auch nicht', async () => {

@@ -107,7 +107,8 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
   return (
     <thead>
       <tr>
-        <th className="wp-ecke">
+        {/* Die Ecke ist so breit wie die feste Namensspalte und so hoch wie der feste Kopf: dort beginnt der Rand, an dem das Ziehen mitrollt (E96). */}
+        <th className="wp-ecke" data-rollecke="">
           <span className="section-label">{ecke}</span>
         </th>
         {g.tage.map((tag) => {
@@ -292,7 +293,7 @@ export function PersonenWoche({
   const mitKoepfen = gruppen.length > 1;
   const huelle = useHeuteImBild(g.heute, g.tage, g.markiert);
   return (
-    <div ref={huelle} className={g.aktionen ? 'wp-huelle wp-huelle-planen' : 'wp-huelle'} role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
+    <div ref={huelle} data-mitrollen="" className={g.aktionen ? 'wp-huelle wp-huelle-planen' : 'wp-huelle'} role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan als Tabelle" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Mitarbeiter" g={g} />
@@ -474,7 +475,7 @@ export function BaustellenWoche({
   const huelle = useHeuteImBild(g.heute, g.tage, g.markiert);
 
   return (
-    <div ref={huelle} className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
+    <div ref={huelle} data-mitrollen="" className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan nach Baustellen" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Baustelle" g={g} />
