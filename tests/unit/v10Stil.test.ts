@@ -631,10 +631,10 @@ describe('V10 Planung', () => {
   /** Warnfarbe als Rand, Kante oder Schattenkontur — das, was V10 in der Planung nicht mehr kennt. */
   const WARNKANTE = /(border[a-z-]*:[^;]*var\(--warning\)|box-shadow:[^;]*var\(--warning\)|background: var\(--warning-bg\))/;
 
-  it('ein Einsatz ist ein helles Blatt mit feiner Kontur, Akzentmarkierung und dem Radius der Arbeitszeile', () => {
+  it('ein Einsatz ist ein helles Blatt mit Kontur rundum (E96: 2 px helles Petrol) und dem Radius der Arbeitszeile', () => {
     const r = rumpf(PLANUNG, '.eintrag, .eintrag-konflikt');
     expect(r).toContain('background: var(--surface);');
-    expect(r).toContain('border: 1px solid var(--border-strong); border-left: 3px solid var(--petrol);');
+    expect(r).toContain('border: 2px solid var(--auswahl-kontur);');
     expect(r).toContain('border-radius: var(--radius-sm);');
   });
 
@@ -704,7 +704,7 @@ describe('V10 Planung', () => {
     expect(rumpf(PLANUNG, '.einsatz-leiste')).toContain('box-shadow: var(--shadow-lg);');
     expect(rumpf(PLANUNG, '.zieh-schatten')).toContain('box-shadow: var(--shadow-lg);');
     expect(rumpf(MONAT, '.vorschau')).toContain('box-shadow: var(--shadow-lg);');
-    expect(PLANUNG).toMatch(/\.planung-ablage \{ display: flex;[^}]*border-radius: var\(--radius-lg\);/);
+    expect(PLANUNG).toMatch(/\.planung-ablage \{[^}]*display: flex;[^}]*border-radius: var\(--radius-lg\);/);
     expect(PLANUNG).not.toMatch(/\.planung-ablage \{[^}]*box-shadow/);
   });
 

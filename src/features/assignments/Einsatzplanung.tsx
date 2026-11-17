@@ -35,6 +35,7 @@ import EinsatzFenster, { type FensterStart } from './EinsatzFenster';
 import KalenderAboKarte from './KalenderAboKarte';
 import TagFenster from './TagFenster';
 import HandyWoche from './HandyWoche';
+import PlanungsAblage from './PlanungsAblage';
 import { BaustellenWoche, PersonenWoche, type RasterGrund } from './WochenRaster';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
 import { useWochenDaten } from './useWochenDaten';
@@ -440,8 +441,8 @@ export default function Einsatzplanung() {
               steht statt der Zahl „frei unklar“ — mit „Erneut versuchen“ oben.
             </p>
             <p className="mt-2">
-              Ein Einsatz steht als helles Feld mit einer Petrol-Markierung links; der
-              ausgewählte ist ganz in Petrol. Ein Termin hat nur die feine Linie. Eingeteilt,
+              Ein Einsatz steht als helles Feld mit einem hellen Petrol-Rahmen; der
+              ausgewählte ist ganz in Petrol. Ein Termin hat nur die feine graue Linie. Eingeteilt,
               aber abwesend steht mit dem Warnzeichen und „fehlt“ im Einsatz. Wer abwesend ist
               (Urlaub, Krankenstand, Berufsschule, Zeitausgleich) oder wann der Betrieb zu hat,
               steht schraffiert. Heute hat einen dunklen Kopf über einer leicht getönten Spalte.
@@ -456,7 +457,11 @@ export default function Einsatzplanung() {
               derselben Baustelle werden abgewiesen, mit Grund; wer dort wirklich arbeitet (etwa
               Notdienst am Feiertag), plant über „Einsatz planen“. Eine Baustelle unter „Noch
               einzuplanen“ ziehst du am Schreibtisch auf Person und Tag — das Formular öffnet mit
-              allen dreien.
+              allen dreien. Die Liste ist so hoch wie der Plan und rollt in sich; ab neun
+              Baustellen sucht das Feld darüber nach Kunde, Nummer und Kurzbezeichnung. Mit dem
+              Pfeil klappst du sie ein, dann hat der Plan die ganze Woche; das bleibt so, bis du
+              sie wieder aufklappst. Fährst du beim Ziehen an den Rand des Plans oder des
+              Fensters, rollt er mit — je näher am Rand, desto schneller.
             </p>
           </>
         }
@@ -647,39 +652,14 @@ export default function Einsatzplanung() {
             </div>
           </Card>
           {ablage && (
-            /*
-              NOCH EINZUPLANEN ALS ABLAGE (E88), nur am Schreibtisch: von hier
-              zieht man eine Baustelle auf Person und Tag — das Formular öffnet
-              mit allen dreien. Ein Klick tut, was der Eintrag im Fenster tut.
-              Am Tablet und Handy bleibt die Hinweiszeile: dort fehlte dem
-              Raster die Breite (Auftrag 4.1).
-            */
-            <aside className="planung-ablage" aria-label="Noch einzuplanen">
-              <h2 className="planung-ablage-titel">Noch einzuplanen ({ohneEinsatz.length})</h2>
-              <p className="planung-ablage-hinweis">Auf Person und Tag ziehen</p>
-              <ul>
-                {ohneEinsatz.slice(0, ablageGezeigt).map((p) => (
-                  <li key={p.projectNumber}>
-                    <button
-                      type="button"
-                      className="ablage-baustelle"
-                      {...griff({ art: 'baustelle', nummer: p.projectNumber, titel: baustellenName(p) })}
-                      onClick={() => setFenster({ art: 'einsatz', start: { datum: naechsterArbeitstag(tage, heute), projectNumber: p.projectNumber } })}
-                      aria-label={`${mitNummer(p)} einplanen`}
-                    >
-                      <span className="e-titel">{baustellenName(p)}</span>
-                      <span className="e-zeile mono">{p.projectNumber}</span>
-                      {/* Die Kurzbezeichnung als zweite Zeile (C3, E91): „Bad“ und „Heizung“ desselben Kunden. */}
-                      {p.bezeichnung?.trim() && <span className="e-zeile">{p.bezeichnung.trim()}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <MehrAnzeigen
-                anzahl={Math.max(0, ohneEinsatz.length - ablageGezeigt)}
-                onClick={() => setAblageGezeigt((n) => n + ABLAGE_SEITE)}
-              />
-            </aside>
+            <PlanungsAblage
+              baustellen={ohneEinsatz}
+              griff={griff}
+              name={baustellenName}
+              mitNummer={mitNummer}
+              uid={user.uid}
+              onEinplanen={(p) => setFenster({ art: 'einsatz', start: { datum: naechsterArbeitstag(tage, heute), projectNumber: p.projectNumber } })}
+            />
           )}
           </div>
         </>

@@ -253,16 +253,21 @@
   /* ── Einsatzblock, Termin-Eintrag, abwesend ───────────────────────────── */
   /*
     DER EINSATZ ALS HELLES ARBEITSBLATT (V10, 13.11.2026, E88 bleibt
-    fachlich): feine Kontur rundum, links die sachliche Akzentmarkierung,
-    der normale Einsatzradius. An jedem Tag gleich — auch heute: die Spalte
+    fachlich): Kontur rundum, der normale Einsatzradius. Seit E96
+    (17.11.2026) 2 px im hellen Petrol der Auswahlkontur statt grauer Linie
+    mit 3 px Petrol links: die Markierung nur an einer Kante las sich als
+    Statusbalken; rundum sagt sie „Einsatz“, ohne zu färben. Die Polsterung
+    gibt ab, was die Kontur dazunimmt — der Text steht wo vorher. Ein Termin
+    bleibt grau (`.eintrag-termin`) und damit unterscheidbar.
+    An jedem Tag gleich — auch heute: die Spalte
     trägt den Tag (`--heute`), nicht die Einsätze darin. Vollflächig
     Den Akzent trägt nur der AUSGEWÄHLTE Einsatz (unten); die Auswahl ändert
     Farbe und Tiefe, nie die Form. Der Akzent hier aus `--petrol` (dem
     festen Ton des Produkts), nicht aus `--brand`: Auswahl und Markierung
     sind Struktur und tragen keine Hausfarbe eines Betriebs (index.css).
   */
-  .eintrag, .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 3rem; padding: 0.375rem 0.375rem 0.375rem 0.375rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--border-strong); border-left: 3px solid var(--petrol); border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; transition: background-color var(--motion-state) var(--ease-response), border-color var(--motion-state) var(--ease-response), color var(--motion-state) var(--ease-response), box-shadow var(--motion-state) var(--ease-response); }
-  .eintrag:hover, .eintrag-konflikt:hover { border-color: var(--auswahl-kontur); border-left-color: var(--petrol); }
+  .eintrag, .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 3rem; padding: 0.3125rem 0.3125rem 0.3125rem 0.4375rem; background: var(--surface); color: var(--ink-deep); border: 2px solid var(--auswahl-kontur); border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; transition: background-color var(--motion-state) var(--ease-response), border-color var(--motion-state) var(--ease-response), color var(--motion-state) var(--ease-response), box-shadow var(--motion-state) var(--ease-response); }
+  .eintrag:hover, .eintrag-konflikt:hover { border-color: var(--petrol); }
   :is(.eintrag, .eintrag-konflikt) :is(.e-zeile, .e-zeit, .e-nr) { color: var(--text-muted); }
   :is(.eintrag, .eintrag-konflikt):hover .e-titel { text-decoration: underline; text-underline-offset: 3px; }
   /*
@@ -304,7 +309,7 @@
   .e-zeit { white-space: nowrap; font-variant-numeric: tabular-nums; }
   @media (min-width: 1200px) {
     .zelle-inhalt { padding: 0.25rem; }
-    .eintrag, .eintrag-konflikt { padding: 0.375rem 0.5rem 0.375rem 0.5rem; }
+    .eintrag, .eintrag-konflikt { padding: 0.3125rem 0.4375rem 0.3125rem 0.5625rem; }
     .eintrag-termin { padding: 0.3125rem 0.5rem 0.3125rem 0.5rem; }
   }
   .e-nr { display: none; }
@@ -403,7 +408,7 @@
   .nur-lesen { cursor: default; }
   :is(.eintrag, .eintrag-konflikt).nur-lesen:hover .e-titel { text-decoration: none; }
   .eintrag-termin.nur-lesen:hover { border-color: var(--border); }
-  .eintrag.nur-lesen:hover, .eintrag-konflikt.nur-lesen:hover { border-color: var(--border-strong); border-left-color: var(--petrol); }
+  .eintrag.nur-lesen:hover, .eintrag-konflikt.nur-lesen:hover { border-color: var(--auswahl-kontur); }
   .wp-kopf-knopf.nur-lesen:hover .kopf-tag, .wp-kopf-knopf-schmal.nur-lesen:hover .kopf-tag { color: var(--ink-deep); text-decoration: none; }
   /* Die eigene Zeile: „· du“ hinter dem Namen, in der Schrift der übrigen Angaben. */
   .wp-name-ich { font-weight: 400; color: var(--text-muted); white-space: nowrap; }
@@ -463,7 +468,7 @@
     das ist Herkunft und Ziel, keine Bestätigung: die steht in der Meldung.
     Bei reduzierter Bewegung kein Flug (`useZiehen`).
   */
-  .zieh-schatten { position: fixed; left: 0; top: 0; z-index: 60; display: flex; flex-direction: column; max-width: 12rem; padding: 0.375rem 0.5rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--auswahl-kontur); border-left: 3px solid var(--petrol); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); font-size: 0.8125rem; line-height: 1.125rem; pointer-events: none; }
+  .zieh-schatten { position: fixed; left: 0; top: 0; z-index: 60; display: flex; flex-direction: column; max-width: 12rem; padding: 0.3125rem 0.4375rem 0.3125rem 0.5625rem; background: var(--surface); color: var(--ink-deep); border: 2px solid var(--auswahl-kontur); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); font-size: 0.8125rem; line-height: 1.125rem; pointer-events: none; }
   .zieh-schatten[data-landet] { transition: transform var(--motion-bestaetigt) var(--ease-response); }
   .zieh-schatten .e-zeile { color: var(--text-muted); }
 
@@ -473,18 +478,43 @@
   */
   .wp-name-zeile, .tl-name { display: flex; align-items: center; gap: 0.5rem; }
 
-  /* Die Ablage „Noch einzuplanen“ — nur am Schreibtisch, rechts neben dem Raster, als eigenes Blatt. */
+  /*
+    DIE ABLAGE „NOCH EINZUPLANEN“ — nur am Schreibtisch, rechts neben dem
+    Raster, als eigenes Blatt (E88). SO HOCH WIE DAS RASTER (E96): sie dehnt
+    sich auf die Höhe der Zeile (`align-self: stretch`), trägt selbst aber
+    nichts zu ihr bei (`contain: size`) — die Höhe gibt das Raster vor, die
+    Liste rollt in sich. Mindestens 22 rem, damit bei wenigen Personen noch
+    mehrere Baustellen zu sehen sind. Eingeklappt eine schmale Leiste mit der
+    Zahl; das Raster bekommt die Breite zurück.
+  */
   .planung-ablage { display: none; }
   @media (min-width: 1200px) {
-    .planung-mit-ablage { display: grid; grid-template-columns: minmax(0, 1fr) 13.5rem; gap: 1.5rem; align-items: start; }
-    .planung-ablage { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-    .planung-ablage ul { list-style: none; margin: 0.25rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .planung-mit-ablage { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; gap: 1.5rem; align-items: start; }
+    .planung-mit-ablage:has(> .planung-ablage[data-zu]) { grid-template-columns: minmax(0, 1fr) 3rem; }
+    .planung-ablage { align-self: stretch; contain: size; min-height: 22rem; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .planung-ablage[data-zu] { align-self: start; contain: none; min-height: 0; align-items: center; gap: 0.75rem; padding: 0.25rem 0 1rem; }
+    .planung-ablage-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.375rem 0.25rem 0 1rem; }
+    .planung-ablage-suche { flex: none; margin: 0 1rem 0.75rem; }
+    .planung-ablage-liste { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--border); }
+    .planung-ablage-liste ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.375rem; }
   }
   /* Ein Bereichstitel, keine Versalienzeile (V10: Serifen für größere Titel, keine Sperrung). */
-  .planung-ablage-titel { margin: 0; font-family: var(--schrift-titel); font-size: 1.125rem; line-height: 1.5rem; font-weight: 400; color: var(--ink-deep); }
-  .planung-ablage-hinweis { margin: 0; font-size: 0.8125rem; color: var(--text-muted); }
-  /* Dasselbe Arbeitsblatt wie ein Einsatz: feine Kontur, Akzentmarkierung, normaler Radius. */
-  .ablage-baustelle { display: flex; flex-direction: column; width: 100%; padding: 0.5rem 0.625rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--border-strong); border-left: 3px solid var(--petrol); border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.125rem; text-align: left; touch-action: none; transition: border-color var(--motion-state) var(--ease-response); }
-  .ablage-baustelle:hover { border-color: var(--auswahl-kontur); border-left-color: var(--petrol); }
+  .planung-ablage-titel { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--schrift-titel); font-size: 1.125rem; line-height: 1.5rem; font-weight: 400; color: var(--ink-deep); }
+  .planung-ablage-zahl { font-family: var(--schrift-mono); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .planung-ablage-senkrecht { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.875rem; color: var(--ink-deep); white-space: nowrap; }
+  /* Unter dem Titel, mit dem Rand der Liste — die Ablage gibt es nur am Schreibtisch, darum ohne eigene Breitenstufe. */
+  .planung-ablage-hinweis { margin: 0 1rem 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .planung-ablage-leer { margin: 0; font-size: 0.8125rem; color: var(--text-muted); }
+  /*
+    Dasselbe Arbeitsblatt wie ein Einsatz (E96: 2 px helles Petrol rundum),
+    in zwei Zeilen: Kunde und Kurzbezeichnung, darunter die Nummer. Ein
+    langer Name endet mit „…“; ganz steht er beim Darüberfahren und im Namen
+    des Knopfs.
+  */
+  .ablage-baustelle { display: flex; flex-direction: column; width: 100%; padding: 0.3125rem 0.5625rem; background: var(--surface); color: var(--ink-deep); border: 2px solid var(--auswahl-kontur); border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.125rem; text-align: left; touch-action: none; transition: border-color var(--motion-state) var(--ease-response); }
+  .ablage-baustelle:hover { border-color: var(--petrol); }
+  .ablage-zeile { display: flex; align-items: baseline; gap: 0.375rem; min-width: 0; white-space: nowrap; }
+  .ablage-zeile .e-titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .ablage-zeile .e-zeile { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; }
   .ablage-baustelle .e-zeile { color: var(--text-muted); font-size: 0.75rem; }
 }
