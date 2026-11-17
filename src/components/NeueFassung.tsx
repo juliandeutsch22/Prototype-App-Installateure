@@ -211,15 +211,15 @@ export default function NeueFassung() {
       // darf niemals eine Rückfrage verdecken, die beantwortet werden muss.
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm sm:rounded-lg sm:border"
     >
-      <p className="text-sm text-ink">
+      <p className="text-fliess text-ink">
         Eine neue Fassung der App steht bereit.
         {ausstehend && (
-          <span className="mt-1 block text-xs text-ink-muted">
+          <span className="mt-1 block text-meta text-ink-muted">
             Die Verbindung reicht gerade nicht, um sie zu laden – bis dahin läuft die bisherige Fassung
             weiter. Beim nächsten Öffnen der App wird es wieder versucht.
           </span>
         )}
-        <span className="mt-1 block text-xs text-ink-muted">
+        <span className="mt-1 block text-meta text-ink-muted">
           Nicht gespeicherte Eingaben gehen beim Laden verloren.
         </span>
       </p>

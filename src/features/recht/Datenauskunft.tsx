@@ -136,7 +136,7 @@ export default function Datenauskunft({
           </Button>
         </div>
         {laedt === 'auskunft' && teile && teile.gesamt > 1 && (
-          <p className="text-sm text-ink-muted" role="status">Teil {teile.fertig} von {teile.gesamt} abgeholt</p>
+          <p className="text-meta text-ink-muted" role="status">Teil {teile.fertig} von {teile.gesamt} abgeholt</p>
         )}
         {art === 'mitarbeiter' && aktiv && (
           <Hinweiszeile>
@@ -163,7 +163,7 @@ export default function Datenauskunft({
         }}
       >
         {probe && (
-          <div className="space-y-3 text-sm">
+          <div className="space-y-3 text-fliess">
             {probe.ganz ? (
               <p>Keine Belege — der Kunde und seine Wartungen werden ganz gelöscht.</p>
             ) : (

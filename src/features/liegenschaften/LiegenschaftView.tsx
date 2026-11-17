@@ -338,7 +338,7 @@ export default function LiegenschaftView() {
                   ))}
                 </List>
                 {baustellen.daten.length >= AKTE_GRENZE && (
-                  <p className="px-4 pb-3 text-sm text-ink-muted">Die jüngsten {AKTE_GRENZE} — ältere in der Baustellenliste.</p>
+                  <p className="px-4 pb-3 text-meta text-ink-muted">Die jüngsten {AKTE_GRENZE} — ältere in der Baustellenliste.</p>
                 )}
               </>
             )}
@@ -360,7 +360,7 @@ export default function LiegenschaftView() {
                   ))}
                 </List>
                 {wartungen.daten.length >= AKTE_GRENZE && (
-                  <p className="px-4 pb-3 text-sm text-ink-muted">Die ersten {AKTE_GRENZE} nach Termin — alle unter Wartungen.</p>
+                  <p className="px-4 pb-3 text-meta text-ink-muted">Die ersten {AKTE_GRENZE} nach Termin — alle unter Wartungen.</p>
                 )}
               </>
             )}
@@ -565,7 +565,7 @@ function BeteiligterKontakt({ b, kunden, kundenOeffnen }: {
   if (b.customerId) {
     const k = kunden.get(b.customerId);
     return (
-      <p className="flex flex-wrap items-center gap-x-3 text-sm">
+      <p className="flex flex-wrap items-center gap-x-3 text-fliess">
         {kundenOeffnen ? <Link to={`/customers/${b.customerId}`} className="link">Kundenakte {k?.name ?? ''}</Link> : k?.name}
         <TelefonLink nummer={k?.contactPhone} name={k?.contactName} />
       </p>
@@ -573,7 +573,7 @@ function BeteiligterKontakt({ b, kunden, kundenOeffnen }: {
   }
   if (!b.telefon && !b.email) return null;
   return (
-    <p className="flex flex-wrap items-center gap-x-3 text-sm">
+    <p className="flex flex-wrap items-center gap-x-3 text-fliess">
       <TelefonLink nummer={b.telefon ?? undefined} name={b.name ?? undefined} />
       <MailLink adresse={b.email ?? undefined} />
     </p>

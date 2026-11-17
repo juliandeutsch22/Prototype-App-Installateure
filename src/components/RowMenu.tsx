@@ -186,7 +186,7 @@ export default function RowMenu({ about, items }: RowMenuProps) {
             onKeyDown={imMenue}
           >
             {items.map((i) => {
-              const klassen = `block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-normal hover:bg-surface-2 ${
+              const klassen = `block min-h-touch w-full whitespace-nowrap px-4 text-left text-fliess font-normal hover:bg-surface-2 ${
                 i.danger ? 'text-danger' : 'text-ink'
               }`;
               // Der Fokus geht vorher an „⋯" zurück — der Eintrag verschwindet

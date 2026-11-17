@@ -154,7 +154,7 @@ export default function TerminFormular({
 
       {vorgabe.bezug === 'baustelle' ? null : (
         <fieldset className="flex flex-col gap-3">
-          <legend className="flex flex-wrap items-center gap-2 text-sm font-normal text-ink">
+          <legend className="flex flex-wrap items-center gap-2 text-meta font-normal text-ink">
             Wo
             <InfoHint about="Wo">
               Ein Termin hängt an einer Baustelle oder — etwa bei der Besichtigung vor dem Angebot — nur am Kunden.
@@ -163,11 +163,11 @@ export default function TerminFormular({
             </InfoHint>
           </legend>
           <div className="flex flex-wrap gap-x-6">
-            <label className="flex min-h-touch cursor-pointer items-center gap-2 text-base text-ink">
+            <label className="flex min-h-touch cursor-pointer items-center gap-2 text-fliess text-ink">
               <input type="radio" name="termin-wo" className="h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]" checked={wo === 'baustelle'} onChange={() => setWo('baustelle')} />
               Auf einer Baustelle
             </label>
-            <label className="flex min-h-touch cursor-pointer items-center gap-2 text-base text-ink">
+            <label className="flex min-h-touch cursor-pointer items-center gap-2 text-fliess text-ink">
               <input type="radio" name="termin-wo" className="h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]" checked={wo === 'kunde'} onChange={() => setWo('kunde')} />
               Beim Kunden, ohne Baustelle
             </label>
@@ -177,7 +177,7 @@ export default function TerminFormular({
           )}
           {wo === 'baustelle' && vorgabe.bezug === 'kunde' && (
             vorgabe.baustellen.length === 0 ? (
-              <p className="text-sm text-ink-muted">Dieser Kunde hat noch keine Baustelle.</p>
+              <p className="text-fliess text-ink-muted">Dieser Kunde hat noch keine Baustelle.</p>
             ) : (
               <SelectField id="termin-baustelle" label="Baustelle" value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
                 {vorgabe.baustellen.map((b) => (

@@ -63,7 +63,7 @@ export default function Verbindungsband() {
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line bg-warning-bg px-4 py-2 text-center text-sm font-normal text-warning"
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line bg-warning-bg px-4 py-2 text-center text-meta font-normal text-warning"
     >
       {/*
         V10 (13.11.2026): neutrale Fläche, eine Linie darunter; Bedeutung

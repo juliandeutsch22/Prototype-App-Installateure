@@ -131,7 +131,7 @@ export default function LeistungszeitErfassen({
   return (
     // Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte.
     <div className="border-t border-line pt-3">
-      <p className="flex flex-wrap items-center gap-1 text-sm font-semibold text-ink-deep">
+      <p className="flex flex-wrap items-center gap-1 text-fliess font-semibold text-ink-deep">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
           {/* Gekürzt (Prüflauf 24.09.2026, D9): vier Absätze, die auf dem
@@ -198,7 +198,7 @@ export default function LeistungszeitErfassen({
           an={form.helfer}
           onChange={(wert) => setForm({ ...form, helfer: wert })}
         />
-        <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+        <p className="mt-1 flex flex-wrap items-center gap-1 text-meta text-ink-muted">
           Helferstunden werden anders verrechnet.
           <InfoHint about="der Helfer-Haken">
             Für Helferstunden gilt auf der Rechnung ein eigener, niedrigerer Satz. Der Haken gilt je
@@ -209,7 +209,7 @@ export default function LeistungszeitErfassen({
       </div>
 
       {minuten > 0 && (
-        <p className="mt-2 text-sm text-ink">
+        <p className="mt-2 text-fliess text-ink">
           Ergibt <strong>{fmtDauer(minuten)}</strong> Leistungszeit.
         </p>
       )}

@@ -57,7 +57,7 @@ export default function ZahlFeld({
         }}
       />
       {fehler && (
-        <p id={`${id}-fehler`} className="mt-1 text-sm text-danger" aria-live="polite">
+        <p id={`${id}-fehler`} className="mt-1 text-meta text-danger" aria-live="polite">
           {fehler}
         </p>
       )}
@@ -100,7 +100,7 @@ export function ZahlEingabe({
           rest.onBlur?.(e);
         }}
       />
-      {fehler && <span className="mt-1 block text-xs text-danger">{fehler}</span>}
+      {fehler && <span className="mt-1 block text-meta text-danger">{fehler}</span>}
     </>
   );
 }

@@ -847,7 +847,7 @@ export default function CustomersView() {
         titel="Bestehende Baustellen übernehmen"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Legt aus den Kundennamen bestehender Baustellen Kunden an und ordnet die Baustellen
             zu. Geschrieben wird erst auf Bestätigung.
           </p>
@@ -881,12 +881,12 @@ export default function CustomersView() {
             </>
           ) : (
             <>
-              <p className="text-sm text-ink">
+              <p className="text-fliess text-ink">
                 <strong>{uebernahme.length}</strong>{' '}
                 {uebernahme.length === 1 ? 'Kunde entsteht' : 'Kunden entstehen'} aus{' '}
                 {uebernahme.reduce((n, g) => n + g.projekte.length, 0)} Baustellen.
               </p>
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Stehen hier zwei Schreibweisen desselben Kunden, entstehen auch zwei Datensätze.
                 Sie lassen sich danach zusammenführen, indem die Baustellen der einen dem anderen
                 zugeordnet werden.
@@ -946,7 +946,7 @@ export default function CustomersView() {
           await speichernBestaetigt({ angaben: true });
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(angabenFrage ?? []).map((f) => <li key={f}>{f}</li>)}
         </ul>
       </ConfirmDialog>

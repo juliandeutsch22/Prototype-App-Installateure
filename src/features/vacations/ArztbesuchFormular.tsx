@@ -114,7 +114,7 @@ export default function ArztbesuchFormular({
 
   return (
     <form onSubmit={absenden} className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+      <div className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
         <span>Termin mit dem Weg vom Arbeitsort, vorab oder nachträglich.</span>
         <InfoHint about="Arztbesuch">
           Ein Arztbesuch in der Arbeitszeit ist bezahlt, samt dem nötigen Weg vom Arbeitsort — wenn sich der
@@ -147,12 +147,12 @@ export default function ArztbesuchFormular({
       <div className="flex flex-wrap items-center gap-2">
         <NachweisWahl id="anachweis" onWahl={setDatei} />
         {datei ? (
-          <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
+          <span className="flex flex-wrap items-center gap-2 text-fliess text-ink">
             {datei.name}
             <LoeschenKnopf label={`${datei.name} entfernen`} onClick={() => setDatei(null)} />
           </span>
         ) : (
-          <span className="text-sm text-ink-muted">
+          <span className="text-meta text-ink-muted">
             {nachweisVerlangt ? 'Arztbestätigung — hier oder auf Papier im Büro' : 'freiwillig'}
           </span>
         )}

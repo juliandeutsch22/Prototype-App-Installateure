@@ -208,7 +208,7 @@ export function KrankmeldungListe({
                 <Button variant="ghost" onClick={() => setBearbeitet(null)}>Abbrechen</Button>
               </span>
             ) : !buero && vomBuero(k) ? (
-              <span className="text-sm text-ink-muted">Vom Büro erfasst — ändert das Büro</span>
+              <span className="text-meta text-ink-muted">Vom Büro erfasst — ändert das Büro</span>
             ) : (
               <>
                 <Button
@@ -258,7 +258,7 @@ export function KrankmeldungListe({
                 min={zuAendern.von}
                 onChange={(e) => setNeuesEnde(e.target.value)}
               />
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Die Krank-Tage im Zeitkonto werden nachgerechnet.
               </p>
               <div className="fuss-aktionen">

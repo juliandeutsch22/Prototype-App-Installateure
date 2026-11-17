@@ -31,7 +31,7 @@ export default function AnnahmeZiel({
     <fieldset className="mt-3 space-y-2">
       <legend className="section-label">Baustelle</legend>
       <div className="flex flex-col">
-        <label className="flex min-h-touch cursor-pointer items-center gap-2 text-base text-ink">
+        <label className="flex min-h-touch cursor-pointer items-center gap-2 text-fliess text-ink">
           <input
             type="radio"
             name="annahme-ziel"
@@ -41,7 +41,7 @@ export default function AnnahmeZiel({
           />
           Neue Baustelle
         </label>
-        <label className="flex min-h-touch cursor-pointer items-center gap-2 text-base text-ink">
+        <label className="flex min-h-touch cursor-pointer items-center gap-2 text-fliess text-ink">
           <input
             type="radio"
             name="annahme-ziel"
@@ -67,7 +67,7 @@ export default function AnnahmeZiel({
             hinweisAbgeschlossen="abgeschlossen — wird mit dem Nachtrag wieder aktiv"
             onChange={(id, projekt) => onZiel({ art: 'nachtrag', baustelleId: id, projekt })}
           />
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             {angebot.kalkulierteStunden > 0
               ? `Das Stundenbudget der Baustelle wächst um ${fmtStunden(angebot.kalkulierteStunden)} h. `
               : ''}

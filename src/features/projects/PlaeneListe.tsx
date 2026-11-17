@@ -134,13 +134,13 @@ export default function PlaeneListe({
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                className="link block max-w-full truncate text-left text-sm"
+                className="link block max-w-full truncate text-left text-fliess"
                 onClick={() => void oeffnen(d)}
               >
                 {d.dateiname}
               </button>
-              {fehler?.id === d.id && <p role="alert" className="text-sm text-danger">{fehler.text}</p>}
-              <p className="text-xs text-ink-muted">
+              {fehler?.id === d.id && <p role="alert" className="text-meta text-danger">{fehler.text}</p>}
+              <p className="text-meta text-ink-muted">
                 {[dateiGroesse(d.bytes), datum(d.createdAt), d.hochgeladenVonName].filter(Boolean).join(' · ')}
               </p>
               {/*
@@ -161,7 +161,7 @@ export default function PlaeneListe({
               {onNurBuero && (
                 <button
                   type="button"
-                  className="link inline-flex min-h-touch items-center text-sm"
+                  className="link inline-flex min-h-touch items-center text-fliess"
                   onClick={() => onNurBuero(d, !d.nurBuero)}
                 >
                   {d.nurBuero ? 'Für Monteure zeigen' : 'Vor Monteuren verbergen'}

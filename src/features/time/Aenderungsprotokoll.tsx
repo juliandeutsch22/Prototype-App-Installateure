@@ -78,16 +78,16 @@ export default function Aenderungsprotokoll({
     >
       <summary className="weiteres-kopf">{titel}</summary>
       <div className={stil === 'pf' ? 'pf-text' : 'weiteres-inhalt'}>
-        {stand === 'laedt' && <p className="text-sm text-ink-muted">Wird geladen …</p>}
+        {stand === 'laedt' && <p className="text-fliess text-ink-muted">Wird geladen …</p>}
         {stand === 'fehler' && (
-          <div className="text-sm">
+          <div className="text-fliess">
             <p className="text-danger">Das Änderungsprotokoll ließ sich nicht laden.</p>
             {/* `type="button"`: im Formular einer Buchung schickte der Knopf sonst das Formular ab. */}
             <Button type="button" variant="ghost" onClick={holen}>Erneut versuchen</Button>
           </div>
         )}
         {stand === 'da' && zeilen && zeilen.length === 0 && (
-          <p className="text-sm text-ink-muted">
+          <p className="text-fliess text-ink-muted">
             Keine Änderung aufgezeichnet. Aufgezeichnet wird seit {datumAT(PROTOKOLL_SEIT)}.
           </p>
         )}
@@ -126,7 +126,7 @@ export default function Aenderungsprotokoll({
               </p>
             )}
             {sichtbar && sichtbar.length === 0 && (
-              <p className="text-sm text-ink-muted">Alle Einträge sind ausgeblendet. Neue Änderungen erscheinen hier wieder.</p>
+              <p className="text-meta text-ink-muted">Alle Einträge sind ausgeblendet. Neue Änderungen erscheinen hier wieder.</p>
             )}
             <LotVerlauf
               name={titel}
@@ -154,7 +154,7 @@ export default function Aenderungsprotokoll({
               })}
             />
             {ohneAnfang && (
-              <p className="mt-2 text-xs text-ink-muted">
+              <p className="mt-2 text-meta text-ink-muted">
                 Vor dem {datumAT(PROTOKOLL_SEIT)} wurde nichts aufgezeichnet; die erste Änderung zeigt den Stand davor als alten Wert.
               </p>
             )}

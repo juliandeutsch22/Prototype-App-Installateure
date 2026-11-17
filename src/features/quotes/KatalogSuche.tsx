@@ -75,18 +75,18 @@ export default function KatalogSuche({
         onChange={(e) => { setBegriff(e.target.value); setVersuch((v) => v + 1); }}
       />
       {zuletzt && (
-        <p role="status" className="text-sm text-ink-muted">
+        <p role="status" className="text-meta text-ink-muted">
           „{zuletzt}“ übernommen.
         </p>
       )}
-      {b.length < 2 && <p className="text-sm text-ink-muted">Gib mindestens zwei Zeichen ein.</p>}
-      {sucht && <div role="status" aria-busy="true"><p className="text-sm text-ink-muted">Suche nach „{b}“ …</p><SkeletonList rows={3} /></div>}
-      {fehler && <div role="alert" className="space-y-2"><p className="text-sm text-danger">Der Katalog ließ sich nicht durchsuchen. Bereits übernommene Positionen bleiben erhalten.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => setVersuch((v) => v + 1)}>Suche wiederholen</Button></div>}
+      {b.length < 2 && <p className="text-meta text-ink-muted">Gib mindestens zwei Zeichen ein.</p>}
+      {sucht && <div role="status" aria-busy="true"><p className="text-meta text-ink-muted">Suche nach „{b}“ …</p><SkeletonList rows={3} /></div>}
+      {fehler && <div role="alert" className="space-y-2"><p className="text-meta text-danger">Der Katalog ließ sich nicht durchsuchen. Bereits übernommene Positionen bleiben erhalten.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => setVersuch((v) => v + 1)}>Suche wiederholen</Button></div>}
       {treffer && treffer.length === 0 && !fehler && (
-        <div className="space-y-2"><p className="text-sm text-ink-muted">Kein Artikel passt zur Suche.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => { setBegriff(''); setVersuch((v) => v + 1); }}>Suche zurücksetzen</Button></div>
+        <div className="space-y-2"><p className="text-fliess text-ink-muted">Kein Artikel passt zur Suche.</p><Button type="button" variant="secondary" groesse="klein" onClick={() => { setBegriff(''); setVersuch((v) => v + 1); }}>Suche zurücksetzen</Button></div>
       )}
       {treffer && treffer.length > 0 && !fehler && (
-        <div><p role="status" className="mb-2 text-sm text-ink-muted">{treffer.length} Treffer für „{b}“</p><List>
+        <div><p role="status" className="mb-2 text-meta text-ink-muted">{treffer.length} Treffer für „{b}“</p><List>
           {treffer.map((m) => (
             <ListRow
               key={m.id}

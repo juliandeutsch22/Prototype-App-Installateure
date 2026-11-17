@@ -122,10 +122,10 @@ export default function KalenderAboKarte({
   }
 
   const inhalt = stand === 'laedt' ? (
-        <p className="text-sm text-ink-muted">Lädt …</p>
+        <p className="text-fliess text-ink-muted">Lädt …</p>
       ) : stand === 'fehler' ? (
         <div className="space-y-2">
-          <p role="alert" className="text-sm text-danger">Der Stand des Kalender-Abos ließ sich nicht laden.</p>
+          <p role="alert" className="text-meta text-danger">Der Stand des Kalender-Abos ließ sich nicht laden.</p>
           <Button variant="secondary" onClick={() => { setStand('laedt'); setNochmal((n) => n + 1); }}>
             Erneut versuchen
           </Button>
@@ -134,7 +134,7 @@ export default function KalenderAboKarte({
         <div className="space-y-3">
           {link ? (
             <div className="space-y-2">
-              <label htmlFor="kalender-link" className="section-label">Dein Link — nur jetzt sichtbar</label>
+              <label htmlFor="kalender-link" className="text-meta text-ink-muted">Dein Link — nur jetzt sichtbar</label>
               <input
                 id="kalender-link"
                 readOnly
@@ -148,7 +148,7 @@ export default function KalenderAboKarte({
               </div>
             </div>
           ) : stand ? (
-            <p className="text-sm text-ink">
+            <p className="text-fliess text-ink">
               Eingerichtet am {zeitpunkt(stand.angelegtAm)}
               <span className="block text-ink-muted">
                 {stand.zuletztAbgerufen
@@ -157,15 +157,15 @@ export default function KalenderAboKarte({
               </span>
             </p>
           ) : (
-            <p className="text-sm text-ink-muted">{texte.leer}</p>
+            <p className="text-fliess text-ink-muted">{texte.leer}</p>
           )}
 
-          {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+          {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
           {/* Solange der neue Link dasteht, nur Öffnen und Kopieren — der Rest beim nächsten Besuch. */}
           {link ? null : frage ? (
             <div className="space-y-2 rounded border border-line p-3">
-              <p className="text-sm text-ink">
+              <p className="text-fliess text-ink">
                 {frage === 'neu'
                   ? 'Der bisherige Link hört dann auf; im Kalender muss der neue eingetragen werden.'
                   : texte.ende}
@@ -198,7 +198,7 @@ export default function KalenderAboKarte({
     return (
       <div className="space-y-3">
         {/* Im Fenster bleibt die Erklärung hinter dem „i“ an ihrem Platz (Regel 11). */}
-        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+        <div className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
           <span>Was der Kalender zeigt und wer den Link sehen darf</span>
           <InfoHint about="das Kalender-Abo">{texte.hinweis}</InfoHint>
         </div>

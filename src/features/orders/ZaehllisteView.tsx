@@ -164,7 +164,7 @@ export default function ZaehllisteView() {
           title={`Gebucht ${datumAusMs(liste.gebuchtAm)}${liste.gebuchtVonName ? ` von ${liste.gebuchtVonName}` : ''}`}
           buendig
         >
-          <p className="px-4 pb-2 text-sm text-ink-muted">
+          <p className="px-4 pb-2 text-meta text-ink-muted">
             Gezählt {zaehlzeitText(liste.stichtag)}{liste.grund ? ` · Grund: ${liste.grund}` : ''}
           </p>
           <List>
@@ -457,7 +457,7 @@ function AbweichungenBuchen({
               <p>Inzwischen wurde gezählt oder korrigiert — es wurde nichts gebucht. Die Abweichungen zeigen jetzt den neuen Stand.</p>
             </Hinweiszeile>
           )}
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             {gezaehlt.length} gezählt: {abweichend.length} mit Abweichung, {stimmt} stimmen
             {ueberholt.length > 0 ? `, ${ueberholt.length} überholt (danach einzeln inventiert — die spätere Zählung gilt)` : ''}.
             {offen > 0 ? ` ${offen} nicht gezählt — ihr Bestand bleibt, wie er ist.` : ''}
@@ -475,7 +475,7 @@ function AbweichungenBuchen({
             <ul className="space-y-3" aria-label="Abweichungen">
               {abweichend.map((a) => (
                 <li key={a.zeile} className="space-y-1">
-                  <p className="text-sm text-ink">
+                  <p className="text-fliess text-ink">
                     <strong>{a.name}</strong> · Soll {fmtMenge(a.soll ?? 0)}, gezählt {fmtMenge(a.gezaehlt ?? 0)} →{' '}
                     {abweichungText(a.abweichung, a.einheit)} · danach {fmtMenge(a.danach)} {a.einheit}
                   </p>
@@ -537,7 +537,7 @@ function ArtikelHinzufuegen({
         {fehler && <Hinweiszeile stufe="fehl" role="alert"><p>{fehler}</p></Hinweiszeile>}
         {begriff.trim() && (
           passend.length === 0 ? (
-            <p className="text-sm text-ink-muted">{laeuft ? 'Sucht …' : 'Kein passender Artikel, der nicht schon auf der Liste steht.'}</p>
+            <p className="text-meta text-ink-muted">{laeuft ? 'Sucht …' : 'Kein passender Artikel, der nicht schon auf der Liste steht.'}</p>
           ) : (
             <List>
               {passend.slice(0, 20).map((m) => (

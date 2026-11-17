@@ -597,7 +597,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
       <div className="flex items-start justify-between gap-2">
         <p
-          className={`mt-1 text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'} ${
+          className={`mt-1 text-meta ${zuWenig ? 'text-warning' : 'text-ink-muted'} ${
             (hatStriche && reicht) || disabled ? 'invisible' : zuWenig ? '' : 'max-md:invisible'
           }`}
         >
@@ -642,13 +642,13 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
             <h2 id={blattTitel} className="unterschrift-blatt-titel">
               {titel}
             </h2>
-            <p className="text-sm text-ink-muted landscape:hidden">
+            <p className="text-meta text-ink-muted landscape:hidden">
               Quer halten, dann ist mehr Platz. Unterschreiben geht auch so.
             </p>
             <div className="min-h-0 flex-1">
               {zeichenflaeche('h-full w-full touch-none select-none rounded border border-line bg-surface')}
             </div>
-            <p className={`text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'}`}>{hinweis}</p>
+            <p className={`text-meta ${zuWenig ? 'text-warning' : 'text-ink-muted'}`}>{hinweis}</p>
             {/*
               LÖSCHEN UND ABSCHLIESSEN IN EINER ZEILE UNTER DEM FELD (Auftrag
               11.4, V10): „Neu zeichnen“ leise links, „Fertig“ kompakt rechts

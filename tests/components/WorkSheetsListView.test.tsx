@@ -795,7 +795,7 @@ describe('Stunden ohne Buchung', () => {
      zusammengesetzten Text, nicht in einem einzelnen Knoten. */
   const zeile = (text: string) =>
     screen.getByText((_t, el) => el?.textContent?.replace(/\s+/g, ' ').trim() === text, {
-      selector: 'span.text-xs',
+      selector: 'span.text-meta',
     });
 
   const offenerSchein = (p: Partial<WorkSheet> = {}): WorkSheet & { id: string } =>

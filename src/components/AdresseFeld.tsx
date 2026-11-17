@@ -59,13 +59,13 @@ export default function AdresseFeld({
         }}
       />
       {ausVorschlag && (
-        <p id={`${id}-vorschlag`} className="mt-1 text-sm text-ink-muted">
+        <p id={`${id}-vorschlag`} className="mt-1 text-meta text-ink-muted">
           Vom Kunden übernommen. Stimmt die Baustelle nicht damit überein, einfach
           überschreiben.
         </p>
       )}
       {vermischt && (
-        <div role="status" className="mt-1 text-sm text-warning">
+        <div role="status" className="mt-1 text-meta text-warning">
           <p>Hier stehen zwei Adressen ineinander — die des Kunden und eine getippte. Welche gilt?</p>
           <div className="mt-1 flex flex-wrap gap-x-4">
             {getippt && (

@@ -86,7 +86,7 @@ function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean
  */
 export function Pflichthinweis() {
   return (
-    <p className="text-sm text-ink-muted">
+    <p className="text-meta text-ink-muted">
       <span aria-hidden="true" className="text-danger">
         *
       </span>{' '}
@@ -232,7 +232,7 @@ interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
  */
 export function CheckboxField({ label, id, className = '', ...rest }: CheckboxFieldProps) {
   return (
-    <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-3 text-base text-ink">
+    <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-3 text-fliess text-ink">
       <input id={id} type="checkbox" className={`checkbox ${className}`} {...rest} />
       {label}
     </label>

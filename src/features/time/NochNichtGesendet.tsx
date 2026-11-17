@@ -116,7 +116,7 @@ export default function NochNichtGesendet({
               subtitle={
                 <>
                   {b.zusatz && <span className="block">{b.zusatz}</span>}
-                  <span className="mt-1 block text-xs text-ink">
+                  <span className="mt-1 block text-meta text-ink">
                     {e.quelle === 'abgelehnt' ? `Nicht angenommen: ${e.grund}` : e.grund}
                     {fremd && ` · für ${String(e.daten.user_name ?? 'eine andere Person')} — dort neu erfassen`}
                   </span>

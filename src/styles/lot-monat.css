@@ -32,10 +32,10 @@
     .mo-kopfzeile-31, .mo-zeile-31 { grid-template-columns: 11.875rem repeat(31, minmax(0, 1fr)); }
   }
 
-  .mo-ecke { display: flex; align-items: flex-end; padding: 0.5rem 0.75rem; font-size: 0.8125rem; color: var(--text-muted); border-right: 1px solid var(--border); }
+  .mo-ecke { display: flex; align-items: flex-end; padding: 0.5rem 0.75rem; font-size: var(--groesse-begleit); color: var(--text-muted); border-right: 1px solid var(--border); }
 
   /* Kopf je Tag: Wochentag, Zahl, Punkt für Termine. Antippen zeigt den ganzen Tag. */
-  .mo-kopf, .mo-kopf-we, .mo-kopf-heute, .mo-kopf-gewaehlt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; min-height: 2.75rem; padding: 0.375rem 0 0.3125rem; border: 0; background: var(--surface); color: var(--text); font-size: 0.8125rem; line-height: 1.125rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+  .mo-kopf, .mo-kopf-we, .mo-kopf-heute, .mo-kopf-gewaehlt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; min-height: 2.75rem; padding: 0.375rem 0 0.3125rem; border: 0; background: var(--surface); color: var(--text); font-size: var(--groesse-begleit); line-height: 1.125rem; font-variant-numeric: tabular-nums; cursor: pointer; }
   /*
     AM TABLET SIND DIE TAGE RUND 20 PX BREIT: zweistellige Zahlen in 13 px
     liefen zu einer Ziffernkette zusammen („121314…“, dieselbe Rückmeldung
@@ -43,7 +43,7 @@
     zwischen den Tagen Luft; jeder Kopf bleibt ein eigener Knopf.
   */
   @media (min-width: 760px) and (max-width: 1199px) {
-    .mo-kopf, .mo-kopf-we, .mo-kopf-heute, .mo-kopf-gewaehlt { font-size: 0.6875rem; line-height: 1rem; }
+    .mo-kopf, .mo-kopf-we, .mo-kopf-heute, .mo-kopf-gewaehlt { font-size: var(--groesse-klein); line-height: 1rem; }
   }
   .mo-kopf-we { background: var(--bg); color: var(--text-muted); }
   /*
@@ -69,9 +69,9 @@
   .mo-kopf:hover, .mo-kopf-we:hover { color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .mo-kopf-heute:hover { box-shadow: inset 0 2px 0 var(--petrol), inset 0 0 0 1px var(--auf-dunkel-leise); }
   /* Zwei Buchstaben am Schreibtisch, einer am Tablet („M“ allein hiesse Montag oder Mittwoch — dort steht die Zahl darunter). */
-  .mo-wt { display: none; font-size: 0.75rem; }
+  .mo-wt { display: none; font-size: var(--groesse-klein); }
   @media (min-width: 1200px) { .mo-wt { display: block; } }
-  .mo-wt-kurz { display: block; font-size: 0.75rem; }
+  .mo-wt-kurz { display: block; font-size: var(--groesse-klein); }
   @media (min-width: 1200px) { .mo-wt-kurz { display: none; } }
   .mo-nr { display: block; font-family: var(--schrift-mono); }
   .mo-punkt { width: 6px; height: 6px; border-radius: 999px; background: var(--petrol); }
@@ -79,12 +79,12 @@
   .mo-punkt-ohne { width: 6px; height: 6px; }
 
   /* Gruppe nach Einstufung, einklappbar — als Achse wie in der Woche (Planlinie, B5), seit V10 ohne Versalien und Sperrung. */
-  .mo-gruppe { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
+  .mo-gruppe { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); font-size: var(--groesse-begleit); line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
 
   /* Name der Zeile: am Tablet kurz („Max M.“), der volle Name für Vorlesehilfe und `title`. */
-  .mo-name { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0.375rem 0.75rem; border-right: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); background: var(--surface); }
+  .mo-name { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0.375rem 0.75rem; border-right: 1px solid var(--border); font-size: var(--groesse-begleit); font-weight: var(--gewicht-titel); color: var(--ink-deep); background: var(--surface); }
   /* Sicht „Baustellen“: Nummer · Ort unter dem Namen, wie `.wp-name-info` in der Woche (Runde 5, G3). */
-  .mo-name-info { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
+  .mo-name-info { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--groesse-klein); line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   .mo-name-lang { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .mo-name-kurz { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (min-width: 1200px) {
@@ -106,7 +106,7 @@
   .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
 
   /* Balken: Einsatz, eingeteilt aber abwesend, abwesend — und der gewählte. Kompakter Einsatzradius (V10): ein eintägiger Balken ist am Tablet kaum breiter als hoch, 8 px machten ihn zur Kapsel. */
-  .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { position: relative; z-index: 1; min-width: 0; height: 1.625rem; margin: 0.25rem 1px; padding: 0 0.3125rem; border: 0; border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.625rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { position: relative; z-index: 1; min-width: 0; height: 1.625rem; margin: 0.25rem 1px; padding: 0 0.3125rem; border: 0; border-radius: 0.25rem; font-size: var(--groesse-begleit); line-height: 1.625rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
   @media (min-width: 1200px) {
     .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { margin: 0.25rem 2px; padding: 0 0.5rem; }
   }
@@ -131,7 +131,7 @@
   .mo-balken-weg-gewaehlt { box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--petrol); }
 
   /* Legende unter dem Raster, in Worten. */
-  .mo-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.125rem; padding: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+  .mo-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.125rem; padding: 0.75rem; font-size: var(--groesse-begleit); color: var(--text-muted); border-top: 1px solid var(--border); }
   .mo-legende-plan, .mo-legende-konflikt, .mo-legende-weg, .mo-legende-ruhe, .mo-legende-heute { display: inline-flex; align-items: center; gap: 0.375rem; }
   .mo-legende-plan::before { content: ''; width: 1.125rem; height: 0.875rem; border-radius: 3px; background: var(--surface-3); box-shadow: inset 3px 0 0 var(--petrol), inset 0 0 0 1px var(--border-strong); }
   /* Der Konflikt in der Legende: das Warnzeichen wie am Balken, keine Farbfläche. */
@@ -167,7 +167,7 @@
   /* Der Kopf wie `.fenster-kopf`: Titel links, rechts ‹ › und das ✕ (`.fenster-schliessen`, E74). */
   .vorschau-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
   .vorschau-kopftext { min-width: 0; }
-  .vorschau-ueber { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .vorschau-ueber { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); }
   .vorschau-titel { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
   .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.25rem; }
   /* Das ✕ ist eine andere Handlung als das Blättern: mit Abstand, nicht als dritter Pfeil. */
@@ -191,9 +191,9 @@
 
   .v-abschnitt { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   .v-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
-  .v-unter { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  .v-unter { font-size: var(--groesse-begleit); line-height: 1.25rem; color: var(--text-muted); }
   .v-liste { margin: 0.5rem 0 0; }
-  .v-reihe { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.75rem; padding: 0.1875rem 0; font-size: 0.875rem; line-height: 1.375rem; }
+  .v-reihe { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.75rem; padding: 0.1875rem 0; font-size: var(--groesse-inhalt); line-height: 1.375rem; }
   .v-label { color: var(--text-muted); }
   .v-wert { margin: 0; color: var(--text); overflow-wrap: break-word; }
   /*
@@ -201,10 +201,10 @@
     auf der leisen Fläche; „jemand fehlt“ als Text in Warnfarbe, ohne
     Fläche — die Auswahlfarbe hieße sonst „gewählt“.
   */
-  .v-info { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; }
-  .v-hinweis { margin-top: 0.5rem; padding: 0; background: none; color: var(--warning); font-size: 0.875rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); }
+  .v-info { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--groesse-begleit); line-height: 1.25rem; }
+  .v-hinweis { margin-top: 0.5rem; padding: 0; background: none; color: var(--warning); font-size: var(--groesse-begleit); line-height: 1.25rem; font-weight: var(--gewicht-titel); }
   .v-aktion { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-top: 0.375rem; }
-  .v-leer { padding: 0.875rem 0; color: var(--text-muted); font-size: 0.9375rem; }
+  .v-leer { padding: 0.875rem 0; color: var(--text-muted); font-size: var(--groesse-inhalt); }
 
   /* ── Handy: Monatskalender ─────────────────────────────────────────────── */
   .kal { display: block; }
@@ -220,7 +220,7 @@
   */
   .kal-huelle { padding: 1.5rem; }
   .kal-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 1.5rem; grid-auto-rows: 4.25rem; gap: 4px; margin-top: 1.5rem; }
-  .kal-kopf { padding: 0; text-align: center; font-size: 0.8125rem; line-height: 1.5rem; color: var(--text-muted); }
+  .kal-kopf { padding: 0; text-align: center; font-size: var(--groesse-begleit); line-height: 1.5rem; color: var(--text-muted); }
   .kal-leer { min-height: 0; }
   /*
     HEUTE TRÄGT DAS LOT über der Zahl (Planlinie, B4), wie die Tagesleiste
@@ -232,10 +232,10 @@
   .kal-tag-heute { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
   /* Gewählt: Auswahlfläche mit feiner Kontur (V10) — das Lot von heute bleibt darauf im Akzent. */
   .kal-tag-gewaehlt { background: var(--auswahl); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
-  .kal-nr { font-family: var(--schrift-mono); font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
-  .kal-info { font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); white-space: nowrap; }
-  .kal-info-achtung { font-size: 0.75rem; line-height: 1rem; color: var(--warning); font-weight: var(--gewicht-titel); white-space: nowrap; }
-  .kal-info-gewaehlt { font-size: 0.75rem; line-height: 1rem; color: var(--accent-deep); white-space: nowrap; }
+  .kal-nr { font-family: var(--schrift-mono); font-size: var(--groesse-begleit); font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .kal-info { font-size: var(--groesse-klein); line-height: 1rem; color: var(--text-muted); white-space: nowrap; }
+  .kal-info-achtung { font-size: var(--groesse-klein); line-height: 1rem; color: var(--warning); font-weight: var(--gewicht-titel); white-space: nowrap; }
+  .kal-info-gewaehlt { font-size: var(--groesse-klein); line-height: 1rem; color: var(--accent-deep); white-space: nowrap; }
   .kal-balken { width: 70%; height: 5px; border-radius: 3px; background: var(--petrol); }
   /* Eingeteilt, aber weg: ein hohler Balken — die Fläche bleibt neutral, „fehlt“ steht darunter als Text (V10). */
   .kal-balken-konflikt { width: 70%; height: 5px; border-radius: 3px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); }

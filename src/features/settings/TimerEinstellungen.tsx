@@ -22,7 +22,7 @@ export default function TimerEinstellungen() {
   }
   return <Card title="Timer-Erinnerung" hint="Der Timer erinnert in diesem Abstand, solange er läuft oder in Pause steht. Die Prüfung erfolgt alle 15 Minuten. „Weiterlaufen lassen“ beginnt den Abstand neu. Push wird nur an registrierte Geräte mit aktivierter persönlicher Timer-Benachrichtigung gesendet. Es wird niemals automatisch Arbeitszeit gebucht.">
     <InputField id="timer-erinnerung" label="Erinnern nach (Minuten)" type="number" min="1" step="1" value={minuten} onChange={(e) => setMinuten(e.target.value)} />
-    {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+    {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
     {/* Die Speicherleiste erscheint erst bei einer Änderung (U1). */}
     <Speicherleiste geaendert={minuten !== String(company?.timerErinnerungMin ?? 600)} speichert={speichert} onVerwerfen={() => { setFehler(null); setMinuten(String(company?.timerErinnerungMin ?? 600)); }} onSpeichern={() => void speichern()} speichernText="Erinnerung speichern" />
   </Card>;

@@ -372,7 +372,7 @@ export default function UserMgmtView() {
               : ':'}
           </p>}
           {handoverPassword.benutzername && (
-            <p className="mt-2 text-sm text-ink">
+            <p className="mt-2 text-fliess text-ink">
               Benutzername:{' '}
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
@@ -431,7 +431,7 @@ export default function UserMgmtView() {
                   placeholder="z. B. manfred.huber"
                   onChange={(e) => setBenutzername(e.target.value.toLowerCase().trim())}
                   required pflicht />
-                <p className="flex flex-wrap items-center text-xs text-ink-muted">
+                <p className="flex flex-wrap items-center text-meta text-ink-muted">
                   Ohne E-Mail: das Startpasswort gibst du persönlich weiter.
                   <InfoHint about="Benutzername">
                     Erlaubt sind Kleinbuchstaben a–z, Ziffern, Punkt, Bindestrich und
@@ -507,7 +507,7 @@ export default function UserMgmtView() {
                     setForm((f) => ({ ...f, initialVacationDays: '', initialOvertime: '0' }));
                   }}
                 />
-                <span className="text-sm">
+                <span className="text-fliess">
                   <strong className="text-ink">Arbeitet schon im Betrieb</strong>
                   <span className="mt-1 block text-ink-muted">
                     Der Umstieg auf Senklot. Resturlaub und Überstundensaldo bringt die Person
@@ -533,7 +533,7 @@ export default function UserMgmtView() {
                     }));
                   }}
                 />
-                <span className="text-sm">
+                <span className="text-fliess">
                   <strong className="text-ink">Tritt neu ein</strong>
                   <span className="mt-1 block text-ink-muted">
                     Bringt nichts mit. Für das angebrochene erste Urlaubsjahr schlägt die App
@@ -544,7 +544,7 @@ export default function UserMgmtView() {
             </div>
 
             {eintritt === 'neu' && (
-              <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
+              <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-meta text-ink-muted">
                 Vorschlag für {datumAT(form.appStartDate) || 'das Eintrittsdatum'}:{' '}
                 <strong className="text-ink">
                   {tageZahl(vorschlag(form.appStartDate, form.yearlyVacationDays).tage)}
@@ -683,7 +683,7 @@ export default function UserMgmtView() {
                 „Hilfe zu dieser Seite“, und ein „Warum …“ ohne Antwort daneben
                 wäre eine Frage ins Leere.
               */}
-              <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+              <div className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
                 <span>Urlaubstage pro Jahr gelten laut Vertrag; der Resturlaub nur im Startjahr.</span>
                 <InfoHint about="Resturlaub beim Umstieg">
                   <p>
@@ -705,7 +705,7 @@ export default function UserMgmtView() {
               </div>
 
               <fieldset>
-                <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
+                <legend className="mb-1 text-meta font-normal text-ink">Arbeitstage</legend>
                 <div className="flex flex-wrap gap-x-4">
                   {WEEKDAYS.map((d) => (
                     <CheckboxField
@@ -717,7 +717,7 @@ export default function UserMgmtView() {
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-meta text-ink-muted">
                   Bestimmt das Tagessoll: Wochenstunden geteilt durch Arbeitstage.
                 </p>
                 <TagessollFelder form={form} setForm={setForm} />
@@ -851,7 +851,7 @@ export default function UserMgmtView() {
           await anlegen(true);
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(jugendschutz ?? []).map((h) => <li key={h}>{h}</li>)}
         </ul>
       </ConfirmDialog>

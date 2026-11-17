@@ -407,7 +407,7 @@ export default function EingangView() {
 
   const anliegen = (
     <Card title="Anliegen" id="eingang-anliegen">
-      <p className="whitespace-pre-line text-sm text-ink">{e.anliegen}</p>
+      <p className="whitespace-pre-line text-fliess text-ink">{e.anliegen}</p>
     </Card>
   );
 
@@ -585,8 +585,8 @@ export default function EingangView() {
 function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">
+      <dt className="text-meta text-ink-muted">{wort}</dt>
+      <dd className="mt-0.5 text-fliess text-ink">
         {children || <span className="text-ink-muted">nicht angegeben</span>}
       </dd>
     </div>

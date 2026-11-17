@@ -39,7 +39,7 @@ export default function EingeteiltHinweis({ companyId, an, darfPlanen, uid, von,
   if (!an || !tage || tage.length === 0) return null;
   const text = eingeteiltText(tage);
   return (
-    <span className="mt-1 block text-xs text-warning">
+    <span className="mt-1 block text-meta text-warning">
       {vorne ? `${vorne}${text.replace(/^An/, 'an')}` : text}
       {darfPlanen && (
         <>

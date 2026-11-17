@@ -95,7 +95,7 @@ export default function RechtSeite({ titel, art }: { titel: string; art: 'impres
           ) : (
             <Card className="recht-blatt">
               {/* Ohne Kartenkopf bringt das Blatt oben kein Polster mit: eine Zelle, wie an den Seiten. */}
-              <div className="recht space-y-6 pt-6 text-base leading-relaxed text-ink">
+              <div className="recht space-y-6 pt-6 text-fliess leading-relaxed text-ink">
                 <RechtInhalt inhalt={fassung.inhalt} betreiber={betreiber} />
               </div>
             </Card>

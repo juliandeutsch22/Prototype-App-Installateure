@@ -3801,7 +3801,7 @@ export default function InvoicesView() {
                       {baustelle.tage >= AUFFAELLIG_AB_TAGEN ? (
                         <Warnung stufe={baustelle.tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(baustelle.tage)}</Warnung>
                       ) : (
-                        <span className="text-sm text-ink-muted">{tageWort(baustelle.tage)}</span>
+                        <span className="text-meta text-ink-muted">{tageWort(baustelle.tage)}</span>
                       )}
                     </>
                   }
@@ -4071,7 +4071,7 @@ export default function InvoicesView() {
                 onWert={(n) => setAnzahlungProzent(n)}
               />
               {anteilFehler(anzahlungProzent) && (
-                <p className="mt-1 text-sm text-danger">{anteilFehler(anzahlungProzent)}</p>
+                <p className="mt-1 text-meta text-danger">{anteilFehler(anzahlungProzent)}</p>
               )}
               {/* Offen stehen lassen: hinter einem „i“ läge der Hinweis zwei Klicks weiter als vorher. */}
               <div className="mt-3">
@@ -4099,7 +4099,7 @@ export default function InvoicesView() {
             wie vorher — jetzt mit demselben Baustein wie jedes Formular.
           */}
           <WeitereAngaben titel="Konditionen für diese Rechnung anpassen">
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               Nur für diese Rechnung{' '}
               <InfoHint about="die Konditionen dieser Rechnung">
                 Die Änderung gilt nur für diese Rechnung. Stundensätze und Zuschläge wirken beim
@@ -4509,7 +4509,7 @@ export default function InvoicesView() {
             </div>
           )}
           <div className="relative overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
+            <table className="w-full min-w-[34rem] text-fliess">
               <thead>
                 {/*
                   KOPF UND FELD BÜNDIG (Testbericht Runde 6, G2): „Menge“ und
@@ -4569,7 +4569,7 @@ export default function InvoicesView() {
                         onWert={(label) => setPos(i, { label })}
                       />
                       {positionsRabattText(p.rabattProzent) && (
-                        <span className="mt-1 block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)} (aus dem Angebot)</span>
+                        <span className="mt-1 block text-meta text-ink-muted">{positionsRabattText(p.rabattProzent)} (aus dem Angebot)</span>
                       )}
                     </td>
                     <td className="py-2 pr-3 text-right">
@@ -4697,7 +4697,7 @@ export default function InvoicesView() {
           {zahlungsAngaben && (
             <section className="rechnung-abschnitt mt-4" aria-label="Zahlung">
               <span className="section-label">Zahlung</span>
-              <dl className="divide-y divide-line text-sm">
+              <dl className="divide-y divide-line text-fliess">
                 <div className="rechnung-detail-zeile">
                   <dt className="shrink-0 text-ink-muted">Zahlungsziel</dt>
                   <dd className="text-right text-ink">
@@ -4735,7 +4735,7 @@ export default function InvoicesView() {
                 </div>
               </dl>
               {konditionenAbweichend.length > 0 && (
-                <p className="text-sm text-ink">
+                <p className="text-fliess text-ink">
                   <Warnung>Abweichend vom Betrieb</Warnung>{' '}
                   {konditionenAbweichend.join(' · ')}
                 </p>
@@ -4778,9 +4778,9 @@ export default function InvoicesView() {
                     wert={euro(v.preis)}
                   >
                     {v.schonAuf ? (
-                      <span className="text-sm text-ink-muted">auf {v.schonAuf}</span>
+                      <span className="text-meta text-ink-muted">auf {v.schonAuf}</span>
                     ) : preview.positions.some((p) => p.wartungId === wartungsKennung(v)) ? (
-                      <span className="text-sm text-ink-muted">übernommen</span>
+                      <span className="text-meta text-ink-muted">übernommen</span>
                     ) : (
                       <Button variant="secondary" onClick={() => wartungUebernehmen(v)}>
                         Übernehmen
@@ -4872,7 +4872,7 @@ export default function InvoicesView() {
                       wert={`${fmtMenge(v.offen)} ${v.einheit}`}
                     >
                       {schon ? (
-                        <span className="text-sm text-ink-muted">übernommen</span>
+                        <span className="text-meta text-ink-muted">übernommen</span>
                       ) : (
                         <Button variant="secondary" onClick={() => vorschlagUebernehmen(v)}>
                           Übernehmen
@@ -4944,13 +4944,13 @@ export default function InvoicesView() {
                 </InfoHint>
               </div>
               {abzugFehler ? (
-                <p className="text-sm text-danger" role="alert">
+                <p className="text-meta text-danger" role="alert">
                   Die bisherigen Rechnungen dieser Baustelle konnten nicht geladen werden. Eine
                   Schlussrechnung ohne ihre Anzahlungen wäre steuerlich falsch — bitte noch einmal
                   zusammenstellen.
                 </p>
               ) : steuer.passend.length === 0 ? (
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   Auf dieser Baustelle gibt es nichts abzuziehen: keine Anzahlung, die nicht schon
                   abgezogen wäre.
                 </p>
@@ -4973,7 +4973,7 @@ export default function InvoicesView() {
                 </div>
               )}
               {!abzugFehler && steuer.andere.length > 0 && (
-                <p className="mt-3 text-sm text-warning" role="status">
+                <p className="mt-3 text-meta text-warning" role="status">
                   Nicht abziehbar, weil {reverseCharge ? 'mit Umsatzsteuer' : 'mit Übergang der Steuerschuld'}{' '}
                   ausgestellt: {steuer.andere.map((r) => r.invoiceNumber).join(', ')}. Anzahlung und
                   Schlussrechnung brauchen dieselbe Steuerbehandlung — sonst stimmt die abgezogene
@@ -4981,7 +4981,7 @@ export default function InvoicesView() {
                 </p>
               )}
               {summen?.gutschrift && (
-                <p className="mt-3 text-sm font-normal text-danger" role="alert">
+                <p className="mt-3 text-meta font-normal text-danger" role="alert">
                   Die Abzüge übersteigen die Gesamtleistung um {euro(-summen.totalBrutto)}. Das
                   wäre eine Gutschrift, und die kann diese App noch nicht — sie lässt sich hier
                   nicht anlegen.
@@ -5011,13 +5011,13 @@ export default function InvoicesView() {
                 </InfoHint>
               </div>
             ) : (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Rechnungsnummer <strong className="text-ink">{invoiceNumber}</strong> — die App
                 vergibt sie beim Erstellen, lückenlos.
               </p>
             )}
             {numberTaken && (
-              <p className="text-sm font-normal text-danger" role="alert">
+              <p className="text-meta font-normal text-danger" role="alert">
                 Diese Rechnungsnummer ist bereits vergeben.
               </p>
             )}
@@ -5060,7 +5060,7 @@ export default function InvoicesView() {
                 Bei Privatkunden gilt der Übergang nicht.
               </p>
               {reverseCharge && !rcPruefung.vollstaendig && (
-                <p className="mt-1 text-sm text-warning" role="alert">
+                <p className="mt-1 text-meta text-warning" role="alert">
                   Ohne {rcPruefung.fehlt.join(' und ')} ist der Übergang der Steuerschuld nicht
                   belegt — die Rechnung lässt sich so nicht anlegen.
                 </p>
@@ -5095,7 +5095,7 @@ export default function InvoicesView() {
                 pflicht={uidPruefung.pflicht}
               />
               {uidFormFehler && (
-                <p className="mt-1 text-sm text-danger" role="alert">
+                <p className="mt-1 text-meta text-danger" role="alert">
                   {uidFormFehler}
                 </p>
               )}
@@ -5112,12 +5112,12 @@ export default function InvoicesView() {
                 />
               )}
               {uidPruefung.text && (
-                <p className="mt-1 text-sm text-warning" role="alert">
+                <p className="mt-1 text-meta text-warning" role="alert">
                   {uidPruefung.text}
                 </p>
               )}
               {!uidPruefung.pflicht && !kundenUid.trim() && (
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-meta text-ink-muted">
                   Bei Privatkunden bleibt das Feld leer. Pflicht wird es über 10.000 € brutto
                   und bei Bauleistungen mit Übergang der Steuerschuld.
                 </p>
@@ -5134,7 +5134,7 @@ export default function InvoicesView() {
                   onChange={(e) => setSteuerbefreiung(e.target.value)}
                   pflicht
                 />
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-meta text-ink-muted">
                   Ohne Umsatzsteuer steht auf der Rechnung, warum — Pflicht nach § 11 UStG.
                 </p>
               </div>
@@ -5238,7 +5238,7 @@ export default function InvoicesView() {
               )}
             </div>
 
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {preview.linkedEntries.length}{' '}
               {preview.linkedEntries.length === 1 ? 'Zeiteintrag wird' : 'Zeiteinträge werden'} als
               verrechnet gesperrt.
@@ -5271,7 +5271,7 @@ export default function InvoicesView() {
               Betriebe kassieren bar.
             */}
             {company?.addressLine?.trim() && !company?.iban?.trim() && (
-              <p className="text-sm text-warning">
+              <p className="text-meta text-warning">
                 In den Firmendaten ist keine IBAN hinterlegt — die Rechnung nennt dann kein Konto für
                 die Überweisung.
                 {user && isTopLevel(user.role) && (
@@ -5290,7 +5290,7 @@ export default function InvoicesView() {
               Die Datenbank weist die Rechnung ebenso ab.
             */}
             {ibanFehler(company?.iban) && (
-              <p className="text-sm text-danger" role="alert">
+              <p className="text-meta text-danger" role="alert">
                 Die IBAN in den Firmendaten ist ungültig: {ibanFehler(company?.iban)} Eine Rechnung lässt sich
                 erst erstellen, wenn sie berichtigt ist.
                 {user && isTopLevel(user.role) ? (
@@ -5304,7 +5304,7 @@ export default function InvoicesView() {
               </p>
             )}
             {empfaengerBefund && (
-              <p className="text-sm text-danger" role="alert">
+              <p className="text-meta text-danger" role="alert">
                 {empfaengerBefund.text}
                 {empfaengerBefund.kundeId && (
                   <>
@@ -5323,7 +5323,7 @@ export default function InvoicesView() {
               täuschen.
             */}
             {firmenbuchFehlt(company).length > 0 && (
-              <p className="text-sm text-warning">
+              <p className="text-meta text-warning">
                 In den Firmendaten fehlt {firmenbuchFehlt(company).join(' und ')} — bei einer GmbH, KG, OG oder
                 einem eingetragenen Unternehmen gehört beides in den Fuß jeder Rechnung (§ 14 UGB).
                 {user && isTopLevel(user.role) && (
@@ -5337,7 +5337,7 @@ export default function InvoicesView() {
               </p>
             )}
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
-              <p className="text-sm text-warning">
+              <p className="text-meta text-warning">
                 Keine UID-Nummer des Betriebs hinterlegt. Ohne sie ist eine Rechnung über 400 € brutto
                 unvollständig — außer der Betrieb ist Kleinunternehmer.
                 {user && isTopLevel(user.role) && (
@@ -5351,14 +5351,14 @@ export default function InvoicesView() {
               </p>
             )}
             {(zeitraumFehlt || zeitraumVerdreht) && (
-              <p className="text-sm text-warning" role="alert">
+              <p className="text-meta text-warning" role="alert">
                 {zeitraumFehlt
                   ? 'Leistung von und bis fehlen — ohne sie wird die Rechnung nicht erstellt (oben bei der Vorschau eintragen).'
                   : 'Der Leistungszeitraum ist verdreht — bitte oben bei der Vorschau berichtigen.'}
               </p>
             )}
             {eRechnungAnschrift && (
-              <p className="text-sm text-warning">
+              <p className="text-meta text-warning">
                 Die Anschrift „{eRechnungAnschrift}“ lässt sich nicht in Straße, Postleitzahl und Ort
                 zerlegen — eine E-Rechnung zu dieser Rechnung würde abgewiesen. Die Anschrift wird mit der
                 Rechnung festgehalten; wer eine E-Rechnung braucht, berichtigt sie vorher in der Kundenakte.
@@ -5373,7 +5373,7 @@ export default function InvoicesView() {
               </p>
             )}
             {leer && (
-              <p className="text-sm text-warning" role="alert">
+              <p className="text-meta text-warning" role="alert">
                 {preview.positions.length === 0
                   ? 'Ohne Positionen gibt es keine Rechnung — bitte eine Position hinzufügen.'
                   : 'Eine Rechnung über null Euro wird nicht angelegt — bitte die Preise eintragen.'}
@@ -5499,13 +5499,13 @@ export default function InvoicesView() {
             }
           />
           {suchbegriff && suchFehler && (
-            <p className="px-4 pb-3 text-xs text-warning">
+            <p className="px-4 pb-3 text-meta text-warning">
               Die Suche über alle Rechnungen ist gerade nicht erreichbar — gezeigt werden Treffer unter
               den geladenen.
             </p>
           )}
           {serverTreffer && serverTreffer.length >= RECHNUNG_TREFFER && (
-            <p className="px-4 pb-3 text-xs text-ink-muted">
+            <p className="px-4 pb-3 text-meta text-ink-muted">
               Die {RECHNUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
@@ -5581,7 +5581,7 @@ export default function InvoicesView() {
             <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
               Ältere Rechnungen laden
             </Button>
-            <span className="text-sm text-ink-muted">{grenze} jüngste geladen</span>
+            <span className="text-meta text-ink-muted">{grenze} jüngste geladen</span>
           </div>
         )}
       </Card>
@@ -5676,7 +5676,7 @@ export default function InvoicesView() {
             Zeitraum zusammenstellen
           </Button>
           {exportVon > exportBis && (
-            <span className="text-sm text-warning">„Von“ liegt nach „Bis“.</span>
+            <span className="text-meta text-warning">„Von“ liegt nach „Bis“.</span>
           )}
         </div>
         {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
@@ -5684,7 +5684,7 @@ export default function InvoicesView() {
           const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis, exportVorher);
           return (
             <>
-              <p className="mt-3 text-sm text-ink">
+              <p className="mt-3 text-fliess text-ink">
                 {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
                 {euro(e.summeNetto)} · Brutto {euro(e.summeBrutto)}
               </p>
@@ -5694,7 +5694,7 @@ export default function InvoicesView() {
                 es vorher: eine leere Ausgabe sah aus wie ein leerer Monat.
               */}
               {e.anzahl === 0 && (
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-meta text-ink-muted">
                   In diesem Zeitraum wurde keine Rechnung geschrieben. Nachgesehen wurde im
                   gesamten Bestand, nicht nur in der Liste unten.
                   {e.gegenbuchungen > 0 &&
@@ -5821,11 +5821,11 @@ export default function InvoicesView() {
                             sonst stehen sie doppelt in den Büchern.
                           </InfoHint>
                           {zs.fehlend.length === 0 && zs.zeilen.length === 0 && (
-                            <span className="basis-full text-sm text-ink-muted">Im Zeitraum gibt es keine Zahlungen.</span>
+                            <span className="basis-full text-meta text-ink-muted">Im Zeitraum gibt es keine Zahlungen.</span>
                           )}
                         </>
                       )}
-                      <p className="basis-full text-sm text-ink-muted">
+                      <p className="basis-full text-meta text-ink-muted">
                         Beide BMD-Stapel sind vorgebaut: Das endgültige Format legt die Kanzlei nach ihrem
                         Importtest fest. Die letzte Spalte trägt die Kundennummer, ohne sie das
                         Sammelkonto der Debitoren.
@@ -6178,19 +6178,19 @@ export default function InvoicesView() {
           Belegerteilungspflicht erfüllt.
         */}
         {zRichtung === 'eingang' && (zArt === 'Bar' || zArt === 'Karte') && (
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mt-2 text-meta text-ink-muted">
             Den Beleg für Bar- und Kartenzahlungen erteilt die Registrierkasse des Betriebs.
             Senklot vermerkt nur die Zahlung.
           </p>
         )}
         {zahlungFuer && zRichtung === 'eingang' && offenerRuecklass(zahlungFuer) > 0 && (
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mt-2 text-meta text-ink-muted">
             Davon {zahlungFuer.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}{' '}
             {euro(offenerRuecklass(zahlungFuer))}, fällig am {datumAT(ruecklassFaelligAm(zahlungFuer) ?? '')}.
           </p>
         )}
         {zahlungFuer?.skontoProzent && zahlungFuer.skontoBis && (
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mt-2 text-meta text-ink-muted">
             Zugesagt: {zahlungFuer.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
             Skonto ({euro(zugesagterSkonto(zahlungFuer))}) bei Zahlung bis {datumAT(zahlungFuer.skontoBis)}.
           </p>
@@ -6214,7 +6214,7 @@ export default function InvoicesView() {
               value={zMahnText}
               onChange={(text) => setZMahnTeil(text)}
             />
-            <p className="mt-1 text-sm text-ink-muted">
+            <p className="mt-1 text-meta text-ink-muted">
               Die letzte Mahnung forderte {euro(zMahnforderung)} an Mahnspesen und Zinsen
               {mahnkostenBezahlt > 0 ? `, davon sind ${euro(mahnkostenBezahlt)} eingegangen` : ''}.
               Dieser Anteil zählt nicht auf die Rechnung, sondern als eigener Ertrag.
@@ -6240,7 +6240,7 @@ export default function InvoicesView() {
             </Hinweiszeile>
           </div>
         )}
-        {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
+        {zFehler && <p className="mt-3 text-meta text-danger">{zFehler}</p>}
 
         {/*
           GUTHABEN MIT EINER NEUEN RECHNUNG VERRECHNEN (V7) — die Zusage der
@@ -6258,7 +6258,7 @@ export default function InvoicesView() {
             <div className="mt-4">
               <p className="section-label">Mit einer offenen Rechnung verrechnen</p>
               {ziele.length === 0 ? (
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   {zahlungsStand.customerName} hat keine offene Rechnung. Das Guthaben von {euro(guthaben)} lässt sich
                   zurückzahlen oder später mit der nächsten Rechnung verrechnen.
                 </p>
@@ -6327,9 +6327,9 @@ export default function InvoicesView() {
         <div className="mt-4">
           <p className="section-label">Bisher eingegangen</p>
           {zahlungen === null ? (
-            <p className="text-sm text-ink-muted">Wird geladen …</p>
+            <p className="text-fliess text-ink-muted">Wird geladen …</p>
           ) : zahlungen.length === 0 ? (
-            <p className="text-sm text-ink-muted">Auf diese Rechnung ist noch nichts eingegangen.</p>
+            <p className="text-fliess text-ink-muted">Auf diese Rechnung ist noch nichts eingegangen.</p>
           ) : (
             <List>
               {zahlungen.map((z) => (
@@ -6431,7 +6431,7 @@ export default function InvoicesView() {
         }}
       >
         {mahnFuer && kundenartFehlt(kundeDerRechnung(mahnFuer), mahnFuer.customerVatId) && (
-          <p className="mb-3 text-sm text-danger" role="alert">
+          <p className="mb-3 text-meta text-danger" role="alert">
             Für {kundeDerRechnung(mahnFuer)!.name} ist keine Kundenart hinterlegt. Sie entscheidet über
             Verzugszinsen und Mahnspesen — bitte zuerst{' '}
             <Link to={`/customers/${kundeDerRechnung(mahnFuer)!.id}`} className="link-hinweis-weiter">
@@ -6463,7 +6463,7 @@ export default function InvoicesView() {
             bezahlt: grundlage.zahlungen.filter((x) => x.art === 'Mahnkosten').reduce((s, x) => s + x.betrag, 0),
           }) : null;
           const kostenZeile = mk && (mk.kostenFrueher > 0 || mk.bezahlt > 0) && (
-            <p className="mt-3 text-sm text-ink-muted">
+            <p className="mt-3 text-meta text-ink-muted">
               Mahnkosten bis heute {euro(mk.forderung)}
               {mk.kostenFrueher > 0 ? `, davon ${euro(mk.kostenFrueher)} aus früheren Schreiben` : ''}
               {mk.bezahlt > 0 ? `; bezahlt sind ${euro(mk.bezahlt)}` : ''} — das Schreiben fordert
@@ -6473,7 +6473,7 @@ export default function InvoicesView() {
           if (z.art === 'berechnet') {
             return (
               <>
-                <p className="mt-3 text-sm text-ink-muted">
+                <p className="mt-3 text-meta text-ink-muted">
                   Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
                   {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
                   Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
@@ -6485,7 +6485,7 @@ export default function InvoicesView() {
           if (z.art === 'fehlt') {
             // Kein stiller Wegfall: wer mahnt, soll wissen, dass die Zinsen fehlen und warum.
             return (
-              <p className="mt-3 text-sm text-warning">
+              <p className="mt-3 text-meta text-warning">
                 Der Kunde ist Unternehmer — für Verzugszinsen unter Unternehmern fehlt der
                 Basiszinssatz des laufenden Halbjahres (Einstellungen → Rechnungsvorgaben, für die Leitung unter Sätze und Kosten). Die Mahnung
                 geht ohne Zinsen hinaus.

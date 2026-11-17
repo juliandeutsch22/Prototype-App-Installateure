@@ -557,7 +557,7 @@ export default function FreistellungenBestaetigen({
                     disabled={!urlaubEntscheiden}
                     onChange={() => setUeberWahl({ ...ueberWahl, [f.id]: 'urlaub' })}
                   />
-                  <span className="text-sm">
+                  <span className="text-fliess">
                     Tage darüber als Urlaub buchen
                     {!urlaubEntscheiden && (
                       <span className="block text-ink-muted">Nur, wer über Urlaub entscheidet.</span>
@@ -572,7 +572,7 @@ export default function FreistellungenBestaetigen({
                     checked={wahl === 'sonderurlaub'}
                     onChange={() => setUeberWahl({ ...ueberWahl, [f.id]: 'sonderurlaub' })}
                   />
-                  <span className="text-sm">Als Sonderurlaub bestätigen (mit Grund)</span>
+                  <span className="text-fliess">Als Sonderurlaub bestätigen (mit Grund)</span>
                 </label>
                 {wahl === 'sonderurlaub' && (
                   <InputField
@@ -617,7 +617,7 @@ export default function FreistellungenBestaetigen({
           )}
           {laufend.length > 0 && (
             <div className="mt-4 border-t border-line pt-3">
-              <p className="mb-2 text-sm font-normal text-ink">Bestätigt, noch nicht vorbei</p>
+              <p className="mb-2 text-meta font-normal text-ink">Bestätigt, noch nicht vorbei</p>
               <List>
                 {laufend.map((f) => {
                   /*
@@ -635,11 +635,11 @@ export default function FreistellungenBestaetigen({
                       subtitle={
                         <>
                           <span className="block">{freistellungWas(f, company?.freistellungAnlaesse)}</span>
-                          {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
-                          {anrechnungVermerk(f) && <span className="mt-1 block text-xs text-ink-muted">{anrechnungVermerk(f)}</span>}
-                          {ueberText && <span className="mt-1 block text-xs text-ink-muted">{ueberText}</span>}
+                          {vermerk && <span className="mt-1 block text-meta text-ink-muted">{vermerk}</span>}
+                          {anrechnungVermerk(f) && <span className="mt-1 block text-meta text-ink-muted">{anrechnungVermerk(f)}</span>}
+                          {ueberText && <span className="mt-1 block text-meta text-ink-muted">{ueberText}</span>}
                           {mitUrlaub && (
-                            <span className="mt-1 block text-xs text-ink-muted">
+                            <span className="mt-1 block text-meta text-ink-muted">
                               Zurücknehmen kann, wer über Urlaub entscheidet — der Urlaub für die Tage darüber geht mit.
                             </span>
                           )}
@@ -691,7 +691,7 @@ export default function FreistellungenBestaetigen({
                 disabled={!urlaubEntscheiden}
                 onChange={() => setFolge('zeitausgleich')}
               />
-              <span className="text-sm">
+              <span className="text-fliess">
                 Als Zeitausgleich buchen ({freistellungZeitraum(begruenden.f)})
                 {!urlaubEntscheiden && <span className="block text-ink-muted">Nur, wer über Urlaub entscheidet.</span>}
               </span>
@@ -704,7 +704,7 @@ export default function FreistellungenBestaetigen({
                 checked={folge === 'keine'}
                 onChange={() => setFolge('keine')}
               />
-              <span className="text-sm">Nicht buchen — die Zeit fehlt im Saldo</span>
+              <span className="text-fliess">Nicht buchen — die Zeit fehlt im Saldo</span>
             </label>
           </span>
         )}

@@ -69,7 +69,7 @@ export default function MusterV10() {
           <TextareaField id="v10-text" label="Notiz" defaultValue="Zweizeilige Notiz zum Einsatz." />
           <CheckboxField id="v10-haken" label="Angemeldet bleiben" defaultChecked />
           <fieldset className="wahl-gruppe">
-            <legend className="mb-2 text-sm text-ink-muted">Herkunft (kompakte Auswahl)</legend>
+            <legend className="mb-2 text-meta text-ink-muted">Herkunft (kompakte Auswahl)</legend>
             {[
               { wert: 'lager', name: 'Lager', zusatz: 'Aus dem eigenen Bestand' },
               { wert: 'haendler', name: 'Beim Händler mitgenommen', zusatz: 'Direkt auf die Baustelle' },

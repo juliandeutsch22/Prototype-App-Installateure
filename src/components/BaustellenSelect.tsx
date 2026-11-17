@@ -197,7 +197,7 @@ export default function BaustellenSelect({
         <option value="">— ohne Zuordnung —</option>
         {bekannteNummer && <option value={bekannteNummer}>{bekannteNummer} · aufgezeichnete Baustelle</option>}
       </SelectField>
-      <p className="mt-2 text-sm text-ink-muted">Die aufgezeichnete Zuordnung bleibt erhalten. Weitere Baustellen können erst mit Verbindung geladen werden.</p>
+      <p className="mt-2 text-meta text-ink-muted">Die aufgezeichnete Zuordnung bleibt erhalten. Weitere Baustellen können erst mit Verbindung geladen werden.</p>
       <Button variant="ghost" onClick={() => setVersuch((v) => v + 1)}>Erneut versuchen</Button>
     </div>;
   }
@@ -316,7 +316,7 @@ export default function BaustellenSelect({
         </div>
       )}
       {ausweich && (
-        <p className="mt-2 text-sm text-ink-muted">
+        <p className="mt-2 text-meta text-ink-muted">
           Keine laufende Baustelle — angezeigt werden die zuletzt angelegten, unabhängig vom
           Status.
         </p>
@@ -337,7 +337,7 @@ export default function BaustellenSelect({
       */}
       {angeschnitten && (
         <div className="mt-2 space-y-1">
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Die Liste zeigt die ersten {projekte.length} laufenden Baustellen — jede andere findet die Suche.
           </p>
           <BaustellenSuche

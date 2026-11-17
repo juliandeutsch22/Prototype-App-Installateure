@@ -167,19 +167,19 @@ export default function MyProjectsView() {
                 ) : null}
               </p>
               {naechsterEinsatz.has(p.projectNumber) && (
-                <p className="mt-2 text-sm font-semibold text-ink-deep">
+                <p className="mt-2 text-fliess font-semibold text-ink-deep">
                   nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}
                 </p>
               )}
               {neuZuPlanen.has(p.projectNumber) && (
-                <p className="mt-1 text-sm text-ink-muted">
+                <p className="mt-1 text-meta text-ink-muted">
                   Der Einsatz am {fmt(neuZuPlanen.get(p.projectNumber))} liegt an einem Tag, an dem du
                   abwesend bist — das Büro plant ihn neu.
                 </p>
               )}
 
               {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
-              {liegenschaftenAn && liegenschaftZeile(p) && <p className="mt-2 text-sm text-ink">{liegenschaftZeile(p)}</p>}
+              {liegenschaftenAn && liegenschaftZeile(p) && <p className="mt-2 text-fliess text-ink">{liegenschaftZeile(p)}</p>}
               {/*
                 DIE ADRESSE WIE ÜBERALL (E72): als Kontakt mit Symbol, ein Tipp
                 öffnet die Navigation. Der gefüllte Balken „Route: …“ je Karte
@@ -204,7 +204,7 @@ export default function MyProjectsView() {
                     />
                   </div>
                 ) : (
-                  <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
+                  <p className="mt-1 text-meta text-warning">Kein Ansprechpartner hinterlegt.</p>
                 )}
               </div>
 

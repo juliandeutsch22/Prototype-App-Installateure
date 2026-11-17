@@ -1092,7 +1092,7 @@ export default function EinsatzFormular({
             Verrechnungssatz. */}
         {!staffGeladen ? (
           <fieldset>
-            <legend className="mb-2 text-sm font-semibold">Mitarbeiter</legend>
+            <legend className="mb-2 text-meta font-semibold">Mitarbeiter</legend>
             <SkeletonList rows={4} />
           </fieldset>
         ) : (
@@ -1149,7 +1149,7 @@ export default function EinsatzFormular({
               // hätte keine Wirkung bzw. den falschen Satz.
               const person = staff.find((u) => u.uid === uid);
               if (alsHelferEingestuft(person) || istLehrling(person)) {
-                return <span className="text-sm text-ink-muted">{stufeImEinsatz(false, person)}</span>;
+                return <span className="text-meta text-ink-muted">{stufeImEinsatz(false, person)}</span>;
               }
               return (
                 <Schalter
@@ -1177,7 +1177,7 @@ export default function EinsatzFormular({
                 : 'Sie bleiben beim Speichern erhalten; Aufgabe und Uhrzeit unten gelten für neu Eingeteilte.'}
             </p>
           </Hinweiszeile>
-          <ul className="text-sm text-ink">
+          <ul className="text-fliess text-ink">
             {abweichungen.map((a) => (
               <li key={a.userId}>{a.name}: {a.text}</li>
             ))}
@@ -1235,7 +1235,7 @@ export default function EinsatzFormular({
             onChange={(wert) => { setMehrereTage(wert); setFolgeZeilen(null); }} />
           {mehrereTage && existingForProject.length > 0 && (
             // V13: am geplanten Paar ist das ein Ändern der Folgetage, kein Ergänzen.
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               Die folgenden Tage werden angeglichen: wer hier nicht mehr eingeteilt ist, wird dort herausgenommen;
               Aufgabe und Uhrzeit kommen von hier.
             </p>
@@ -1378,7 +1378,7 @@ export default function EinsatzFormular({
       )}
       {/* Der Knopf ist gesperrt — hier steht, warum, statt dass er grundlos grau bleibt. */}
       {projectNumber && !bereit && (
-        <p className="mb-3 text-sm text-ink-muted" role="status">
+        <p className="mb-3 text-meta text-ink-muted" role="status">
           Die Planung dieses Tages wird noch geladen. Speichern geht, sobald sie da ist.
         </p>
       )}

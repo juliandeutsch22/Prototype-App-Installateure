@@ -113,7 +113,7 @@ export default function PlattformHuelle({
         </span>
         <button
           type="button"
-          className="min-h-touch px-2 text-sm text-ink"
+          className="min-h-touch px-2 text-fliess text-ink"
           aria-current={bereich === 'konto' ? 'page' : undefined}
           onClick={() => onBereich('konto')}
         >

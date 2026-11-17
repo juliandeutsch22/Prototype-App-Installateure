@@ -54,7 +54,7 @@ export default function KundenartUidFelder({
           }}
         />
         {fehler && (
-          <p id={`${idPrefix}-uid-fehler`} className="mt-1 text-sm text-danger">
+          <p id={`${idPrefix}-uid-fehler`} className="mt-1 text-meta text-danger">
             {fehler}
           </p>
         )}

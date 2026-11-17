@@ -75,7 +75,7 @@ export default function Fotostreifen({ fotos }: { fotos: WorkSheetFoto[] }) {
         })}
       </span>
       {fehler && (
-        <span className="mt-1 block text-xs text-warning">
+        <span className="mt-1 block text-meta text-warning">
           Mindestens ein Bild liegt nicht mehr dort, wo der Schein es verzeichnet. Die Prüfsumme
           des Scheins weist es weiterhin aus — der Beleg ist damit nicht mehr vollständig belegbar.
         </span>

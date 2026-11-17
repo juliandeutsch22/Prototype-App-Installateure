@@ -88,8 +88,8 @@ export default function ExportDialog({
         <h2 id="export-title" className="titel-karte">
           Bericht exportieren
         </h2>
-        <p className="mt-1 text-sm text-ink-muted">{user.name}</p>
-        <p className="mt-1 text-sm text-ink-muted">
+        <p className="mt-1 text-meta text-ink-muted">{user.name}</p>
+        <p className="mt-1 text-meta text-ink-muted">
           Für die Lohnverrechnung — mit allen Buchungen der Person. Für einen Kunden: „Stundennachweis“ im ⋯
           der Baustellen- oder Kundenakte.
         </p>
@@ -112,7 +112,7 @@ export default function ExportDialog({
             />
           </FormGrid>
           {invalid && (
-            <p className="mt-2 text-sm font-normal text-danger" role="alert">
+            <p className="mt-2 text-meta font-normal text-danger" role="alert">
               Bitte einen gültigen Zeitraum wählen (Von ≤ Bis).
             </p>
           )}
@@ -145,7 +145,7 @@ export default function ExportDialog({
         </div>
 
         {message && (
-          <p className="mt-3 text-center text-sm text-danger" role="alert">
+          <p className="mt-3 text-center text-meta text-danger" role="alert">
             {message}
           </p>
         )}

@@ -78,7 +78,7 @@ export function InfoPanel({
   return (
     <span
       id={id}
-      className={`block rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted ${className}`}
+      className={`block rounded border border-line bg-surface-2 px-3 py-2 text-meta text-ink-muted ${className}`}
     >
       {children}
     </span>

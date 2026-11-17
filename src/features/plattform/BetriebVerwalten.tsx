@@ -113,7 +113,7 @@ export default function BetriebVerwalten({
   return (
     // Ohne eigenen Rahmen: die Schritte stehen seit dem Umbau auf „Lot“ im Seitenfenster.
     <div className="plattform-verwaltung space-y-3" aria-label={`${betrieb.name} verwalten`}>
-      <p className="text-sm text-ink">
+      <p className="text-fliess text-ink">
         {deaktiviert ? (
           <>
             <strong>Deaktiviert</strong> seit {zeit(betrieb.deaktiviertAm!)}
@@ -138,7 +138,7 @@ export default function BetriebVerwalten({
           <li aria-current={fristUm ? 'step' : undefined}>Löschen<span>{fristUm ? 'Möglich' : 'Noch gesperrt'}</span></li>
         </ol>
       )}
-      {geplant && <p className="text-sm text-ink-muted">Wieder aktivieren bricht die geplante Löschung ab.</p>}
+      {geplant && <p className="text-meta text-ink-muted">Wieder aktivieren bricht die geplante Löschung ab.</p>}
       <InputField
         id={`grund-${k}`}
         label="Grund (steht im Protokoll)"
@@ -199,18 +199,18 @@ export default function BetriebVerwalten({
       </div>
       {/* Runde 3, G13: gesperrte Knöpfe sagen, was fehlt. */}
       {ohneGrund && (
-        <p className="text-sm text-ink-muted">Für jeden Schritt zuerst oben einen Grund eintragen.</p>
+        <p className="text-meta text-ink-muted">Für jeden Schritt zuerst oben einen Grund eintragen.</p>
       )}
       {!betrieb.testbetrieb && betrieb.echteDaten && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Kein Testbetrieb: {betrieb.echteDaten}. Gelöscht wird er nur mit Übergabe und Frist.
         </p>
       )}
 
       {deaktiviert && (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="text-sm font-normal text-ink">Übergabe</p>
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta font-normal text-ink">Übergabe</p>
+          <p className="text-meta text-ink-muted">
             Alle Tabellen als ein Stand (bei großen Betrieben in mehreren Teilen) und ein Verzeichnis aller Scheinfotos und Baustellendokumente,
             je mit Link, eine Woche gültig — für den Betrieb vor der Löschung. Belege als PDF erzeugt
             die App im Browser; der Stand enthält ihre Daten vollständig.
@@ -229,7 +229,7 @@ export default function BetriebVerwalten({
             Übergabe erstellen
           </Button>
           {uebergabe && (
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1 text-fliess">
               {(uebergabe.datenLinks?.length ?? 0) > 1
                 ? uebergabe.datenLinks!.map((link, i, alle) => link && (
                   <li key={link}>
@@ -252,10 +252,10 @@ export default function BetriebVerwalten({
 
       {deaktiviert && (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="text-sm font-normal text-ink">Löschen</p>
+          <p className="text-meta font-normal text-ink">Löschen</p>
           {!geplant ? (
             <>
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Nie sofort: zuerst mit Frist planen (vorgeschlagen 30 Tage, mindestens 7; ein Testbetrieb
                 ab sofort). Bis dahin lässt sich alles abbrechen.
                 {exportFehlt && ' Vorher braucht der Betrieb seine Übergabe.'}
@@ -287,7 +287,7 @@ export default function BetriebVerwalten({
             </>
           ) : (
             <>
-              <p className="text-sm text-ink">
+              <p className="text-fliess text-ink">
                 Löschung geplant — ausführbar ab <strong>{zeit(geplant)}</strong>.
               </p>
               <Button
@@ -335,14 +335,14 @@ export default function BetriebVerwalten({
                     Endgültig löschen
                   </Button>
                   {(ohneGrund || bestaetigung.trim() !== k) && (
-                    <p className="text-sm text-ink-muted">
+                    <p className="text-meta text-ink-muted">
                       {ohneGrund ? 'Zum Löschen oben einen Grund eintragen' : 'Zum Löschen die Kennung genau eintippen'}
                       {ohneGrund && bestaetigung.trim() !== k ? ' und die Kennung genau eintippen.' : '.'}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-ink-muted">Vor Ablauf der Frist lässt sich nicht löschen.</p>
+                <p className="text-meta text-ink-muted">Vor Ablauf der Frist lässt sich nicht löschen.</p>
               )}
             </>
           )}
@@ -350,7 +350,7 @@ export default function BetriebVerwalten({
       )}
 
       {fehler && <ErrorState message={fehler} />}
-      {meldung && <p className="text-sm text-ink" role="status">{meldung}</p>}
+      {meldung && <p className="text-fliess text-ink" role="status">{meldung}</p>}
 
       {/*
         DAS PROTOKOLL ALS LOT (Linie „Lot“, Regel 7). Die Datenbank liefert die
@@ -359,7 +359,7 @@ export default function BetriebVerwalten({
       */}
       {protokoll && protokoll.length > 0 && (
         <div className="border-t border-line pt-3">
-          <p className="mb-2 text-sm font-semibold text-ink-deep">Protokoll</p>
+          <p className="mb-2 text-fliess font-semibold text-ink-deep">Protokoll</p>
           <LotVerlauf
             name={`Protokoll ${betrieb.name}`}
             punkte={[...protokoll].reverse().map((p, i, alle) => ({

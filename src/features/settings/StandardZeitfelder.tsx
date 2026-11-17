@@ -27,15 +27,15 @@ export default function StandardZeitfelder({ darf }: { darf: boolean }) {
     finally { setSpeichert(false); }
   }
   return <Card title="Standardfelder" hint="Die Schalter ändern die Buchungsmaske. Vorhandene Angaben und ihre Wirkung auf Abrechnung und Budget bleiben erhalten. Datum, Person, Stand, Von/Bis und Pause sind notwendige Grundlagen der Zeitrechnung. Nachtzeiten werden weiterhin automatisch ermittelt. Die bestehenden Rollenrechte gelten zusätzlich: ein aktiviertes Feld erweitert keine Berechtigung.">
-    <p className="text-sm text-ink-muted">Datum, Person, Stand, Arbeitszeit und Pause bleiben als Grundlage aktiv.</p>
+    <p className="text-meta text-ink-muted">Datum, Person, Stand, Arbeitszeit und Pause bleiben als Grundlage aktiv.</p>
     <div className="divide-y divide-line">
       {STANDARD_ZEITFELDER.map(({ id, name, grund }) => <div key={id} className="py-3">
         <Schalter id={`standard-${id}`} label={name} an={standardZeitfeldAktiv(felder, id)} gesperrt={!darf || speichert}
           onChange={(wert) => setFelder((alt) => ({ ...alt, [id]: wert }))} />
-        <p className="mt-1 text-sm text-ink-muted">{grund}</p>
+        <p className="mt-1 text-meta text-ink-muted">{grund}</p>
       </div>)}
     </div>
-    {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+    {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
     {/* Die Speicherleiste wie auf jeder Einstellungsseite: erst bei einer Änderung (U1). */}
     {darf && <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); setFelder(company?.zeitStandardfelder ?? {}); }} onSpeichern={() => void speichern()} speichernText="Standardfelder speichern" />}
   </Card>;

@@ -273,10 +273,10 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
         {wahl && (
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void wechseln(); }}>
             <BaustellenSelect id="timer-baustelle" companyId={user.companyId} meineUid={user.uid} value={entwurf} onChange={(nr) => setEntwurf(nr)} nummerVorn />
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {s ? 'Ab jetzt zählt die Arbeit für die gewählte Baustelle; der bisherige Abschnitt endet.' : 'Ohne Baustelle zählt die Zeit als Anwesenheit; die Baustelle lässt sich beim Prüfen noch setzen.'}
             </p>
-            {z.fehler && <p role="alert" className="text-sm text-danger">{z.fehler}</p>}
+            {z.fehler && <p role="alert" className="text-meta text-danger">{z.fehler}</p>}
             <div className="fuss-aktionen">
               <Button type="button" variant="ghost" onClick={() => setWahl(false)}>Abbrechen</Button>
               <Button type="submit" loading={z.speichert} disabled={!!s && entwurf === laufendeBaustelle}>{s ? 'Baustelle wechseln' : 'Übernehmen'}</Button>
@@ -294,8 +294,8 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
               void z.befehl('verwerfen', s, grund.trim()).then((ok) => { if (ok) { setVerwerfen(false); setGrund(''); } });
             }}
           >
-            <p className="text-sm text-ink-muted">Hieraus wird keine Arbeitszeit gebucht. Der Grund bleibt nachvollziehbar erhalten.</p>
-            {z.fehler && <p role="alert" className="text-sm text-danger">{z.fehler}</p>}
+            <p className="text-meta text-ink-muted">Hieraus wird keine Arbeitszeit gebucht. Der Grund bleibt nachvollziehbar erhalten.</p>
+            {z.fehler && <p role="alert" className="text-meta text-danger">{z.fehler}</p>}
             <InputField id="arbeitstag-grund" label="Begründung" required pflicht value={grund} onChange={(e) => setGrund(e.target.value)} />
             <div className="fuss-aktionen">
               <Button type="button" variant="ghost" onClick={() => setVerwerfen(false)}>Abbrechen</Button>

@@ -98,12 +98,12 @@ export default function LaufStatus({
       {/* Und wenn er es IST, steht das auch da (Launch-Check 25.09.2026):
           sonst erfuhr man den guten Fall nur aus dem Fehlen des schlechten. */}
       {art === 'ausleitung' && lauf?.zielExtern === true && u.stand === 'gut' && (
-        <span className="mt-1 block text-xs text-ink-muted">
+        <span className="mt-1 block text-meta text-ink-muted">
           Der Stand liegt außer Haus, getrennt von den Daten.
         </span>
       )}
       {art === 'ausleitung' && lauf?.zielExtern === false && (
-        <span className="mt-1 block text-xs text-ink-muted">
+        <span className="mt-1 block text-meta text-ink-muted">
           Der Stand liegt im selben Projekt wie die Daten. Gegen einen Fehlgriff hilft das,
           gegen einen Verlust des Zugangs nicht — dafür muss ein Zielspeicher außerhalb
           eingerichtet sein (siehe DEPLOYMENT.md).
@@ -119,7 +119,7 @@ export default function LaufStatus({
     </>
   );
 
-  if (u.stand === 'gut') return <p className="text-sm text-ink-muted">{inhalt}</p>;
+  if (u.stand === 'gut') return <p className="text-meta text-ink-muted">{inhalt}</p>;
   // Die Abweichung als Hinweiszeile (Designlinie „Fassung 3"), nicht als Kasten.
   /*
     `status`, nicht `alert`.

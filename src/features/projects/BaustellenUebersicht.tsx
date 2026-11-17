@@ -109,7 +109,7 @@ export default function BaustellenUebersicht({
   }, [companyId, nummer, versuch]);
 
   if (stand.art === 'laedt') {
-    return <p className="text-sm text-ink-muted">Stunden werden geladen …</p>;
+    return <p className="text-fliess text-ink-muted">Stunden werden geladen …</p>;
   }
   if (stand.art === 'fehler') {
     return <TeilFehler was="die Stunden dieser Baustelle" onRetry={() => setVersuch((v) => v + 1)} />;
@@ -119,7 +119,7 @@ export default function BaustellenUebersicht({
 
   if (stand.fachMin === 0 && stand.helperMin === 0 && stand.lehrlingMin === 0) {
     return (
-      <p className="text-sm text-ink-muted">
+      <p className="text-fliess text-ink-muted">
         Auf diese Baustelle ist noch keine Stunde gebucht.
       </p>
     );
@@ -148,8 +148,8 @@ export default function BaustellenUebersicht({
       <p className="baustelle-summe"><span className="akten-stunden-zahl">{fmtStd(stand.fachMin)} h</span>
         {' Arbeitszeit'}{davonLehrling(stand.lehrlingImBudgetMin)}{' · kein Stundenbudget hinterlegt'}</p>
     )}
-    {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
-    {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
+    {stand.helperMin > 0 && <p className="text-meta text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
+    {stand.lehrlingMin > 0 && <p className="text-meta text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
     {/* Stunden nach Person als Stückliste (Planlinie B6): Pos, Person, Stunden, Summe über der Doppellinie. */}
     <details><summary className="weiteres-kopf">Stunden nach Person</summary>
       <div className="overflow-x-auto">
@@ -158,7 +158,7 @@ export default function BaustellenUebersicht({
           <tbody>
             {stand.personen.map((p, i) => <tr key={p.name}>
               <td className="pos">{String(i + 1).padStart(2, '0')}</td>
-              <td>{p.name}{(p.lehrlingImBudgetMin > 0 || p.helperMin > 0 || p.lehrlingMin > 0) && <span className="block text-xs text-ink-muted">
+              <td>{p.name}{(p.lehrlingImBudgetMin > 0 || p.helperMin > 0 || p.lehrlingMin > 0) && <span className="block text-meta text-ink-muted">
                 {davonLehrling(p.lehrlingImBudgetMin).trim()}{p.helperMin > 0 && <> +{fmtStd(p.helperMin)} h Helfer</>}
                 {p.lehrlingMin > 0 && <> +{fmtStd(p.lehrlingMin)} h nicht im Budget</>}</span>}</td>
               <td className="r">{fmtStd(p.fachMin)} h</td>
@@ -167,12 +167,12 @@ export default function BaustellenUebersicht({
           </tbody>
         </table>
       </div>
-      {stand.zuletzt && <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
+      {stand.zuletzt && <p className="text-meta text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
   </div>;
 
   return (
     <div className="space-y-3">
-      <p className="baustelle-summe text-sm">
+      <p className="baustelle-summe text-fliess">
         <span className="font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>
         <span className="text-ink-muted">
           {projekt.estimatedHours ? ` von ${fmtStunden(projekt.estimatedHours)} h Budget` : ' Arbeitszeit'}
@@ -213,7 +213,7 @@ export default function BaustellenUebersicht({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Kein Stundenbudget hinterlegt — ohne Budget gibt es keinen Stand, nur eine Summe.
         </p>
       )}
@@ -223,7 +223,7 @@ export default function BaustellenUebersicht({
         {stand.personen.map((p) => (
           <span
             key={p.name}
-            className="inline-flex items-baseline gap-1.5 text-xs"
+            className="inline-flex items-baseline gap-1.5 text-meta"
           >
             <span className="font-semibold text-ink">{p.name}</span>
             <span className="text-ink-muted">{fmtStd(p.fachMin)} h{davonLehrling(p.lehrlingImBudgetMin)}</span>
@@ -238,7 +238,7 @@ export default function BaustellenUebersicht({
       </div>
 
       {stand.zuletzt && (
-        <p className="text-xs text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>
+        <p className="text-meta text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>
       )}
     </div>
   );

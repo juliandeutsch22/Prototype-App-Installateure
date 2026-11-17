@@ -282,7 +282,7 @@ export default function Einkaufsliste({
           return (
             <Card key={g.supplierId ?? 'ohne'} title={titel}>
               {h?.customerNumber && (
-                <p className="mb-2 text-sm text-ink-muted">Kundennummer {h.customerNumber}</p>
+                <p className="mb-2 text-meta text-ink-muted">Kundennummer {h.customerNumber}</p>
               )}
               {g.zuBestellen.length > 0 && (
                 <>
@@ -295,7 +295,7 @@ export default function Einkaufsliste({
                           <span>
                             <span>{zeilenText(z)}</span>
                             {z.artikelnummer && (
-                              <span className="ml-2 text-sm text-ink-muted">Art.-Nr. {z.artikelnummer}</span>
+                              <span className="ml-2 text-meta text-ink-muted">Art.-Nr. {z.artikelnummer}</span>
                             )}
                           </span>
                         }
@@ -312,7 +312,7 @@ export default function Einkaufsliste({
                             id={`zuordnen-${z.schluessel}`}
                             label=""
                             aria-label={`Großhändler für ${z.bezeichnung}`}
-                            className="py-1 text-sm"
+                            className="py-1"
                             value=""
                             disabled={laeuft !== null}
                             onChange={(e) => {
@@ -400,12 +400,12 @@ export default function Einkaufsliste({
                       {mail ? (
                         <a
                           href={mail.href}
-                          className="inline-flex min-h-touch items-center rounded border border-line-strong bg-surface px-4 py-2 text-sm font-normal text-ink hover:border-brand-fixed"
+                          className="inline-flex min-h-touch items-center rounded border border-line-strong bg-surface px-4 py-2 text-fliess font-normal text-ink hover:border-brand-fixed"
                         >
                           E-Mail an {h?.bestellEmail}
                         </a>
                       ) : (
-                        <span className="text-sm text-ink-muted">
+                        <span className="text-meta text-ink-muted">
                           Keine Bestelladresse — unten beim Großhändler eintragen.
                         </span>
                       )}
@@ -417,14 +417,14 @@ export default function Einkaufsliste({
                         Als bestellt markieren
                       </Button>
                       {mail?.gekuerzt && (
-                        <p className="w-full text-sm text-warning">
+                        <p className="w-full text-meta text-warning">
                           Die Liste ist für eine E-Mail zu lang — die Mail sagt „siehe Anhang“.
                           Bitte das PDF anhängen.
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className="mt-3 text-sm text-ink-muted">
+                    <p className="mt-3 text-fliess text-ink-muted">
                       {grosshaendler.length === 0
                         ? 'Noch kein Großhändler angelegt — unten anlegen, dann hier zuordnen.'
                         : 'Erst einem Großhändler zuordnen, dann lässt sich bestellen.'}
@@ -884,7 +884,7 @@ function LagerPostenFormular({
       }
     >
       {!offen ? (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Eigenes Material auf die Einkaufsliste setzen, unabhängig von den Anforderungen.
         </p>
       ) : (
@@ -902,11 +902,11 @@ function LagerPostenFormular({
               }}
             />
             {gewaehlt ? (
-              <p className="mt-1 text-xs text-ink-muted">
+              <p className="mt-1 text-meta text-ink-muted">
                 Aus dem Katalog{gewaehlt.articleNumber ? ` · Art.-Nr. ${gewaehlt.articleNumber}` : ''}
               </p>
             ) : suche.trim().length >= 2 && !sucht && treffer.length === 0 ? (
-              <p className="mt-1 text-xs text-ink-muted">
+              <p className="mt-1 text-meta text-ink-muted">
                 Nicht im Katalog — wird mit diesem Text bestellt.
               </p>
             ) : null}
@@ -916,11 +916,11 @@ function LagerPostenFormular({
                   <li key={m.id}>
                     <button
                       type="button"
-                      className="flex min-h-touch w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
+                      className="flex min-h-touch w-full items-center justify-between gap-2 px-3 py-2 text-left text-fliess hover:bg-surface-2"
                       onClick={() => void waehlen(m)}
                     >
                       <span className="min-w-0">{m.name}</span>
-                      <span className="shrink-0 text-xs text-ink-muted">
+                      <span className="shrink-0 text-meta text-ink-muted">
                         {[m.articleNumber, m.unit, gefundenUeberText(m)].filter(Boolean).join(' · ')}
                       </span>
                     </button>
@@ -945,7 +945,7 @@ function LagerPostenFormular({
           </div>
           <InputField id="lp-notiz" label="Anmerkung (freiwillig)" value={notiz}
             onChange={(e) => setNotiz(e.target.value)} />
-          {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}
+          {fehler && <p className="text-meta text-danger" role="alert">{fehler}</p>}
           <div className="flex flex-wrap gap-2">
             <Button loading={speichert} onClick={() => void speichern()}>Auf die Einkaufsliste</Button>
             <Button
@@ -1068,14 +1068,14 @@ function GrosshaendlerPflege({
             <InputField id="gh-kontakt" label="Kontakt (Vertreter, Telefon)" value={entwurf.contactLine}
               onChange={(e) => setEntwurf({ ...entwurf, contactLine: e.target.value })} />
           </FormGrid>
-          <p className="flex flex-wrap items-center text-xs text-ink-muted">
+          <p className="flex flex-wrap items-center text-meta text-ink-muted">
             Die Kontaktzeile steht auf der Bestellung als Empfänger.
             <InfoHint about="Kontaktzeile">
               Etwa „z. Hd. Herrn Maier, 0664 123 45 67“. Eine Anschrift des Großhändlers führt
               Senklot nicht — die Bestellung geht per E-Mail, nicht per Post.
             </InfoHint>
           </p>
-          {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}
+          {fehler && <p className="text-meta text-danger" role="alert">{fehler}</p>}
           <div className="flex flex-wrap gap-2">
             <Button loading={speichert} onClick={() => void speichern()}>Speichern</Button>
             <Button variant="ghost" onClick={() => setBearbeitet(null)}>Abbrechen</Button>

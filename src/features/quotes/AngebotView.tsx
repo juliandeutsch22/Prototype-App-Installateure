@@ -516,10 +516,10 @@ export default function AngebotView() {
       {imMenue.length > 0 && <RowMenu about={`die nächsten Schritte am Angebot ${q.quoteNumber}`} items={imMenue.map(({ label, onSelect }) => ({ label, onSelect }))} />}
       {/* A5: ein leeres Angebot geht nicht hinaus — weder als versendet noch über den Link. */}
       {offen && !hatPosition(q) && (
-        <span className="text-sm text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
+        <span className="text-meta text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
       )}
       {offen && nachbarn.angenommen && (
-        <span className="text-sm text-ink-muted">
+        <span className="text-meta text-ink-muted">
           Die Fassung {nachbarn.angenommen.quoteNumber} ist schon angenommen — diese wird nicht mehr angenommen.
         </span>
       )}
@@ -704,7 +704,7 @@ export default function AngebotView() {
   ) : null;
   const anmerkungen = q.notes?.trim() ? (
     <Card title="Anmerkungen" id="angebot-anmerkungen">
-      <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
+      <p className="whitespace-pre-line text-fliess text-ink">{q.notes}</p>
     </Card>
   ) : null;
 
@@ -916,7 +916,7 @@ export default function AngebotView() {
         }}
       >
         {nachbarn.ersetzt.length > 0 && (
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             Damit gilt {nachbarn.ersetzt.map((x) => x.quoteNumber).join(', ')} als ersetzt und lässt sich nicht
             mehr annehmen.
           </p>
@@ -965,7 +965,7 @@ export default function AngebotView() {
         onConfirm={() => annahmeZurueck(q)}
       >
         <div className="space-y-3">
-          <p className="text-sm text-ink" role="status">
+          <p className="text-fliess text-ink" role="status">
             {ruecknahmeFolgeText === null || ruecknahmeFolgeText.zustand === 'laedt'
               ? 'Wird nachgesehen, was an der Baustelle hängt …'
               : ruecknahmeFolgeText.zustand === 'fehler'
@@ -973,7 +973,7 @@ export default function AngebotView() {
                 : ruecknahmeFolgeText.daten}
           </p>
           {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].some((f) => f.status === 'Ersetzt') && (
-            <p className="text-sm text-ink">
+            <p className="text-fliess text-ink">
               Wieder offen sind dann auch{' '}
               {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].filter((f) => f.status === 'Ersetzt').map((f) => f.quoteNumber).join(', ')}.
             </p>
@@ -1015,8 +1015,8 @@ export default function AngebotView() {
 function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">
+      <dt className="text-meta text-ink-muted">{wort}</dt>
+      <dd className="mt-0.5 text-fliess text-ink">
         {children || <span className="text-ink-muted">nicht hinterlegt</span>}
       </dd>
     </div>

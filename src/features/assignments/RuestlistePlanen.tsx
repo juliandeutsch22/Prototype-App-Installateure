@@ -186,7 +186,7 @@ export default function RuestlistePlanen({
   return (
     <div className="space-y-4">
       {positionen.length === 0 ? (
-        <p className="text-sm text-ink-muted">
+        <p className="text-fliess text-ink-muted">
           Noch nichts eingetragen. Der Monteur sieht am Einsatztag nur eine Liste, die hier steht.
         </p>
       ) : (
@@ -214,21 +214,21 @@ export default function RuestlistePlanen({
                   </div>
                   {/* Je Einheit (M27): „2,5 Stk“ fällt auf; null heisst „tippe noch“. */}
                   {p.menge > 0 && mengeFehler(p.menge, p.einheit ?? artikel?.unit) && (
-                    <p className="basis-full text-sm text-danger">{mengeFehler(p.menge, p.einheit ?? artikel?.unit)}</p>
+                    <p className="basis-full text-meta text-danger">{mengeFehler(p.menge, p.einheit ?? artikel?.unit)}</p>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-normal text-ink">
                       {p.name}
-                      {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
+                      {p.einheit && <span className="text-meta text-ink-muted">{p.einheit}</span>}
                       {!p.materialId && <Marke>{FREI}</Marke>}
                     </p>
                     {artikel && !imLager(artikel) && (
-                      <p className="text-sm text-ink-muted">
+                      <p className="text-meta text-ink-muted">
                         Nicht im Lager geführt{artikel.category ? ` · ${artikel.category}` : ''}
                       </p>
                     )}
                     {artikel && imLager(artikel) && (
-                      <p className="text-sm text-ink-muted">
+                      <p className="text-meta text-ink-muted">
                         Lager: <span>{fmtMenge(artikel.stock ?? 0)}</span>
                         {deckung?.fuer?.freiVor.has(artikel.id) && (
                           <> · für diese Liste frei: <span>{fmtMenge(Math.max(da, 0))}</span></>
@@ -257,7 +257,7 @@ export default function RuestlistePlanen({
                 */}
                 {/* Der Zustand der Position (M04b) — gedeckt, kommt, noch nicht bestellt, fehlt. */}
                 {zustand && (
-                  <p className="mt-1 text-sm">
+                  <p className="mt-1 text-fliess">
                     {zustand.zustand === 'unbekannt' ? (
                       <span className="text-ink-muted">{zustand.text}</span>
                     ) : (
@@ -266,7 +266,7 @@ export default function RuestlistePlanen({
                   </p>
                 )}
                 {(p.angefordert ?? 0) > 0 && (
-                  <p className="mt-1 text-sm text-ink-muted">
+                  <p className="mt-1 text-meta text-ink-muted">
                     Davon {fmtMenge(p.angefordert!)} über eine Anforderung — sie kommen über die Abholung,
                     nicht aus dem Regal.
                   </p>
@@ -294,15 +294,15 @@ export default function RuestlistePlanen({
                           ist, zählt ab.
                         */}
                         {onVormerken && offen === 0 && (p.angefordert ?? 0) > 0 && (
-                          <span className="text-sm text-ink-muted">Anforderung angelegt</span>
+                          <span className="text-meta text-ink-muted">Anforderung angelegt</span>
                         )}
                         {/* Was das Regal nicht hat, bringt eine Bestellung für das Lager (M04b) — keine zweite Anforderung. */}
                         {offen === 0 && (p.angefordert ?? 0) === 0 && (d?.ausZulauf ?? 0) > 0 && (
-                          <span className="text-sm text-ink-muted">Kommt mit der Bestellung für das Lager</span>
+                          <span className="text-meta text-ink-muted">Kommt mit der Bestellung für das Lager</span>
                         )}
                         {onVormerken && offen > 0 && (vorgemerkt?.has(p.id) ? (
                           <>
-                            <span className="text-sm text-ink">
+                            <span className="text-fliess text-ink">
                               Anforderung über {fmtMenge(offen)} wird mit dem Einsatz gespeichert.
                             </span>
                             <Button variant="ghost" onClick={() => onVormerken(p.id, null)}>
@@ -337,13 +337,13 @@ export default function RuestlistePlanen({
           <div className="mt-2">
             {/* Wie am Schein: „gibt es nicht" und „nicht erreicht" sind zwei verschiedene Auskünfte. */}
             {suchStand.ohneNetz && (
-              <p className="mb-2 text-sm text-warning">
+              <p className="mb-2 text-meta text-warning">
                 Keine Verbindung zum Katalog — gesucht nur in den beim Öffnen geladenen Artikeln.
                 Den Artikel kann es trotzdem geben.
               </p>
             )}
             {treffer.length === 0 ? (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {suchStand.laeuft
                   ? 'Sucht im Katalog …'
                   : 'Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als freie Zeile dazu.'}

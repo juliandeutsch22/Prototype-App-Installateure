@@ -305,7 +305,7 @@ export default function NotificationSettings() {
         )}
 
         {probe && (probe.art === 'gesendet' || probe.art === 'neu-angemeldet') && (
-          <p role="status" className="mt-3 text-sm text-ink-muted">{PROBE_TEXT[probe.art]}</p>
+          <p role="status" className="mt-3 text-meta text-ink-muted">{PROBE_TEXT[probe.art]}</p>
         )}
         {probe && (probe.art === 'abgelehnt' || probe.art === 'nicht-angemeldet') && (
           <div className="mt-3">

@@ -53,7 +53,7 @@ export default function MusterPlanlinie() {
           <div className="schriftfeld-skizze"><Modulskizze motiv="baustelle" /></div>
         </div>
         <div className="lineal" aria-hidden="true" />
-        <p className="mt-4 flex flex-wrap items-center gap-3 text-sm">B10 Nummernstempel: <Stempel>PR-2026-0194</Stempel> <Stempel>RE-2026-1502</Stempel> <Stempel gross>AN-2026-0009</Stempel></p>
+        <p className="mt-4 flex flex-wrap items-center gap-3 text-fliess">B10 Nummernstempel: <Stempel>PR-2026-0194</Stempel> <Stempel>RE-2026-1502</Stempel> <Stempel gross>AN-2026-0009</Stempel></p>
       </Card>
 
       <Card title="Planlinie · B2 Maßlinie und B2a Saldolinie">
@@ -70,7 +70,7 @@ export default function MusterPlanlinie() {
           <div className="w-60"><Masslinie schmal ist={20.5} soll={16} istText="20,5 h gebucht" sollText="16 h" ueberText="+4,5 h" name="20,5 h gebucht von 16 h Budget, 4,5 h darüber" /></div>
         </MasslinieZeile>
         <MasslinieZeile name="Saldo">
-          <span className="flex flex-wrap items-center gap-4 text-sm">
+          <span className="flex flex-wrap items-center gap-4 text-fliess">
             <Saldolinie minuten={-160 * 60} massstabMinuten={240 * 60} name="Saldo minus 160 Stunden" /> <span className="mono">-160:00</span>
             <Saldolinie minuten={12 * 60} massstabMinuten={240 * 60} name="Saldo plus 12 Stunden" /> <span className="mono">+12:00</span>
           </span>
@@ -87,7 +87,7 @@ export default function MusterPlanlinie() {
           <Zustand stand="schlecht">überfällig, fehlt</Zustand>
           <Zustand stand="storniert">storniert, inaktiv</Zustand>
         </div>
-        <p className="mt-4 flex items-center gap-6 text-sm text-ink-muted">
+        <p className="mt-4 flex items-center gap-6 text-meta text-ink-muted">
           <span className="flex items-center gap-2"><LotZeichen /> hier, heute</span>
           <span className="flex items-center gap-2"><LotZeichen pendelt /> pendelt beim Laden aus</span>
         </p>
@@ -114,10 +114,10 @@ export default function MusterPlanlinie() {
           <Eckmarken>
             <p className="text-xs uppercase tracking-widest text-ink-muted">Kunde und Ort</p>
             <p className="mt-2">Workflow Haustechnik GmbH</p>
-            <p className="text-sm text-ink-muted">Bürgergasse 7, 8200 Gleisdorf</p>
+            <p className="text-meta text-ink-muted">Bürgergasse 7, 8200 Gleisdorf</p>
           </Eckmarken>
           <div>
-            <p className="text-sm text-ink-muted">PLZ</p>
+            <p className="text-meta text-ink-muted">PLZ</p>
             <p className="mono">82</p>
             <Hinweislinie>Die PLZ hat in Österreich vier Ziffern. Trotzdem speichern?</Hinweislinie>
           </div>

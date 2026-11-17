@@ -241,12 +241,12 @@ export default function BetriebsurlaubReiter({ companyId, meinName, neuOffen = f
             }
           >
             <fieldset id="bu-ausnahmen">
-              <legend className="text-sm text-ink-muted">
+              <legend className="text-meta text-ink-muted">
                 Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
                 Planung verfügbar.
               </legend>
               {leute.length === 0 ? (
-                <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
+                <p className="mt-2 text-meta text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
               ) : (
                 <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                   {leute.map((u) => (

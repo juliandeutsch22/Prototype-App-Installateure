@@ -75,7 +75,7 @@ export default function NachkalkulationDetail({
       titel={k.customerName}
       stempel={k.projectNumber}
     >
-      <div className="nachkalk-detail text-sm">
+      <div className="nachkalk-detail text-fliess">
         <div className="nachkalk-kopf">
           <p className="nachkalk-db">
             {euro(k.deckungsbeitrag)}

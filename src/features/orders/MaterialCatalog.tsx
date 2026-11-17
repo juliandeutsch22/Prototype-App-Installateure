@@ -551,7 +551,7 @@ export default function MaterialCatalog({
                     {m.ausgelaufen && <Warnung>ausgelaufen</Warnung>}
                     {!lager ? (
                       // Nur im Katalog (M30): kein Bestand, den jemand prüfen müsste.
-                      <span className="text-sm text-ink-muted">nur Katalog</span>
+                      <span className="text-meta text-ink-muted">nur Katalog</span>
                     ) : low ? (
                       <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
                     ) : (
@@ -582,7 +582,7 @@ export default function MaterialCatalog({
             */}
             {editId && offenesMaterial?.ausgelaufen && (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   {offenesMaterial.ausgelaufenVonHand
                     ? 'Vom Betrieb auslaufen gelassen.'
                     : 'Ausgelaufen — der Großhändler führt ihn nicht mehr.'}{' '}
@@ -611,7 +611,7 @@ export default function MaterialCatalog({
               */}
               <div>
                 <EinheitFeld id="munit" value={form.unit || 'Stk'} onChange={(unit) => setForm({ ...form, unit })} />
-                <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+                <p className="mt-1 flex flex-wrap items-center gap-1 text-meta text-ink-muted">
                   Das Wort hinter der Zahl — „100 Stk“, „30 m“.
                   <InfoHint about="die Einheit">
                     Sie beschriftet nur die Menge: im Katalog, im Lager und beim Wareneingang.
@@ -637,7 +637,7 @@ export default function MaterialCatalog({
                 gesperrt={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
                 onChange={(wert) => setForm({ ...form, lagerartikel: wert })}
               />
-              <p className="text-xs text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0
                   ? 'Liegt im Lager — abschalten geht erst, wenn die Inventur den Bestand auf null gesetzt hat.'
                   : 'Ohne Haken steht der Artikel nur im Katalog: anforderbar und verrechenbar, aber in keiner Lagerliste.'}
@@ -646,11 +646,11 @@ export default function MaterialCatalog({
             <FormGrid cols={1}>
               {!form.lagerartikel ? null : editId ? (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-normal text-ink">Lagerbestand</span>
-                  <p className="text-sm text-ink">
+                  <span className="text-meta font-normal text-ink">Lagerbestand</span>
+                  <p className="text-fliess text-ink">
                     {form.stock} {form.unit || 'Stk'}
                   </p>
-                  <p className="text-xs text-ink-muted">
+                  <p className="text-meta text-ink-muted">
                     Ändert sich über Wareneingang oder Inventur im Bereich „Bestand“ — mit Grund im
                     Bewegungsprotokoll.
                   </p>
@@ -707,7 +707,7 @@ export default function MaterialCatalog({
                     if (vorschlag == null) return null;
                     const prozent = aufschlagFuer(aufschlag, form.warengruppe);
                     return (
-                      <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+                      <p className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
                         <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
                         <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
                           Übernehmen
@@ -734,7 +734,7 @@ export default function MaterialCatalog({
                       onChange={(t) => setForm({ ...form, einkaufspreis: t })}
                     />
                     {ekStand === 'fehlt' && (
-                      <p className="text-sm text-ink-muted">
+                      <p className="text-meta text-ink-muted">
                         Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
                       </p>
                     )}
@@ -832,7 +832,7 @@ function Rueckfrage({
   const laedt = !!artikel && !pruefung?.stand && !pruefung?.fehler;
 
   const liste = (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-ink">
+    <ul className="list-disc space-y-1 pl-5 text-fliess text-ink">
       {imWeg.map((grund) => <li key={grund}>{grund}</li>)}
     </ul>
   );
@@ -870,7 +870,7 @@ function Rueckfrage({
         onCancel={onCancel}
       >
         {liste}
-        <p className="mt-3 text-sm text-ink-muted">
+        <p className="mt-3 text-meta text-ink-muted">
           Ausgelaufen wird er am Schein, in Rüstlisten, Angeboten, auf der Einkaufsliste und in den
           Bestellvorschlägen nicht mehr angeboten; anfordern lässt er sich nur, solange etwas im Lager liegt.
           Wo er schon steht, bleibt er lesbar. Zurück holt ihn „Wieder aufnehmen“ im Artikel.

@@ -29,7 +29,7 @@ export default function StartKarte({
             {zusatz && <>{' '}<span className="start-karte-zusatz font-normal text-ink-muted">· {zusatz}</span></>}
           </h2>
           {verweis && !verweisUnten && (
-            <Link to={verweis.to} className="link-weiter inline-flex min-h-touch items-center text-sm">
+            <Link to={verweis.to} className="link-weiter inline-flex min-h-touch items-center text-meta">
               {verweis.text}
             </Link>
           )}

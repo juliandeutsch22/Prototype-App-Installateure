@@ -189,7 +189,7 @@ describe('Statuswort auf der Grundlinie des Texts', () => {
   });
 
   it('auf der Startseite ist das Statuswort so groß wie das Detail der Zeile', () => {
-    const groesse = (selektor: string) => START.match(new RegExp(`${selektor.replace(/[.]/g, '\\.')} \\{ font-size: ([0-9.]+rem)`))?.[1];
+    const groesse = (selektor: string) => START.match(new RegExp(`${selektor.replace(/[.]/g, '\\.')} \\{ font-size: ([^;]+);`))?.[1];
     expect(groesse('.start-seite .start-zeile .stand')).toBeDefined();
     expect(groesse('.start-seite .start-zeile .stand')).toBe(groesse('.start-seite .start-zeile .text-meta'));
   });
@@ -289,9 +289,9 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
   it('das Zustandszeichen sitzt auf der Grundlinie der Schrift, nicht mittig in der Box', () => {
     const zeichen = regel('.stand::before');
     expect(zeichen).toContain('align-self: baseline;');
-    // 7 px (halbes Zeichen) − 0,35 em: 13 px Schrift → 2,5 px, die 12-px-Zeilen der Startseite → 2,75 px.
+    // 7 px (halbes Zeichen) − 0,35 em: 13 px Schrift → 2,5 px. Seit E97 steht das Statuswort überall in 13 px — auch auf der Startseite, die vorher 12 px und deshalb 2,75 px hatte.
     expect(zeichen).toContain('position: relative; top: 2.5px;');
-    expect(stil('lot-start.css')).toContain('.start-seite .start-zeile .stand::before { top: 2.75px; }');
+    expect(stil('lot-start.css')).not.toMatch(/\.stand::before \{ top:/);
     expect(zeichen).not.toContain('align-self: center;');
   });
 
@@ -379,7 +379,7 @@ describe('Durchsicht 09.11.2026', () => {
     // Das Ende der Liste im Takt: beide Handlungen 48 px hoch, der Hinweis eine Zelle plus eine halbe.
     const ZEIT = stil('lot-zeit.css');
     expect(ZEIT).toContain('.zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem;');
-    expect(ZEIT).toContain('.zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: 0.8125rem; line-height: 1.5rem;');
+    expect(ZEIT).toContain('.zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: var(--groesse-begleit); line-height: 1.5rem;');
   });
 
   it('das Gespräch ist kein Fremdkörper: am Schreibtisch ein Blatt mit dem Posteingang, am Handy randlos (E71)', () => {
@@ -472,7 +472,7 @@ describe('E72 Team und Verwaltung', () => {
     const reiter = quelle('src/components/Unterreiter.tsx');
     expect(reiter).toContain('className="reiterleiste reiterleiste-umbruch flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible lg:shadow-none"');
     expect(reiter).not.toMatch(/mb-4 reiterleiste|reiterleiste[^"]*border-b border-line/);
-    expect(reiter).toContain("'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-sm'");
+    expect(reiter).toContain("'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-fliess'");
   });
   it('umbrechende Reiterleiste: die Linie liegt unter jeder 48-px-Zeile, nicht nur unter der letzten (14.11.2026)', () => {
     const regel = /@media \(min-width: 1200px\) \{\s*\.reiterleiste-umbruch \{\s*background-image: repeating-linear-gradient\(to bottom, transparent 0 47px, var\(--border\) 47px 48px\);\s*\}\s*\}/;
@@ -492,7 +492,7 @@ describe('E72 Team und Verwaltung', () => {
     expect(START).not.toContain('.start-wie-zuletzt');
     expect(START).not.toContain('grid-template-columns: minmax(0, 1fr) 15rem');
     expect(START).toContain('.start-rahmen { grid-template-columns: minmax(0, 1fr) 19.5rem; gap: 1.5rem; }');
-    expect(START).toContain('.start-kontext .start-karte-kopf h2 { display: block; font-size: 0.8125rem; line-height: 1.375rem; }');
+    expect(START).toContain('.start-kontext .start-karte-kopf h2 { display: block; font-size: var(--groesse-begleit); line-height: 1.375rem; }');
     expect(START).toMatch(/\.start-einsatz-name\.kein-trennen, \.start-einsatz-titel\.kein-trennen \{ hyphens: auto;/);
     expect(START).toContain('.start-kontext .einsatz-knoepfe { flex-direction: column; }');
   });
@@ -606,7 +606,7 @@ describe('E72 Aufträge und Planung', () => {
     expect(quelle('src/features/customers/KundenakteView.tsx')).toContain('<a className="link-weiter akten-verweis" href="#kunde-kontext">Kontakt</a>');
     expect(quelle('src/features/projects/BaustellenakteView.tsx')).toContain('<a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a>');
     // 44 px für „Wartungen öffnen“ im Kopf der Kontextspalte (vorher 40).
-    expect(AKTEN).toContain('.akten-kontext .karte-kopf .akten-verweis { font-size: 0.75rem; line-height: 1rem; padding-block: 0.875rem; margin-block: -0.875rem; }');
+    expect(AKTEN).toContain('.akten-kontext .karte-kopf .akten-verweis { font-size: var(--groesse-begleit); line-height: 1rem; padding-block: 0.875rem; margin-block: -0.875rem; }');
   });
 
   /* Seit E86 (D6): bis vier gleich breit in einer Zeile, mehr rollen mit auslaufender Kante — nicht mehr zwei Reihen. */
@@ -693,7 +693,7 @@ describe('E72 Aufträge und Planung', () => {
   });
 
   it('Fluchten und rechte Kanten (B3, B4, B5, E6)', () => {
-    expect(quelle('src/features/assignments/AssignmentsView.tsx')).toContain('<p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">');
+    expect(quelle('src/features/assignments/AssignmentsView.tsx')).toContain('<p className="blatt-einzug border-t border-line px-4 py-3 text-meta text-ink-muted">');
     const quotes = quelle('src/features/quotes/QuotesView.tsx');
     expect(quotes).not.toContain('max-w-[48rem]');
     expect(quotes).toMatch(/<div className="formular mt-6">\s*<h3 className="section-label">Positionen<\/h3>/);

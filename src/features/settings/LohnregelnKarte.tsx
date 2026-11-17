@@ -179,7 +179,7 @@ export default function LohnregelnKarte() {
       : {};
   const meldung = (feld: string) =>
     fehler?.feld === feld ? (
-      <p id={`lohnregel-fehler-${feld}`} role="alert" className="mt-1 text-sm text-danger">{fehler.text}</p>
+      <p id={`lohnregel-fehler-${feld}`} role="alert" className="mt-1 text-meta text-danger">{fehler.text}</p>
     ) : null;
 
   return (
@@ -345,7 +345,7 @@ export default function LohnregelnKarte() {
           onChange={(wert) => setKjbgKv(wert)}
         />
       </div>
-      {fehler && !fehler.feld && <p role="alert" className="mt-2 text-sm text-danger">{fehler.text}</p>}
+      {fehler && !fehler.feld && <p role="alert" className="mt-2 text-meta text-danger">{fehler.text}</p>}
       <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); uebernehmen(gespeichert); }} onSpeichern={() => void speichern()} />
       </div>
     </Card>

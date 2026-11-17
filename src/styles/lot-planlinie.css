@@ -46,7 +46,7 @@
   /* ── B1 Plankopf mit Schriftfeld und Lineal ───────────────────────────── */
   .plankopf { display: flex; flex-direction: column; min-width: 0; }
   /* Der Kopf schreibt in die Zellen des Rasters (E33): Ortszeile 24, Titel 48, Untertitel 24 px. */
-  .seitenkopf-ort { font-size: 0.6875rem; line-height: 1.5rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); margin-bottom: 0; }
+  .seitenkopf-ort { font-size: var(--groesse-klein); line-height: 1.5rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); margin-bottom: 0; }
   /* V10: der Seitentitel redaktionell in Source Serif 4, regulär — Gewicht trägt die Größe, nicht die Strichstärke. */
   .seitenkopf h1 { font-family: var(--schrift-titel); font-size: 1.5rem; line-height: 3rem; font-weight: 400; letter-spacing: -0.005em; color: var(--ink-deep); }
   /* Feste Zeilenhöhe: die Knöpfe rechts sind genau eine Titelzeile hoch (index.css, E31). */
@@ -88,7 +88,7 @@
   .seitenkopf-zurueck:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
   /* Die Reiterleiste einer Unterseite steht unter ihrem Kopf (E31). */
   .plankopf > .reiterleiste { margin-top: 1.5rem; }
-  .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.5rem; color: var(--text-muted); margin-top: 0; }
+  .seitenkopf-meta { font-size: var(--groesse-begleit); line-height: 1.5rem; color: var(--text-muted); margin-top: 0; }
   .plankopf-titel { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.875rem; flex: 1 1 auto; min-width: 0; }
   .plankopf-titel > h1 { min-width: 0; overflow-wrap: anywhere; }
   /* Die kleine Skizze neben dem Titel: nur am Handy, wo das Schriftfeld ohne Endfeld bricht. */
@@ -135,13 +135,13 @@
   */
   .schriftfeld .lage-eintrag { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; height: 100%; min-height: 0; padding: 0.75rem 1.5rem; }
   .schriftfeld a.lage-eintrag:hover { background: var(--surface-2); }
-  .schriftfeld .lage-name { font-size: 0.65625rem; line-height: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .schriftfeld .lage-name { font-size: var(--groesse-klein); line-height: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .schriftfeld .lage-wert { font-family: var(--schrift-mono); font-size: 1.0625rem; line-height: 1.5rem; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
   /* Ein Wort bricht um, statt über die Feldlinie ins Nachbarfeld zu laufen (Auftrag 03.11.2026). */
   .schriftfeld .lage-wert-wort { font-family: inherit; white-space: normal; overflow-wrap: anywhere; }
   .schriftfeld .lage-wert-rot { color: var(--danger); }
   .schriftfeld .lage-wert-warn { color: var(--warning); }
-  .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1.5rem; color: var(--text-muted); overflow-wrap: anywhere; }
+  .schriftfeld .lage-zusatz { font-size: var(--groesse-klein); line-height: 1.5rem; color: var(--text-muted); overflow-wrap: anywhere; }
   /* Die Skizze hält 12 px Abstand zu den Feldlinien — am Tablet berührte sie sie sonst links und rechts. */
   .schriftfeld-skizze { display: none; }
   /* Die Zeichnung passt sich dem Feld an, nicht umgekehrt — sonst bräche am Tablet das letzte Feld um. */
@@ -165,6 +165,8 @@
   @media (min-width: 760px) and (max-width: 1199px) {
     .schriftfeld .lage-punkt { flex-basis: 168px; }
     .schriftfeld .lage-eintrag { padding: 0.75rem; }
+    /* Die Dachzeile in 12 px (E97, vorher 10,5) braucht hier weniger Sperrung: mit 0,1 em fehlten „Bezahlt im November“ 11 px. */
+    .schriftfeld .lage-name { letter-spacing: 0.04em; }
     .schriftfeld-skizze { flex-basis: 96px; }
   }
   /*
@@ -188,9 +190,9 @@
     /* Die Trennlinie trägt nur, was nach einer sichtbaren Zeile kommt — über der ersten liegt die Kante des Blatts. */
     .schriftfeld .lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit) ~ .lage-punkt { border-top: 1px solid var(--border); }
     .schriftfeld .lage-eintrag { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 1rem; height: auto; min-height: 3rem; padding: 0.75rem 1rem; }
-    .schriftfeld .lage-name { grid-column: 1; font-size: 0.9375rem; line-height: 1.5rem; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); white-space: normal; overflow: visible; }
-    .schriftfeld .lage-wert { grid-column: 2; grid-row: 1 / span 2; justify-self: end; text-align: right; font-size: 0.9375rem; font-weight: 500; }
-    .schriftfeld .lage-zusatz { grid-column: 1; font-size: 0.8125rem; line-height: 1.25rem; }
+    .schriftfeld .lage-name { grid-column: 1; font-size: var(--groesse-inhalt); line-height: 1.5rem; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); white-space: normal; overflow: visible; }
+    .schriftfeld .lage-wert { grid-column: 2; grid-row: 1 / span 2; justify-self: end; text-align: right; font-size: var(--groesse-inhalt); font-weight: 500; }
+    .schriftfeld .lage-zusatz { grid-column: 1; font-size: var(--groesse-begleit); line-height: 1.25rem; }
     /* Mit Zusatz zwei Textzeilen: eine Drittelzelle weniger Polster, damit die Zeile nicht über 60 px wächst — wie eine Untertitelzelle am iPhone. */
     .schriftfeld .lage-eintrag:has(.lage-zusatz) { padding-block: 0.5rem; }
     /* V10: Achtung ohne Farbfläche und ohne Kante — Text und Symbol tragen die Bedeutung. */
@@ -202,7 +204,7 @@
     /* Im Blatt einer Karte trägt die Karte die Kante — keine zweite Linie darin (keine Karte in der Karte). */
     .schriftfeld-blatt { margin-top: 0; }
     .schriftfeld-blatt .lage-zeile { border: 0; }
-    .plankopf-zusatz { font-size: 0.9375rem; line-height: 1.5rem; color: var(--text-muted); }
+    .plankopf-zusatz { font-size: var(--groesse-inhalt); line-height: 1.5rem; color: var(--text-muted); }
     /* Was den Kopf nur beschreibt, steht am Handy in der Hilfe (D1, E86). */
     .seitenkopf-meta-beschreibung { display: none; }
   }
@@ -234,17 +236,17 @@
   .masslinie-marke-ende { margin-left: -1px; }
   .masslinie-marke-rot { background: var(--danger); }
   .masslinie-marke-rot::after { background: var(--danger); }
-  .masslinie-soll { position: absolute; top: 0; padding-right: 0.4375rem; font-size: 0.71875rem; line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; transform: translateX(-100%); }
+  .masslinie-soll { position: absolute; top: 0; padding-right: 0.4375rem; font-size: var(--groesse-klein); line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; transform: translateX(-100%); }
   .masslinie-achtung .masslinie-soll { color: var(--warning); }
-  .masslinie-plus { position: absolute; top: 0; right: 0; font-size: 0.71875rem; line-height: 0.875rem; color: var(--danger); white-space: nowrap; }
-  .masslinie-ist { position: absolute; left: 0; top: 1.875rem; font-size: 0.75rem; line-height: 0.875rem; white-space: nowrap; }
-  .masslinie-schmal .masslinie-soll, .masslinie-schmal .masslinie-plus { top: -0.125rem; font-size: 0.6875rem; }
+  .masslinie-plus { position: absolute; top: 0; right: 0; font-size: var(--groesse-klein); line-height: 0.875rem; color: var(--danger); white-space: nowrap; }
+  .masslinie-ist { position: absolute; left: 0; top: 1.875rem; font-size: var(--groesse-klein); line-height: 0.875rem; white-space: nowrap; }
+  .masslinie-schmal .masslinie-soll, .masslinie-schmal .masslinie-plus { top: -0.125rem; font-size: var(--groesse-klein); }
   .masslinie-plus-unten { top: 1.875rem; }
   .masslinie-schmal .masslinie-plus-unten { top: 1.3125rem; }
-  .masslinie-schmal .masslinie-ist { top: 1.3125rem; font-size: 0.6875rem; }
+  .masslinie-schmal .masslinie-ist { top: 1.3125rem; font-size: var(--groesse-klein); }
   /* Eine Maßlinie mit Beschriftung links (Akte): Name, dann die Linie. */
   .masslinie-zeile { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); align-items: start; gap: 0.5rem 1.5rem; padding: 0.5rem 0; }
-  .masslinie-name { padding-top: 0.875rem; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
+  .masslinie-name { padding-top: 0.875rem; font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   @media (max-width: 759px) {
     .masslinie-zeile { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
     .masslinie-name { padding-top: 0; }
@@ -345,7 +347,7 @@
   .navi .navi-symbol { width: 1.25rem; height: 1.25rem; }
   @media (min-width: 1200px) {
     .navi .navi-symbol { width: 1rem; height: 1rem; }
-    .navi-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.625rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 400; color: var(--navi-gruppe); }
+    .navi-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.625rem 0.375rem; font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 400; color: var(--navi-gruppe); }
     .navi-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--navi-linie); }
   }
   /* Unten am Handy: das Lot über dem aktiven Symbol statt einer Einfärbung der Fläche. */
@@ -364,17 +366,18 @@
   .abschnitt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1rem 0.5rem; border-top: 0; background: none; }
   /* V10 (13.11.2026): Versalien und Sperrung bleiben als leise Gruppenmarke wie
      in der Mappe, aber in 400 — nicht Versal, gesperrt UND kräftig. */
-  .abschnitt h2, .abschnitt h3 { display: flex; align-items: center; gap: 0.625rem; min-width: 0; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text); }
+  .abschnitt h2, .abschnitt h3 { display: flex; align-items: center; gap: 0.625rem; min-width: 0; font-size: var(--groesse-klein); line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text); }
   .abschnitt-linie { flex: 1; min-width: 1rem; height: 1px; background: var(--border-strong); }
-  .abschnitt-kopf { display: flex; align-items: center; gap: 0.625rem; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text); }
-  .achskreis { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 1.375rem; height: 1.375rem; padding: 0 0.25rem; border: 1px solid var(--accent-deep); border-radius: 999px; font-family: var(--schrift-mono); font-size: 0.6875rem; line-height: 1; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
+  .abschnitt-kopf { display: flex; align-items: center; gap: 0.625rem; font-size: var(--groesse-klein); line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text); }
+  .achskreis { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 1.375rem; height: 1.375rem; padding: 0 0.25rem; border: 1px solid var(--accent-deep); border-radius: 999px; font-family: var(--schrift-mono); font-size: var(--groesse-klein); line-height: 1; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
   .abschnitt .anzahl-text { letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text-muted); }
 
   /* ── B6 Stückliste ────────────────────────────────────────────────────── */
   /* Der Kopf zwischen zwei Linien statt auf grauer Fläche; Zahlen in Mono, rechtsbündig. */
-  .tabelle th { text-align: left; padding-left: 1rem; padding-right: 1rem; white-space: nowrap; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); background: none; border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .tabelle th { text-align: left; padding-left: 1rem; padding-right: 1rem; white-space: nowrap; font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); background: none; border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); padding-top: 0.75rem; padding-bottom: 0.75rem; }
   .tabelle td.r, .tabelle td.zahl { font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; }
-  .tabelle td.pos { font-family: var(--schrift-mono); color: var(--text-muted); width: 3.5rem; }
+  /* 4 rem: der Kopf „POS“ in 12 px (E97, vorher 10,5) braucht mit dem Polster mehr als 3,5. */
+  .tabelle td.pos { font-family: var(--schrift-mono); color: var(--text-muted); width: 4rem; }
   /* Die Summe über einer Doppellinie wie im Plan. */
   .tabelle .summe td { border-bottom: 0; font-weight: 500; }
   .tabelle .summe td.r, .tabelle .summe td.zahl { border-top: 3px double var(--accent-deep); }
@@ -388,13 +391,13 @@
 
   /* ── B8 Hinweislinie ──────────────────────────────────────────────────── */
   /* Eine Notiz am Feld: Punkt, Linie mit Knick, der Satz daneben. */
-  .hinweislinie { display: flex; align-items: flex-start; gap: 0.25rem; margin-top: 0.375rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--warning); }
+  .hinweislinie { display: flex; align-items: flex-start; gap: 0.25rem; margin-top: 0.375rem; font-size: var(--groesse-begleit); line-height: 1.25rem; color: var(--warning); }
   .hinweislinie-fehl { color: var(--danger); }
   .hinweislinie-strich { flex: none; width: 2.25rem; height: 1.25rem; color: inherit; }
 
   /* ── B10 Nummernstempel ───────────────────────────────────────────────── */
-  .stempel { display: inline-block; flex: none; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); font-family: var(--schrift-mono); font-size: 0.71875rem; line-height: 1.125rem; letter-spacing: 0.04em; font-weight: 400; color: var(--text); white-space: nowrap; vertical-align: middle; font-variant-numeric: tabular-nums; }
-  .stempel-breit { font-size: 0.8125rem; line-height: 1.375rem; padding: 0.0625rem 0.5rem; }
+  .stempel { display: inline-block; flex: none; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); font-family: var(--schrift-mono); font-size: var(--groesse-klein); line-height: 1.125rem; letter-spacing: 0.04em; font-weight: 400; color: var(--text); white-space: nowrap; vertical-align: middle; font-variant-numeric: tabular-nums; }
+  .stempel-breit { font-size: var(--groesse-klein); line-height: 1.375rem; padding: 0.0625rem 0.5rem; }
 
   /* ── B11 Schraffur, Einsatzbalken, Maßkette ───────────────────────────── */
   /* Abwesenheit wie eine geschnittene Wand: Diagonalen unter 135°, Abstand 6 px. */
@@ -403,12 +406,12 @@
   .einsatzbalken { background: var(--petrol); color: var(--auf-petrol); }
   .masskette { position: relative; height: 2.75rem; margin-top: 0.5rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; }
   .masskette-grund { position: absolute; left: 0; right: 0; top: 1.25rem; height: 1px; background: var(--accent-deep); }
-  .masskette-teil { position: absolute; top: 0; height: 1.25rem; font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--text); white-space: nowrap; }
+  .masskette-teil { position: absolute; top: 0; height: 1.25rem; font-size: var(--groesse-klein); line-height: 1rem; text-align: center; color: var(--text); white-space: nowrap; }
   .masskette-pause { position: absolute; top: 1rem; height: 0.5625rem; border: 1px solid var(--border-strong); background-color: var(--bg); background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 4px); }
   .masskette-pause-text { color: var(--text-muted); }
   .masskette-marke { position: absolute; top: 0.875rem; width: 1px; height: 13px; background: var(--accent-deep); }
   .masskette-marke-ende { margin-left: -1px; }
-  .masskette-zeit { position: absolute; top: 1.875rem; font-size: 0.6875rem; line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; }
+  .masskette-zeit { position: absolute; top: 1.875rem; font-size: var(--groesse-klein); line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; }
   .masskette-zeit-ende { transform: translateX(-100%); }
 
   /* ── B12 Raster ───────────────────────────────────────────────────────── */

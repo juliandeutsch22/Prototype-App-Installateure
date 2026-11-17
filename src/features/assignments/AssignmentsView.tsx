@@ -486,7 +486,7 @@ export default function AssignmentsView() {
                             />
                           )}
                           {inBearbeitung ? (
-                            <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
+                            <span className="text-meta text-ink-muted">wird oben bearbeitet</span>
                           ) : (
                             <BearbeitenKnopf
                               label={`Einsatz ${proj?.customerName ?? pn} (${pn}) bearbeiten`}
@@ -499,7 +499,7 @@ export default function AssignmentsView() {
                         </span>
                       </div>
                       {(aufgabe || material.length > 0 || termineDort.length > 0) && (
-                        <div className="blatt-einzug space-y-2 border-t border-line px-4 py-2 text-sm">
+                        <div className="blatt-einzug space-y-2 border-t border-line px-4 py-2 text-fliess">
                           {termineDort.length > 0 && (
                             <p className="text-ink">
                               <span className="font-normal">Am selben Tag:</span> {termineDort.join('; ')}
@@ -570,7 +570,7 @@ export default function AssignmentsView() {
             */}
             {dayAssignments.length > 0 && staff.length > 0 && (
               // `blatt-einzug`: auf der 24-px-Flucht der Zeilen darüber (E72, R5).
-              <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
+              <p className="blatt-einzug border-t border-line px-4 py-3 text-meta text-ink-muted">
                 {nichtEingeteilt.length === 0 ? (
                   <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
                 ) : (

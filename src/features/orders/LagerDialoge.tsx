@@ -472,11 +472,11 @@ export function Bewegungsverlauf({
   }, [artikel.id, stand]);
 
   const einheit = artikel.unit ?? 'Stk';
-  if (fehler) return <p className="text-sm text-danger">{fehler}</p>;
-  if (zeilen === null) return <p className="text-sm text-ink-muted">Wird geladen …</p>;
+  if (fehler) return <p className="text-meta text-danger">{fehler}</p>;
+  if (zeilen === null) return <p className="text-fliess text-ink-muted">Wird geladen …</p>;
   if (zeilen.length === 0) {
     return (
-      <p className="text-sm text-ink-muted">
+      <p className="text-fliess text-ink-muted">
         Noch keine Bewegung protokolliert. Das Protokoll beginnt mit dem 30.09.2026; was davor
         geschah, steht nur im Bestand.
       </p>

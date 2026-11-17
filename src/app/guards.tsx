@@ -73,7 +73,7 @@ export function RequireModul({ id, children }: { id: SchalterId; children: React
           </Link>
         </p>
       ) : (
-        <p className="mt-4 text-sm text-ink-muted">
+        <p className="mt-4 text-meta text-ink-muted">
           Einschalten kann das der Administrator unter „Module“.
         </p>
       )}

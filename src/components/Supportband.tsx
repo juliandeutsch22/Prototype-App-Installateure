@@ -81,7 +81,7 @@ export default function Supportband() {
       role="status"
       className={[
         // V10: neutrale Fläche mit Linie darunter; Farbe nur in Text und Zeichen.
-        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line px-4 py-2 text-center text-sm',
+        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line px-4 py-2 text-center text-meta',
         // „Er kann auch ändern" ist eine andere Nachricht als „er sieht zu"
         // und bekommt deshalb eine andere Farbe. Eine Warnfarbe für beides
         // hiesse: die eine stumpft die andere ab.

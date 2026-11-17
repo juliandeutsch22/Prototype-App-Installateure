@@ -57,7 +57,7 @@ export default function TerminListe({
                 <>
                   {/* Die Baustellennummer bricht nicht um (E76): am Handy stand „B-“ am Zeilenende und „2026-0147“ darunter. */}
                   {bezug && <span className="block">{t.projectNumber && t.ortName ? <>{t.ortName} · <span className="nr">{t.projectNumber}</span></> : bezug}</span>}
-                  {adresse && <AdresseLink adresse={t.ortAdresse} className="text-sm" />}
+                  {adresse && <AdresseLink adresse={t.ortAdresse} className="text-fliess" />}
                   {namen.length > 0 && <span className="block">Teilnehmer: {namen.join(', ')}</span>}
                   {t.notiz && <span className="block whitespace-pre-line text-ink">{t.notiz}</span>}
                 </>

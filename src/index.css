@@ -83,6 +83,23 @@
   --gewicht-titel: 500;
   /* Alles Gemessene — Nummern, Beträge, Stunden, Mengen — in IBM Plex Mono (Planlinie, E30). */
   --schrift-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /*
+    DIE SCHRIFTSKALA NACH ROLLEN (E97, 17.11.2026). Vorher standen für
+    dieselbe Rolle drei Größen nebeneinander — in der Baustellenakte der
+    Leersatz in 14 und 16 px, die Beschriftung über einem Wert in 12 und 13,
+    der Wert in 13, 14 und 15 — dazu ein Dutzend Zwischenwerte (9 bis
+    11,5 px). Jetzt gibt es für Text vier Stufen, je mit einer Rolle; jede
+    Schriftgröße außerhalb der Titel nimmt eine davon (`schriftskala.test.ts`
+    prüft das CSS, `tests/links/schriftskala.spec.ts` jede Seite).
+  */
+  /* Dachzeilen und Marken: Kategorie über einer Gruppe, Zähler, Einheit, Nummernstempel. */
+  --groesse-klein: 0.75rem;
+  /* Was einen Inhalt begleitet: Beschriftung über Wert und Feld, Meta-Zeile, Hinweis, Zustand, Verweis. */
+  --groesse-begleit: 0.8125rem;
+  /* Der Inhalt selbst: Text, Werte, Namen, Leersätze, Knöpfe, Menüs, Reiter, Tabellen. */
+  --groesse-inhalt: 0.9375rem;
+  /* Eingabefelder und Nachrichten: unter 16 px vergrößert iOS beim Antippen die ganze Seite. */
+  --groesse-feld: 1rem;
   --text: #13262c;
   /* Der Pfeil im Auswahlfeld, in der Farbe des Texts (eine Hintergrundgrafik kennt kein currentColor). */
   --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2313262c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
@@ -334,6 +351,20 @@ body {
   /* V10: DM Sans; System-Schriften als Fallback, falls die Webfont
    * (schlechtes Netz) noch nicht geladen ist. */
   font-family: var(--schrift-text);
+  /* Was keine eigene Größe hat, ist Inhalt (E97): vorher erbte es die 16 px
+   * des Browsers und stand eine Stufe größer als derselbe Satz nebenan. */
+  font-size: var(--groesse-inhalt);
+}
+
+/*
+ * Felder bleiben bei 16 px, auch wo sie die Größe ihrer Umgebung erben
+ * (Tailwinds Grundstil setzt `font-size: 100%`): mit der Grundschrift auf
+ * 15 px vergrößerte iOS sonst beim Antippen die Seite (E97).
+ */
+input,
+select,
+textarea {
+  font-size: var(--groesse-feld);
 }
 
 /* Überschriften fast schwarz, in normaler Laufweite und halbfett. Bis zum
@@ -652,7 +683,7 @@ select:not([multiple]):not([size]) {
   /* 12 px und nicht weniger: hier stehen auch Werte („120 h Budget",
      „8 Stk"), und kleiner war es am Telefon kaum lesbar (Prüflauf
      24.09.2026, D2). */
-  font-size: 0.75rem;
+  font-size: var(--groesse-klein);
   font-weight: var(--gewicht-titel);
   color: var(--text-muted);
 }
@@ -971,7 +1002,7 @@ textarea {
   .karte-kopf h2 { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .anzahl { color: var(--text-muted); font-weight: 400; margin-left: 0.375rem; }
   .karte-koerper { padding: 0 1rem 1rem; }
-  .karte-fuss { border-top: 1px solid var(--border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
+  .karte-fuss { border-top: 1px solid var(--border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: var(--groesse-begleit); }
   /* Der Gruppenkopf (Achskreis, Achslinie) steht in lot-planlinie.css (E30). */
   .abschnitt + ul > .zeile:first-child, .abschnitt + div > ul > .zeile:first-child { border-top: 1px solid var(--border); }
   .karte-koerper > .abschnitt { margin-inline: -1rem; }
@@ -1103,16 +1134,16 @@ textarea {
   */
   .zeile-ganz:has(.zeile-ziel:focus-visible) { outline: 2px solid var(--accent-deep); outline-offset: 0; background: var(--petrol-hell); }
   .zeile-text { flex: 1; min-width: 0; }
-  .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .zeile-titel { font-size: var(--groesse-inhalt); line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .zeile-meta { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* Beträge, Stunden, Mengen in Mono (Planlinie B12): gleich breite Ziffern fluchten untereinander. */
-  .zeile-wert { font-size: 0.9375rem; font-weight: 400; font-family: var(--schrift-mono); white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .zeile-wert { font-size: var(--groesse-inhalt); font-weight: 400; font-family: var(--schrift-mono); white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   /* Die Beschriftung unter dem Wert ist ein Wort, keine Messung: Textschrift wie bei den Beträgen (V10, 14.11.2026; vorher erbte sie Mono). */
-  .zeile-wert small { display: block; font-family: var(--schrift-text); font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); }
+  .zeile-wert small { display: block; font-family: var(--schrift-text); font-size: var(--groesse-begleit); font-weight: 400; color: var(--text-muted); }
   .zeile-pfeil { color: var(--text-muted); flex: none; width: 1rem; height: 1rem; }
   /* Die Nummer grau neben dem fetten Namen, ohne Klammer, nie umgebrochen (Design-Entwurf, Punkt 3). */
   /* Die Nummer neben dem Namen als Nummernstempel (Planlinie B10): Mono, gesperrt, feiner Rahmen. */
-  .zeile-nr { font-weight: 400; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; font-family: var(--schrift-mono); font-size: 0.71875rem; line-height: 1.125rem; letter-spacing: 0.04em; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); vertical-align: 1px; }
+  .zeile-nr { font-weight: 400; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; font-family: var(--schrift-mono); font-size: var(--groesse-klein); line-height: 1.125rem; letter-spacing: 0.04em; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); vertical-align: 1px; }
   /*
     Der Zustand in einer festen Spalte: ab dem Tablet gleich breit in jeder
     Zeile, damit Punkt und Wort untereinander fluchten und die Beträge
@@ -1170,10 +1201,10 @@ textarea {
     zeigt sie nebeneinander wie am Tablet.
   */
   .zeile-zahlen { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem 1.5rem; }
-  .zeile-zahlen-linie { display: block; width: 15rem; max-width: 100%; font-size: 0.75rem; text-align: left; }
+  .zeile-zahlen-linie { display: block; width: 15rem; max-width: 100%; font-size: var(--groesse-klein); text-align: left; }
   .zeile-zahlen-betrag { display: block; min-width: 7.5rem; text-align: right; }
   /* Der Name unter einem Betrag gesprochen — in der Textschrift, nicht in der Schrift der Zahlen. */
-  .zeile-zahlen-betrag small { font-family: var(--schrift-text); font-size: 0.75rem; }
+  .zeile-zahlen-betrag small { font-family: var(--schrift-text); font-size: var(--groesse-klein); }
   .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: 1 1 auto; }
   @media (min-width: 1200px) {
     .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: none; }
@@ -1199,10 +1230,10 @@ textarea {
     als der Rest. Das Wort richtet sich am Text aus, nur das Zeichen
     (lot-planlinie.css) steht mittig.
   */
-  .stand { display: inline-flex; align-items: baseline; gap: 0.375rem; min-height: 1.375rem; font-size: 0.8125rem; font-weight: 400; white-space: nowrap; color: var(--text); }
+  .stand { display: inline-flex; align-items: baseline; gap: 0.375rem; min-height: 1.375rem; font-size: var(--groesse-begleit); font-weight: 400; white-space: nowrap; color: var(--text); }
   /* Das Zeichen vor dem Wort (Statuszeichen, Planlinie B3) steht in lot-planlinie.css (E30). */
   .stand-leise { color: var(--text-muted); }
-  .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: var(--groesse-begleit); line-height: 1.25rem; color: var(--text-muted); }
   .hinweiszeile svg { width: 1rem; height: 1rem; flex: none; margin-top: 2px; }
   .hinweiszeile b, .hinweiszeile strong { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .hinweiszeile-warn svg { color: var(--warning); }
@@ -1233,7 +1264,7 @@ textarea {
     mask: var(--zeichen-warnung) center / contain no-repeat;
   }
   /* U10, E5: der Wert eines Datums- oder Zeitfelds deutsch darunter — gemessen, also in Plex Mono, leise. */
-  .feld-deutsch { margin: 0; font-family: var(--schrift-mono); font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .feld-deutsch { margin: 0; font-family: var(--schrift-mono); font-size: var(--groesse-begleit); line-height: 1.25rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   /* U9: „Anzeigen“ unter dem einen Satz, 44 px Tastfläche; die Einzelheiten darunter im selben Ton. */
   .hinweiszeile-anzeigen { display: inline-flex; align-items: center; min-height: 2.75rem; }
   .hinweiszeile-einzelheiten { margin-bottom: 0.25rem; }
@@ -1247,8 +1278,8 @@ textarea {
     Bearbeiten einer Zeit 70 px über dem Rand, mitten im Formular.
   */
   :is(.blatt, .fenster, .fenster-breit, [role='dialog']) .aktionsleiste { bottom: 0; }
-  .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-  .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
+  .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: var(--groesse-begleit); color: var(--text-muted); margin-bottom: 0.5rem; }
+  .aktionsleiste-summe b { color: var(--ink-deep); font-size: var(--groesse-inhalt); font-weight: var(--gewicht-titel); }
   /*
     FESTE ANTEILE, ZWEI ZU DREI (E72, 09.11.2026). Bei 1 : 2 stand „Abbrechen“
     am Handy 5 px vom Rahmen. Eine Spalte nach Inhalt (`auto`) ging nicht: im
@@ -1291,7 +1322,7 @@ textarea {
     .aktionsleiste-knoepfe > :only-child { grid-column: auto; }
   }
   .schritte { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.375rem; }
-  .schritt { font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .schritt { font-size: var(--groesse-begleit); font-weight: 400; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
   /*
     DIE SCHRITTE ALS ACHSE MIT LOT (Planlinie B4): eine feine Linie je
     Schritt, erledigte in Petrol, der aktuelle trägt das Senkblei — statt
@@ -1302,11 +1333,11 @@ textarea {
   .schritt-jetzt i { height: 3px; margin-top: 0.5625rem; background: var(--accent-deep); }
   .schritt-jetzt i::after { content: ''; position: absolute; left: 0; top: -0.5rem; width: 6px; height: 10px; background: var(--accent-deep); clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
   .schritt-jetzt { color: var(--ink-deep); font-weight: var(--gewicht-titel); }
-  .suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); font-size: 0.9375rem; flex: 1; }
+  .suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); font-size: var(--groesse-inhalt); flex: 1; }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
   /* Auch ein kurzes Wort („Alle“) hat 44 px Tastfläche in der Breite (E72, R3). */
-  .segment > * { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  .segment > * { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: var(--groesse-begleit); font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
   /*
     V10 (13.11.2026): ab dem Tablet kompakte Texttabs in ihrer Breite, links
     beginnend, mit präziser Unterlinie — keine über die Zeile gestreckten
@@ -1322,7 +1353,7 @@ textarea {
     (gefunden im Umbau auf „Lot“, Rechnungen).
   */
   .overflow-x-auto { position: relative; }
-  .tabelle { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .tabelle { width: 100%; border-collapse: collapse; font-size: var(--groesse-inhalt); }
   /* Der Tabellenkopf als Stückliste (Planlinie B6) steht in lot-planlinie.css (E30). */
   .tabelle td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .tabelle tr:last-child td { border-bottom: 0; }
@@ -1330,7 +1361,7 @@ textarea {
   .tabelle-eng th, .tabelle-eng td { padding: 0.5rem 0.3125rem; }
   .spalte { display: flex; flex-direction: column; gap: 1rem; }
   @media (min-width: 1200px) { .spalte { gap: 1.5rem; } }
-  .link-still { color: var(--ink-deep); font-weight: var(--gewicht-titel); font-size: 0.875rem; text-decoration: none; }
+  .link-still { color: var(--ink-deep); font-weight: var(--gewicht-titel); font-size: var(--groesse-begleit); text-decoration: none; }
   .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still { color: var(--accent-deep); }
   .link-still-weiter::after { content: '\00a0›'; }
   .link-still:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -1338,8 +1369,8 @@ textarea {
 
 /* ── Startseite (Nachtest 01.10.2026, Paket B) ──────────────────────────── */
 @layer components {
-  .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
-  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
+  .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: var(--groesse-begleit); font-weight: var(--gewicht-titel); color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
+  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: var(--groesse-begleit); font-weight: var(--gewicht-titel); color: var(--accent-deep); }
   .start-weiter:hover { background: var(--hover-flaeche); }
   /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
   .start-status-rechts { display: none; }

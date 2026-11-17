@@ -70,6 +70,22 @@ export default {
       Tablet, `lg` der Schreibtisch; `sm` bleibt für das breite Telefon quer.
     */
     screens: { sm: '640px', md: '760px', lg: '1200px', xl: '1440px' },
+    // Außerhalb von `extend`: sonst gäbe es Tailwinds eigene Stufen (`sm`, 14 px) weiter (E97).
+    fontSize: {
+      // DIE SCHRIFTSKALA NACH ROLLEN (E97, 17.11.2026) — die Werte stehen
+      // als `--groesse-*` in index.css. `xs` Dachzeile/Marke (12 px),
+      // `meta` Begleitung (13 px), `fliess` Inhalt (15 px), `base` Feld
+      // (16 px). Die Zwischenstufe `sm` (14 px) gibt es nicht mehr: sie
+      // stand neben 13 und 15 für dieselben Rollen (schriftskala.test.ts).
+      xs: ['var(--groesse-klein)', { lineHeight: '1rem' }],
+      meta: ['var(--groesse-begleit)', { lineHeight: '1.125rem' }],
+      fliess: ['var(--groesse-inhalt)', { lineHeight: '1.375rem' }],
+      base: ['var(--groesse-feld)', { lineHeight: '1.5rem' }],
+      lg: ['1.125rem', { lineHeight: '1.6rem' }],
+      xl: ['1.375rem', { lineHeight: '1.8rem' }],
+      '2xl': ['1.75rem', { lineHeight: '2.1rem' }],
+      '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+    },
     extend: {
       colors: {
         // Alle Farbrollen lesen Design-Tokens (siehe index.css / applyBranding).
@@ -112,21 +128,6 @@ export default {
         sm: 'var(--shadow-sm)',
         DEFAULT: 'var(--shadow)',
         lg: 'var(--shadow-lg)',
-      },
-      fontSize: {
-        // Feste Typo-Skala
-        xs: ['0.75rem', { lineHeight: '1rem' }],
-        // Zwei Stufen der Designlinie „Fassung 3" (docs/design/linie.md § 5):
-        // 13 px für Beschriftungen und Meta-Zeilen, 15 px für Knöpfe und
-        // Zeilentitel. Benannt nach ihrer Rolle, damit niemand eine
-        // Zwischengrösse von Hand einsetzt.
-        meta: ['0.8125rem', { lineHeight: '1.125rem' }],
-        sm: ['0.875rem', { lineHeight: '1.25rem' }],
-        fliess: ['0.9375rem', { lineHeight: '1.375rem' }],
-        base: ['1rem', { lineHeight: '1.5rem' }],
-        lg: ['1.125rem', { lineHeight: '1.6rem' }],
-        xl: ['1.375rem', { lineHeight: '1.8rem' }],
-        '2xl': ['1.75rem', { lineHeight: '2.1rem' }],
       },
       /*
         HALBFETT IST SEIT DER PLANLINIE (E30) DAS GEWICHT DER TITEL, 500. Eine

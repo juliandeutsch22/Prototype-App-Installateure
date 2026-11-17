@@ -111,7 +111,7 @@ export default function PasswortAendern({
       {/* Formular der Linie: höchstens 560 px (Regel 9). */}
       <form onSubmit={speichern} className="formular space-y-4">
         {erstmalig && (
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             {nachStartpasswort
               ? 'Das Startpasswort kennt auch das Büro. Mit einem eigenen gehört der Zugang nur dir.'
               : 'Damit kommst du beim nächsten Mal wieder herein. Ohne eigenes Passwort brauchst du jedes Mal einen neuen Link per E-Mail.'}
@@ -161,7 +161,7 @@ export default function PasswortAendern({
           Drücken — dasselbe Muster wie beim Anlegen eines Betriebs.
         */}
         {(zuKurz || ungleich) && (
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             {zuKurz ? 'Mindestens acht Zeichen.' : 'Die beiden Eingaben sind nicht gleich.'}
           </p>
         )}
@@ -169,7 +169,7 @@ export default function PasswortAendern({
         {fehler && <ErrorState message={fehler} />}
 
         {fertig && (
-          <p className="text-sm font-normal text-ink" role="status">
+          <p className="text-fliess font-normal text-ink" role="status">
             Das Passwort ist gesetzt.
           </p>
         )}

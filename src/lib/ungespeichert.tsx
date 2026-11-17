@@ -60,7 +60,7 @@ export function useUngespeichertWarnung(aktiv: boolean): ReactNode {
         if (wohin) navigate(wohin);
       }}
     >
-      <p className="text-sm">
+      <p className="text-fliess">
         Hier gibt es Änderungen, die noch nicht gespeichert sind. Wer jetzt weitergeht, verliert sie.
       </p>
     </ConfirmDialog>

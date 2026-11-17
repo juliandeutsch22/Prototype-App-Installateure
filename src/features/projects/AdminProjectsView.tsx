@@ -754,7 +754,7 @@ export default function AdminProjectsView() {
           ohnehin die verbindliche Nummer.
         */}
         {!vorschlagVomServer && form.projectNumber === nummernVorschlag && (
-          <p className="-mt-2 text-sm text-ink-muted">
+          <p className="-mt-2 text-meta text-ink-muted">
             Beispiel ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Speichern.
           </p>
         )}
@@ -812,7 +812,7 @@ export default function AdminProjectsView() {
           nur „— wählen —", und niemand wüsste, welcher Kunde gemeint war.
         */}
         {!form.customerId && form.customerName && (
-          <p className="text-sm text-warning">
+          <p className="text-meta text-warning">
             Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
             wählen — oder in der{' '}
             <Link to="/customers" className="link-hinweis-weiter">
@@ -1012,7 +1012,7 @@ export default function AdminProjectsView() {
           erst im Leerzustand.
         */}
         {nurVomServer > 0 && (
-          <p className="px-4 pb-3 text-xs text-ink">
+          <p className="px-4 pb-3 text-meta text-ink">
             {nurVomServer === 1
               ? 'Eine Baustelle außerhalb dieser Auswahl gefunden.'
               : `${nurVomServer} Baustellen außerhalb dieser Auswahl gefunden.`}

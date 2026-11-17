@@ -209,7 +209,7 @@ export default function EingangFormular({
       />
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-2 text-sm text-ink">Für wen</legend>
+        <legend className="mb-2 text-meta text-ink">Für wen</legend>
         <Segmente
           name="Kunde"
           werte={[{ wert: 'vorhanden', text: 'Vorhandener Kunde' }, { wert: 'neu', text: 'Neuer Kunde' }]}

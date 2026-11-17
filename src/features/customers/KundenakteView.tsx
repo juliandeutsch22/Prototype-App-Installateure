@@ -478,7 +478,7 @@ export default function KundenakteView() {
             <ul className="mt-2 space-y-2">
               {namensgleich.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="truncate text-sm text-ink">
+                  <span className="truncate text-fliess text-ink">
                     {p.projectNumber} · {p.address ?? 'ohne Adresse'}
                   </span>
                   {darfBaustellenZuordnen && (
@@ -512,7 +512,7 @@ export default function KundenakteView() {
         baustellen.zustand === 'bereit' &&
         baustellen.daten.length === 0 &&
         namensgleich.length === 0 && (
-          <p className="mt-2 text-xs text-ink-muted">
+          <p className="mt-2 text-meta text-ink-muted">
             Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
             „Bestehende Baustellen übernehmen“ in der Kundenliste.
           </p>
@@ -533,9 +533,9 @@ export default function KundenakteView() {
             const u = beurteile(w, heute);
             return (
               <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="min-w-0 text-sm text-ink">
+                <span className="min-w-0 text-fliess text-ink">
                   {w.anlage}
-                  <span className="block text-xs text-ink-muted">
+                  <span className="block text-meta text-ink-muted">
                     alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
                   </span>
                 </span>
@@ -581,16 +581,16 @@ export default function KundenakteView() {
                 className="flex min-h-touch w-full flex-wrap items-center justify-between gap-2 py-2 text-left"
                 onClick={() => setOffeneRechnung(r.id)}
               >
-              <span className="min-w-0 text-sm">
+              <span className="min-w-0 text-fliess">
                 <span className="link">{r.invoiceNumber}</span>
                 {/* Leerzeichen im Text (Runde 3, G4): sonst las sich
                     „RE-2026-150706.10.2026“ beim Kopieren und Vorlesen. */}
                 {' '}
-                <span className="ml-1 whitespace-nowrap text-xs text-ink-muted">
+                <span className="ml-1 whitespace-nowrap text-meta text-ink-muted">
                   {fmtDatum(r.invoiceDate)} · <span className="nr">{r.projectNumber}</span>
                 </span>
               </span>
-              <span className="whitespace-nowrap text-sm text-ink-muted">
+              <span className="whitespace-nowrap text-meta text-ink-muted">
                 {euro(r.totalBrutto)} brutto · {r.paymentStatus}
               </span>
               </button>
@@ -627,10 +627,10 @@ export default function KundenakteView() {
               const z = zustandVon(e);
               return (
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-                  <Link to={`/eingaenge/${e.id}`} className="link inline-flex min-h-touch min-w-0 items-center text-sm">
+                  <Link to={`/eingaenge/${e.id}`} className="link inline-flex min-h-touch min-w-0 items-center text-fliess">
                     <span className="truncate">{e.nummer} · {e.anliegen.trim().split('\n')[0] || kundeText(e)}</span>
                   </Link>
-                  <span className="flex items-center gap-2 text-sm text-ink-muted">
+                  <span className="flex items-center gap-2 text-meta text-ink-muted">
                     {wannText(e.eingegangenAm)} <Zustand stand={z.stand}>{z.text}</Zustand>
                   </span>
                 </li>
@@ -638,7 +638,7 @@ export default function KundenakteView() {
             })}
           </ul>
           {eingaenge.daten.length >= EINGAENGE_HOECHSTENS && (
-            <p className="mt-2 text-sm text-ink-muted">Die jüngsten {EINGAENGE_HOECHSTENS} — ältere im Auftragseingang.</p>
+            <p className="mt-2 text-meta text-ink-muted">Die jüngsten {EINGAENGE_HOECHSTENS} — ältere im Auftragseingang.</p>
           )}
         </>
       )}
@@ -663,11 +663,11 @@ export default function KundenakteView() {
               <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
                 <Link
                   to={`/quotes/${q.id}`}
-                  className="link inline-flex min-h-touch min-w-0 items-center text-sm"
+                  className="link inline-flex min-h-touch min-w-0 items-center text-fliess"
                 >
                   <span className="truncate">{q.quoteNumber}</span>
                 </Link>
-                <span className="text-sm text-ink-muted">
+                <span className="text-meta text-ink-muted">
                   {euro(q.totalNetto)} netto · {q.status}
                 </span>
               </li>
@@ -675,7 +675,7 @@ export default function KundenakteView() {
           </ul>
           {/* Die Grenze sagen, statt still bei hundert aufzuhören — wie bei den Eingängen. */}
           {angebote.daten.length >= ANGEBOTE_HOECHSTENS && (
-            <p className="mt-2 text-sm text-ink-muted">Die jüngsten {ANGEBOTE_HOECHSTENS} — ältere findet die Suche in den Angeboten.</p>
+            <p className="mt-2 text-meta text-ink-muted">Die jüngsten {ANGEBOTE_HOECHSTENS} — ältere findet die Suche in den Angeboten.</p>
           )}
         </>
       )}
@@ -776,11 +776,11 @@ export default function KundenakteView() {
         </AktenAngaben></Card>
         {/* Eine Beschriftung für eine Angabe (Runde 6, G19): darunter stand noch einmal „Rechnungsadresse“. */}
         <Card title="Rechnungsanschrift">{k.address?.trim() ? <p><AdresseLink adresse={k.address} /></p>
-          : <p className="text-sm text-ink-muted">nicht hinterlegt</p>}</Card>
+          : <p className="text-meta text-ink-muted">nicht hinterlegt</p>}</Card>
         {k.notes?.trim() && <Card title="Notiz"><p className="akten-notiz whitespace-pre-line">{k.notes}</p></Card>}
         {wartungAn && <Card title="Wartungen" action={<AktenVerweis bereich="wartung">Wartungen öffnen</AktenVerweis>}>
           {wartungen.zustand === 'laedt' ? <SkeletonList rows={1} /> : wartungen.zustand === 'fehler' ? <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
-            : <p className="text-sm text-ink-muted">{wartungen.daten.length} {wartungen.daten.length === 1 ? 'Wartungsvereinbarung' : 'Wartungsvereinbarungen'}</p>}
+            : <p className="text-meta text-ink-muted">{wartungen.daten.length} {wartungen.daten.length === 1 ? 'Wartungsvereinbarung' : 'Wartungsvereinbarungen'}</p>}
         </Card>}
       </>} bereiche={[
         { id: 'uebersicht', titel: 'Übersicht', inhalt: <div className="akten-spalte">
@@ -821,7 +821,7 @@ export default function KundenakteView() {
           await stammdatenSpeichern(true);
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(angabenFrage ?? []).map((f) => <li key={f}>{f}</li>)}
         </ul>
       </ConfirmDialog>
@@ -1015,7 +1015,7 @@ function StammdatenFormular({
           was man vor dem Anruf wissen muss. */}
       <div className="flex flex-col gap-4 border-t border-line pt-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor="k-notiz" className="text-sm font-normal text-ink">Notiz</label>
+          <label htmlFor="k-notiz" className="text-meta font-normal text-ink">Notiz</label>
           <textarea
             id="k-notiz"
             rows={3}
@@ -1038,7 +1038,7 @@ function StammdatenFormular({
 
       </div>
       {uidPruefung}
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
         {/*
           DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste, wie

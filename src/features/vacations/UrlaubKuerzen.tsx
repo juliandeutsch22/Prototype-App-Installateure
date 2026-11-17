@@ -37,7 +37,7 @@ export function KuerzenFelder({
       <InputField id={`${kennung}-streichen`} label="Einen Tag streichen (freiwillig)" type="date"
         min={stand.von} max={stand.bis} value={stand.streichen}
         onChange={(e) => onChange({ ...stand, streichen: e.target.value })} />
-      <p className="text-sm text-ink" role={fehler ? 'alert' : undefined}>
+      <p className="text-fliess text-ink" role={fehler ? 'alert' : undefined}>
         {fehler ?? `Bleibt: ${teileText(teile)}${teile.length > 1 ? ' — der Antrag wird in zwei Teile geteilt.' : '.'}`}
       </p>
     </div>

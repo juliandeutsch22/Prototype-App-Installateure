@@ -283,7 +283,7 @@ export default function RetoureFenster({
   return (
     <BottomSheet open={offen} onClose={schliessen} label="Material zurückgeben" auchBreit titel="Material zurückgeben">
       <div className="formular space-y-4">
-        <p className="flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+        <p className="flex flex-wrap items-center gap-1 text-meta text-ink-muted">
           {lagerErfasst ? 'Nur Neues wird dem Lager gutgeschrieben.' : 'Nur Neues wird gutgeschrieben — ins Lager, sobald es dort angenommen ist.'}
           <InfoHint about="die Retoure">
             Nur unbenutztes Material in Originalverpackung wird dem Lagerbestand wieder
@@ -298,7 +298,7 @@ export default function RetoureFenster({
             <div>
               <span className="section-label block">Material</span>
               <span className="font-semibold text-ink">{gewaehlt.name}</span>
-              <span className="block text-sm text-ink-muted">
+              <span className="block text-meta text-ink-muted">
                 {istFrei
                   ? 'Nicht im Katalog — wird erfasst, aber keinem Bestand gutgeschrieben.'
                   : [gewaehlt.category, gewaehlt.articleNumber].filter(Boolean).join(' · ')}
@@ -327,7 +327,7 @@ export default function RetoureFenster({
             {suche.trim() !== '' && (
               <div className="mt-2">
                 {treffer.length === 0 ? (
-                  <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
+                  <p className="text-fliess text-ink-muted">Kein Material passt zur Suche.</p>
                 ) : null}
                 {/* V11: frei getippte Ware — wie bei der Anforderung „Nicht im Katalog“. */}
                 <Button
@@ -367,7 +367,7 @@ export default function RetoureFenster({
         )}
         <ZahlFeld id="retqty" label="Menge" value={menge} onChange={setMenge} />
         {rahmen && (
-          <p className="text-sm text-ink-muted" data-testid="retoure-rahmen">
+          <p className="text-meta text-ink-muted" data-testid="retoure-rahmen">
             Für diese Baustelle ausgegeben: {fmtMenge(rahmen.ausgegeben)}, schon zurück: {fmtMenge(rahmen.zurueck)} —
             höchstens {fmtMenge(rahmen.hoechstens)}.
           </p>

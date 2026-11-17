@@ -188,7 +188,7 @@ export default function EbInterfaceDialog({
         {kunde && neueNummer && lieferant.trim() !== '' && (
           darfKundenPflegen
             ? <Schalter id="ebi-merken" label="Lieferantennummer beim Kunden merken" an={merken} onChange={(wert) => setMerken(wert)} />
-            : <p className="text-sm text-ink-muted">Gilt nur für diese Datei. Beim Kunden hinterlegen kann sie, wer Kunden pflegt.</p>
+            : <p className="text-meta text-ink-muted">Gilt nur für diese Datei. Beim Kunden hinterlegen kann sie, wer Kunden pflegt.</p>
         )}
         {pruefung.fehler.map((f) => (
           <Hinweiszeile key={f} stufe="fehl"><p>{f}</p></Hinweiszeile>
@@ -196,7 +196,7 @@ export default function EbInterfaceDialog({
         {pruefung.hinweise.map((h) => (
           <Hinweiszeile key={h} stufe="warn"><p>{h}</p></Hinweiszeile>
         ))}
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           {art === 'allgemein'
             ? 'Die Datei geht per E-Mail oder über das Portal des Kunden an ihn.'
             : 'Die Datei unter e-rechnung.gv.at hochladen (Anmeldung über das Unternehmensserviceportal, „Upload“).'}

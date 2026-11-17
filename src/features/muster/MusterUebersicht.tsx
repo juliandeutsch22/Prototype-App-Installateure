@@ -115,7 +115,7 @@ export default function MusterUebersicht() {
     <TippBereich>
       <Card title="Mitarbeiterübersicht: Streifen und Woche (Runde 4)">
         <div className="space-y-4">
-          <ul className="space-y-1 text-sm text-ink-muted">
+          <ul className="space-y-1 text-meta text-ink-muted">
             {zustaende.map(([z, text]) => (
               <li key={z} className="flex items-center gap-2">
                 <StreifenFeld zustand={z} />
@@ -123,7 +123,7 @@ export default function MusterUebersicht() {
               </li>
             ))}
           </ul>
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Als „heute“ gilt hier {tagKurz(HEUTE)} — Darüberfahren zeigt den Tooltip (ab 1.200 px), ein Klick das
             Seitenfenster. Am Tablet stehen über dem Streifen nur Montage und heute.
           </p>

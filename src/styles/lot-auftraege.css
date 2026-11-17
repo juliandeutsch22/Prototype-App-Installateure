@@ -15,7 +15,8 @@
     Fläche, eine Linie über jedem Abschnitt, Titel in 16 px und eine eigene
     Breite (20 rem, 32 px Abstand). Jetzt dieselbe Spalte wie `.akten-kontext`:
     18 rem, eine Zelle Abstand, Eckmarken auf dem Raster, Überschriften wie
-    die Felder eines Schriftfelds, Angaben in 13 px, Abschnitte durch Luft
+    die Felder eines Schriftfelds, Angaben gleich groß (seit E97 15 px, die
+    Beschriftung darüber 13 px), Abschnitte durch Luft
     getrennt. Gemessen gleich: `kontextEinheitlich.spec.ts`.
   */
   .beleg-spalten { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: 1.5rem; align-items: start; }
@@ -25,10 +26,10 @@
   .beleg-kontext .karte { background: none; border-top: 0; }
   .beleg-kontext .karte-kopf { min-height: 0; padding: 1.25rem 0 0.5rem; }
   .beleg-kontext .karte-koerper { padding: 0; }
-  .beleg-kontext .karte-kopf h2 { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
+  .beleg-kontext .karte-kopf h2 { font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   .beleg-kontext .beleg-angaben { grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
-  .beleg-kontext .beleg-angaben dt { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); margin-bottom: 0.125rem; }
-  .beleg-kontext :is(.beleg-angaben dd, .karte-koerper > p) { margin-top: 0; font-size: 0.8125rem; line-height: 1.25rem; }
+  .beleg-kontext .beleg-angaben dt { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); margin-bottom: 0.125rem; }
+  .beleg-kontext :is(.beleg-angaben dd, .karte-koerper > p) { margin-top: 0; font-size: var(--groesse-inhalt); line-height: 1.375rem; }
   /*
     EIN VERWEIS IN DER SPALTE BEHÄLT SEINE TASTFLÄCHE, OHNE DIE ZEILE HÖHER
     ZU MACHEN (wie E31 in den Akten): „Familie Huber“ stand 12 px tiefer als
@@ -38,7 +39,7 @@
   :is(.akten-kontext .akten-angaben, .beleg-kontext .beleg-angaben) dd .link { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; }
   /* Der Änderungsverlauf in der Spalte: in der Schrift der Angaben, eine halbe Zelle unter dem Verlauf, ohne Luft danach. */
   .beleg-kontext .weiteres { margin: 0.75rem 0 0; }
-  .beleg-kontext .weiteres-kopf { font-size: 0.8125rem; line-height: 1.25rem; }
+  .beleg-kontext .weiteres-kopf { font-size: var(--groesse-begleit); line-height: 1.25rem; }
   .beleg-kontext .beleg-angaben .link { max-width: 100%; overflow-wrap: anywhere; hyphens: auto; }
 
   /*
@@ -82,7 +83,7 @@
   .akte-griffe:empty { display: none; }
 
   /* ── Meine Baustellen (Monteur) ───────────────────────────────────────── */
-  .mb-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
+  .mb-meta { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); }
   .mb-vorort { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
 }
 

@@ -181,7 +181,7 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
           {busy && !probe && <LoadingState label="Datei wird gelesen …" />}
           {fehler && <ErrorState message={fehler} />}
           {ergebnis && (
-            <p className="text-sm text-ink" role="status">
+            <p className="text-fliess text-ink" role="status">
               Übernommen: {ergebnis.angelegt} angelegt
               {ergebnis.uebersprungen > 0 && `, ${ergebnis.uebersprungen} schon vorhanden`}.
             </p>
@@ -198,7 +198,7 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
                     einlesen.
                   </InfoHint>
                 </h3>
-                <p className="text-sm text-ink-muted">{datei}</p>
+                <p className="text-meta text-ink-muted">{datei}</p>
                 <MetricRow>
                   <Metric label="Neu" value={neu.length} />
                   <Metric label="Schon vorhanden" value={schonDa.length} />
@@ -208,7 +208,7 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
                     tone={probe.fehler.length > 0 ? 'warning' : 'default'}
                   />
                 </MetricRow>
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   Übernommen wird: {probe.erkannt.map((e) => `${e.spalte} → ${FELDNAME[e.feld]}`).join(', ')}.
                   {probe.ignoriert.length > 0 && <> Nicht übernommen: {probe.ignoriert.join(', ')}.</>}
                 </p>
@@ -217,18 +217,18 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
               {nichtUebernommen.length > 0 && (
                 <section className="flex flex-col gap-2 border-t border-line pt-4">
                   <h3 className="text-base font-semibold text-ink-deep">{`Nicht übernommen (${nichtUebernommen.length})`}</h3>
-                  <ul className="space-y-3 text-sm">
+                  <ul className="space-y-3 text-fliess">
                     {nichtUebernommen.slice(0, ZEIGE_ZEILEN).map((z) => (
                       <li key={`${z.zeile}-${z.grund}`} className="border-l-2 border-line pl-3">
                         <p className="font-normal">
                           Zeile {z.zeile}: {z.grund}
                         </p>
-                        <p className="mt-1 break-words text-xs text-ink-muted">{z.inhalt}</p>
+                        <p className="mt-1 break-words text-meta text-ink-muted">{z.inhalt}</p>
                       </li>
                     ))}
                   </ul>
                   {nichtUebernommen.length > ZEIGE_ZEILEN && (
-                    <p className="text-sm text-ink-muted">
+                    <p className="text-meta text-ink-muted">
                       … und {nichtUebernommen.length - ZEIGE_ZEILEN} weitere.
                     </p>
                   )}
@@ -259,7 +259,7 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
                       und Telefon hier nicht, stimmen sie auch bei den übrigen nicht.
                     </InfoHint>
                   </h3>
-                  <ul className="space-y-2 text-sm">
+                  <ul className="space-y-2 text-fliess">
                     {neu.slice(0, 5).map(({ zeile, kunde }) => (
                       <li key={zeile}>
                         <span className="font-normal">{kunde.name}</span>

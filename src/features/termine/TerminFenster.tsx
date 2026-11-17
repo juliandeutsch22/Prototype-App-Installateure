@@ -93,7 +93,7 @@ export default function TerminFenster({
             {bezugText(termin)}
             {termin.ortAdresse && (
               <span className="block">
-                <AdresseLink adresse={termin.ortAdresse} className="text-sm" />
+                <AdresseLink adresse={termin.ortAdresse} className="text-fliess" />
               </span>
             )}
           </dd>

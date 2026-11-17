@@ -61,17 +61,17 @@ export default function KundenLiegenschaften({ companyId, customerId }: { compan
                 <ul className="divide-y divide-line">
                   {zeilen.map(({ b, liegenschaft, top }) => (
                     <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-                      <Link to={`/liegenschaften/${b.liegenschaftId}`} className="link inline-flex min-h-touch min-w-0 items-center text-sm">
+                      <Link to={`/liegenschaften/${b.liegenschaftId}`} className="link inline-flex min-h-touch min-w-0 items-center text-fliess">
                         <span className="truncate">{[liegenschaft?.bezeichnung ?? 'Liegenschaft', top].filter(Boolean).join(' · ')}</span>
                       </Link>
-                      <span className="text-sm text-ink-muted">
+                      <span className="text-meta text-ink-muted">
                         {[ROLLE_TEXT[b.rolle], zeitraumText(b, datumAT)].filter(Boolean).join(' · ')}
                       </span>
                     </li>
                   ))}
                 </ul>
                 {zeilen.length >= BETEILIGUNGEN_HOECHSTENS && (
-                  <p className="mt-2 text-sm text-ink-muted">Die jüngsten {BETEILIGUNGEN_HOECHSTENS} Beteiligungen.</p>
+                  <p className="mt-2 text-meta text-ink-muted">Die jüngsten {BETEILIGUNGEN_HOECHSTENS} Beteiligungen.</p>
                 )}
               </>
             )}

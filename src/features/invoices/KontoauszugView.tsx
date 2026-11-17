@@ -259,7 +259,7 @@ export default function KontoauszugView() {
 
       {daten && auszug && nicht && (
         <Card title="Datei" action={<Button variant="ghost" onClick={() => feld.current?.click()} disabled={laedt}>Andere Datei wählen</Button>}>
-          <dl className="space-y-1 text-sm">
+          <dl className="space-y-1 text-fliess">
             <div><dt className="inline text-ink-muted">Form: </dt><dd className="inline text-ink">{auszug.beschreibung}</dd></div>
             {auszug.konto && <div><dt className="inline text-ink-muted">Konto: </dt><dd className="inline font-mono text-ink">{auszug.konto}</dd></div>}
             {auszug.von && (
@@ -269,12 +269,12 @@ export default function KontoauszugView() {
               </div>
             )}
           </dl>
-          <p className="mt-2 text-sm text-ink">
+          <p className="mt-2 text-fliess text-ink">
             {`${anzahl(auszug.eingaenge.length, 'Eingang', 'Eingänge')}, ${anzahl(auszug.ausgaenge.length, 'Abbuchung', 'Abbuchungen')}`}
             {zaehle('fremd') > 0 && ` — davon ${zaehle('fremd')} nicht Rechnungen betreffend (Lieferanten, Löhne, Gebühren)`}.
           </p>
           {(nicht.vorgemerkt + nicht.rueckbuchungen + nicht.fremdwaehrung > 0) && (
-            <p className="mt-2 text-sm text-ink-muted">
+            <p className="mt-2 text-meta text-ink-muted">
               Nicht abgeglichen: {[
                 nicht.vorgemerkt ? anzahl(nicht.vorgemerkt, 'vorgemerkte Bewegung', 'vorgemerkte Bewegungen') : '',
                 nicht.rueckbuchungen ? anzahl(nicht.rueckbuchungen, 'Rückbuchung', 'Rückbuchungen') : '',
@@ -292,7 +292,7 @@ export default function KontoauszugView() {
             </Hinweiszeile>
           )}
           {daten.vorschlaege.length === 0 && (
-            <p className="mt-2 text-sm text-ink">In dieser Datei steht keine gebuchte Bewegung in Euro.</p>
+            <p className="mt-2 text-fliess text-ink">In dieser Datei steht keine gebuchte Bewegung in Euro.</p>
           )}
         </Card>
       )}
@@ -418,7 +418,7 @@ function VorschlagZeile({
       }
     >
       {waehlbar && (
-        <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+        <label className="flex min-h-touch items-center gap-2 text-meta text-ink">
           <input
             type="checkbox"
             className="checkbox"
@@ -483,13 +483,13 @@ function ZuordnungBearbeiten({
   return (
     <BottomSheet open onClose={onClose} label="Zuordnung" auchBreit titel="Zuordnung" stempel={euro(b.betrag)}>
       <div className="formular space-y-4">
-        <dl className="space-y-1 text-sm">
+        <dl className="space-y-1 text-fliess">
           <div><dt className="inline text-ink-muted">Buchungstag: </dt><dd className="inline text-ink">{datumAT(b.buchungstag)}</dd></div>
           {b.name && <div><dt className="inline text-ink-muted">{aus ? 'Empfänger: ' : 'Auftraggeber: '}</dt><dd className="inline text-ink">{b.name}</dd></div>}
           {b.iban && <div><dt className="inline text-ink-muted">IBAN: </dt><dd className="inline font-mono text-ink">{b.iban}</dd></div>}
           <div><dt className="inline text-ink-muted">Zweck: </dt><dd className="inline break-words text-ink">{b.zweck || '–'}</dd></div>
         </dl>
-        <p className="text-sm text-ink-muted">{v.grund}</p>
+        <p className="text-meta text-ink-muted">{v.grund}</p>
 
         {teile.map((t, i) => {
           const r = nach.get(t.rechnungId);
@@ -510,9 +510,9 @@ function ZuordnungBearbeiten({
                   </option>
                 ))}
               </SelectField>
-              {r && aus && <p className="text-sm text-ink-muted">{`Guthaben des Kunden ${euro(zahlstand(r).guthaben)}`}</p>}
+              {r && aus && <p className="text-meta text-ink-muted">{`Guthaben des Kunden ${euro(zahlstand(r).guthaben)}`}</p>}
               {r && !aus && (
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   {`Offen ${euro(offen)}`}
                   {r.skontoProzent && r.skontoBis ? ` · Skonto ${r.skontoProzent} % bis ${datumAT(r.skontoBis)}` : ''}
                   {(r.mahnforderung ?? 0) > 0 ? ` · letzte Mahnung fordert ${euro(r.mahnforderung!)} Spesen und Zinsen` : ''}
@@ -536,8 +536,8 @@ function ZuordnungBearbeiten({
           Weitere Rechnung
         </Button>
 
-        {rest !== null && rest > 0 && <p className="text-sm text-ink-muted">{euro(rest)} bleiben ohne Zuordnung.</p>}
-        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        {rest !== null && rest > 0 && <p className="text-meta text-ink-muted">{euro(rest)} bleiben ohne Zuordnung.</p>}
+        {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
         <div className="fuss-aktionen">
           <Button variant="ghost" onClick={() => onUebernehmen([])}>Ohne Zuordnung lassen</Button>

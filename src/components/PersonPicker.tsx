@@ -107,13 +107,13 @@ export default function PersonPicker({
 
   return (
     <fieldset>
-      <legend className="flex flex-wrap items-center gap-2 text-sm font-normal text-ink">
+      <legend className="flex flex-wrap items-center gap-2 text-meta font-normal text-ink">
         {legend}
         {selected.length > 0 && <Marke>{selected.length} ausgewählt</Marke>}
       </legend>
 
       {people.length === 0 ? (
-        <p className="mt-1 text-sm text-ink-muted">{emptyHint}</p>
+        <p className="mt-1 text-meta text-ink-muted">{emptyHint}</p>
       ) : (
         <>
           {/*
@@ -161,7 +161,7 @@ export default function PersonPicker({
               Formular nicht auseinanderreißen. */}
           <div className="mt-2 max-h-64 overflow-y-auto rounded border border-line">
             {sichtbar.length === 0 ? (
-              <p className="px-3 py-3 text-sm text-ink-muted">
+              <p className="px-3 py-3 text-fliess text-ink-muted">
                 {/* Warum die Liste leer ist, muss dabeistehen: sonst sieht ein
                     gesetzter Filter aus wie „niemand vorhanden". */}
                 {q.trim()
@@ -206,7 +206,7 @@ export default function PersonPicker({
                           <span className="min-w-0">
                             <span className={`block truncate ${p.abwesend ? 'text-ink-muted' : 'text-ink'}`}>{p.name}</span>
                             {p.hint && (
-                              <span className="block truncate text-xs text-ink-muted">{p.hint}</span>
+                              <span className="block truncate text-meta text-ink-muted">{p.hint}</span>
                             )}
                           </span>
                         </label>
@@ -235,7 +235,7 @@ export default function PersonPicker({
                   aria-label={`${p.name} entfernen`}
                   // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
                   // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
-                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-normal text-ink hover:bg-surface-2"
+                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-fliess font-normal text-ink hover:bg-surface-2"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">
@@ -243,7 +243,7 @@ export default function PersonPicker({
                   </span>
                 </button>
               ))}
-              <Button variant="ghost" onClick={() => onChange([])} className="px-2 text-sm">
+              <Button variant="ghost" onClick={() => onChange([])} className="px-2 text-fliess">
                 Alle entfernen
               </Button>
             </div>

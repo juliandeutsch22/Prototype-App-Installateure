@@ -147,7 +147,7 @@ function ersatzAdresse(s: Pick<WorkSheet, 'projectNumber' | 'datum'> & { id: str
  * mit eigenem Storno.
  */
 function StornoVerrechnung({ lage }: { lage: ScheinVerrechnung | 'fehler' | null }) {
-  if (lage === null) return <p className="text-sm text-ink-muted">Verrechnung wird geprüft …</p>;
+  if (lage === null) return <p className="text-meta text-ink-muted">Verrechnung wird geprüft …</p>;
   if (lage === 'fehler') {
     return (
       <Hinweiszeile stufe="warn">
@@ -930,22 +930,22 @@ export default function WorkSheetsListView() {
           <>
             {datumAT(s.datum)} · {s.abrechnung}
             {s.unterschriften?.kunde && (
-              <span className="mt-1 block text-xs text-ink-muted">
+              <span className="mt-1 block text-meta text-ink-muted">
                 Unterschrieben von {s.unterschriften.kunde.name}
               </span>
             )}
             {s.status === 'Verworfen' && (
-              <span className="mt-1 block text-xs text-ink-muted">
+              <span className="mt-1 block text-meta text-ink-muted">
                 Verworfen
                 {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
                 weiterbearbeitet, nicht gelöscht.
               </span>
             )}
             {s.ersetzt && (
-              <span className="mt-1 block text-xs text-ink-muted">Ersatz für einen stornierten Schein</span>
+              <span className="mt-1 block text-meta text-ink-muted">Ersatz für einen stornierten Schein</span>
             )}
             {s.stornoGrund && (
-              <span className="mt-1 block text-xs text-danger">
+              <span className="mt-1 block text-meta text-danger">
                 Storno: {s.stornoGrund}
                 {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
               </span>
@@ -1152,9 +1152,9 @@ export default function WorkSheetsListView() {
             <div className="min-w-0">
               {ohneBuchung.length === 0 ? (
                 /* Eine Zeile, wenn nichts offen ist (D5, E86) — was genau geprüft wird, sagt die Hilfe. */
-                <p className="text-sm text-ink">Alle Stunden gebucht.</p>
+                <p className="text-fliess text-ink">Alle Stunden gebucht.</p>
               ) : minutenOhneBuchung(ohneBuchung) > 0 && (
-                <p className="text-sm text-ink">
+                <p className="text-fliess text-ink">
                   <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
                   beim Kunden und in keiner Zeiterfassung.
                 </p>
@@ -1164,7 +1164,7 @@ export default function WorkSheetsListView() {
                 „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
                 ohne dass es jemand unterscheiden könnte.
               */}
-              <p className="mt-1 text-xs text-ink-muted">
+              <p className="mt-1 text-meta text-ink-muted">
                 {tiefePruefung
                   ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
                   : scheine.length === 1
@@ -1192,7 +1192,7 @@ export default function WorkSheetsListView() {
               Knöpfen Polsterung und Schriftgrösse, nicht die Höhe.
             */}
             <div className="ohne-buchung-weiter">
-              <span className="whitespace-nowrap text-sm text-ink-muted">Weiter zurück prüfen:</span>
+              <span className="whitespace-nowrap text-meta text-ink-muted">Weiter zurück prüfen:</span>
               <span className="flex flex-wrap items-center gap-2">
                 {PRUEF_ZEITRAEUME.map((tage) => (
                   <Button
@@ -1207,7 +1207,7 @@ export default function WorkSheetsListView() {
                     {tage === 365 ? '1 Jahr' : `${tage} Tage`}
                   </Button>
                 ))}
-                {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+                {pruefungLaeuft && <span className="text-meta text-ink-muted">Wird geprüft …</span>}
               </span>
             </div>
           </div>
@@ -1244,7 +1244,7 @@ export default function WorkSheetsListView() {
                       </span>
                       <span className="mt-1 block">
                         {zeilen.map((z) => (
-                          <span key={z.name} className="block text-xs text-ink-muted">
+                          <span key={z.name} className="block text-meta text-ink-muted">
                             {z.name} · {fmtDauer(z.minuten)} ·{' '}
                             {z.art === 'keine'
                               ? 'keine Buchung gefunden'
@@ -1339,7 +1339,7 @@ export default function WorkSheetsListView() {
             {suchend && (
               <div className="mb-3">
                 {trefferGelten ? (
-                  <p className="text-sm text-ink">
+                  <p className="text-fliess text-ink">
                     <strong>{sichtbar.length}</strong>{' '}
                     {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
                     {treffer && treffer.length >= PRUEF_GRENZE && (
@@ -1361,11 +1361,11 @@ export default function WorkSheetsListView() {
                   </p>
                 ) : (
                   <>
-                    <p className="text-sm text-ink-muted">
+                    <p className="text-meta text-ink-muted">
                       {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
                       nicht geladen.
                     </p>
-                    <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
+                    <p className="mt-1 text-meta text-ink-muted">{suchHinweis(absicht)}</p>
                     <div className="mt-2">
                       <Button
                         variant="secondary"
@@ -1522,7 +1522,7 @@ export default function WorkSheetsListView() {
                   <h3 className="text-base font-semibold text-ink-deep">
                     Schein stornieren — {stornoFuer.customerName}, {datumAT(stornoFuer.datum)}
                   </h3>
-                  <p className="text-sm text-ink-muted">
+                  <p className="text-meta text-ink-muted">
                     Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet.
                     Für eine Korrektur danach „Ersatzschein anlegen“ — er übernimmt Baustelle, Tag und Material.
                   </p>
@@ -1726,25 +1726,25 @@ function ScheinEinzelheiten({
       <div className="space-y-1">
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
-          <span className="text-sm text-ink-muted">
+          <span className="text-meta text-ink-muted">
             {datumAT(s.datum)} · {s.abrechnung}
           </span>
         </p>
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Baustelle <span className="nr">{s.projectNumber}</span> ·{' '}
           {fmtDauer(s.zeiten.reduce((n, z) => n + z.minuten, 0))}
         </p>
         {s.unterschriften?.kunde && (
-          <p className="text-sm text-ink-muted">Unterschrieben von {s.unterschriften.kunde.name}</p>
+          <p className="text-meta text-ink-muted">Unterschrieben von {s.unterschriften.kunde.name}</p>
         )}
         {s.status === 'Verworfen' && (
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Verworfen{s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
             weiterbearbeitet, nicht gelöscht.
           </p>
         )}
         {s.stornoGrund && (
-          <p className="text-sm text-danger">
+          <p className="text-meta text-danger">
             Storno: {s.stornoGrund}
             {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
           </p>
@@ -1756,7 +1756,7 @@ function ScheinEinzelheiten({
           <h3 className="section-label">Zeiten</h3>
           <ul className="mt-1 space-y-1">
             {s.zeiten.map((z, i) => (
-              <li key={i} className="text-sm text-ink">
+              <li key={i} className="text-fliess text-ink">
                 {/* OHNE UHRZEIT KEIN PLATZHALTER (14.11.2026): Zeiten dürfen als
                     reine Dauer erfasst sein; „Max · — · 08:30 Std“ las sich wie
                     ein Anzeigefehler. Dann steht nur die Dauer hinter dem Namen. */}
@@ -1774,7 +1774,7 @@ function ScheinEinzelheiten({
           <h3 className="section-label">Material</h3>
           <ul className="mt-1 space-y-1">
             {s.material.map((m, i) => (
-              <li key={i} className="text-sm text-ink">
+              <li key={i} className="text-fliess text-ink">
                 {m.menge}× {m.name}
               </li>
             ))}
@@ -1784,7 +1784,7 @@ function ScheinEinzelheiten({
       {s.notizen && (
         <div>
           <h3 className="section-label">Anmerkungen</h3>
-          <p className="mt-1 text-sm text-ink">{s.notizen}</p>
+          <p className="mt-1 text-fliess text-ink">{s.notizen}</p>
         </div>
       )}
       {/*
@@ -1809,9 +1809,9 @@ function ScheinEinzelheiten({
         {s.inhaltHash ? (
           <p className="mt-1 break-all font-mono text-xs text-ink-muted">{s.inhaltHash}</p>
         ) : s.status === 'Entwurf' ? (
-          <p className="mt-1 text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
+          <p className="mt-1 text-meta text-ink-muted">Entsteht mit der Unterschrift.</p>
         ) : (
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-meta text-ink-muted">
             Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
             <Button variant="ghost" onClick={onNeuLaden}>
               Neu laden

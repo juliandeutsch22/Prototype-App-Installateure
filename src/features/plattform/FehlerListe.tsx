@@ -30,7 +30,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
           <ul className="divide-y divide-line">
             {gemeldet.map((m) => (
               <li key={m.id} className="space-y-1 py-3 first:pt-0 last:pb-0">
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   {m.createdAt ? `gemeldet am ${zeit(m.createdAt)}` : ''}
                   {m.betrieb && ` · ${m.betrieb}`}
                   {m.wer && ` · ${m.wer}`}
@@ -38,7 +38,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
                 </p>
                 <p className="whitespace-pre-wrap break-words text-ink">{m.beschreibung}</p>
                 {m.nachricht && (
-                  <p className="break-words text-xs text-ink-muted">
+                  <p className="break-words text-meta text-ink-muted">
                     Kurz davor: <span className="font-mono">{m.nachricht}</span>
                   </p>
                 )}
@@ -57,13 +57,13 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
               <li key={g.schluessel} className="space-y-1 py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {g.art === 'absturz' ? <Warnung>Absturz</Warnung> : <Marke>Fehler</Marke>}
-                  <span className="text-sm text-ink-muted">
+                  <span className="text-meta text-ink-muted">
                     {g.anzahl}× · zuletzt am {zeit(g.zuletzt)}
                     {g.betroffen > 1 && ` · ${g.betroffen} betroffen`}
                   </span>
                 </div>
-                <p className="break-words font-mono text-sm text-ink">{g.nachricht}</p>
-                <p className="break-words text-xs text-ink-muted">
+                <p className="break-words font-mono text-fliess text-ink">{g.nachricht}</p>
+                <p className="break-words text-meta text-ink-muted">
                   {g.ansichten.join(', ')}
                   {g.fassungen.length > 0 && ` · Fassung ${g.fassungen.join(', ')}`}
                 </p>

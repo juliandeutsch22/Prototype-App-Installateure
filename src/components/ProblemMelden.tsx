@@ -75,7 +75,7 @@ export default function ProblemMelden({
         >
           <div className="space-y-3">
             <div className="flex flex-col gap-1">
-              <label htmlFor="problem-text" className="text-sm font-normal text-ink">
+              <label htmlFor="problem-text" className="text-meta font-normal text-ink">
                 Was ist passiert?
               </label>
               <textarea
@@ -88,7 +88,7 @@ export default function ProblemMelden({
                 onChange={(e) => setText(e.target.value)}
               />
             </div>
-            <p className="text-xs text-ink-muted">
+            <p className="text-meta text-ink-muted">
               Bitte keine Gesundheitsdaten und keine Daten von Kunden eintragen.
             </p>
           </div>

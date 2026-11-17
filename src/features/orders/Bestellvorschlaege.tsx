@@ -147,7 +147,7 @@ export default function Bestellvorschlaege({
                             }
                           />
                           <span>{v.name}</span>
-                          {v.artikelnummer && <span className="text-sm text-ink-muted">Art.-Nr. {v.artikelnummer}</span>}
+                          {v.artikelnummer && <span className="text-meta text-ink-muted">Art.-Nr. {v.artikelnummer}</span>}
                         </label>
                       }
                       subtitle={
@@ -176,7 +176,7 @@ export default function Bestellvorschlaege({
             <Button onClick={() => void uebernehmen()} loading={laeuft} disabled={gewaehlt.length === 0 || !!falsch}>
               {gewaehlt.length === 1 ? '1 Vorschlag übernehmen' : `${gewaehlt.length} Vorschläge übernehmen`}
             </Button>
-            <span className="text-sm text-ink-muted">
+            <span className="text-meta text-ink-muted">
               {fmtMenge(gewaehlt.length)} von {fmtMenge(liste.length)} gewählt — auf die Einkaufsliste, nicht bestellt.
             </span>
           </div>

@@ -18,7 +18,7 @@
   .mengen-schritt:hover:not(:disabled) { background: var(--surface-2); }
   .mengen-schritt:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
   .mengen-schritt:disabled { color: var(--text-placeholder); cursor: not-allowed; }
-  .mengen-feld { width: 3.5rem; min-width: 0; padding: 0; border: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: center; font-family: var(--schrift-mono); font-size: 1rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .mengen-feld { width: 3.5rem; min-width: 0; padding: 0; border: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: center; font-family: var(--schrift-mono); font-size: var(--groesse-feld); font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   /* Den Fokus des Felds zeigt der Rahmen der Gruppe (E75); die Trennstriche bleiben grau. */
   .mengen-feld:focus { outline: none; border-color: var(--border); box-shadow: none; }
   .mengen-wahl:focus-within { border-color: var(--brand-fixed); }
@@ -41,7 +41,7 @@
     Tipp nicht springt.
   */
   .korb-menge { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
-  .korb-menge > p { font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
+  .korb-menge > p { font-size: var(--groesse-inhalt); line-height: 1.25rem; color: var(--text-muted); }
   .korb-kreis { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--accent-deep); cursor: pointer; }
   .korb-kreis::before { content: ''; position: absolute; inset: 0.375rem; border: 1px solid currentColor; border-radius: 999px; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
   .korb-kreis > * { position: relative; }
@@ -140,15 +140,15 @@
   /* ── Seitenfenster: Angaben, Kennzahlen, Aktionen ─────────────────────── */
   .angaben { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin: 0; }
   .angabe { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.75rem; align-items: baseline; }
-  .angabe dt { font-size: 0.8125rem; color: var(--text-muted); }
+  .angabe dt { font-size: var(--groesse-begleit); color: var(--text-muted); }
   .angabe dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 
   /* Kennzahlen eines Artikels: zwei Spalten, auch im schmalen Fenster. */
   .fenster-zahlen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.25rem; margin: 0; padding: 1rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
   .fenster-zahl { min-width: 0; }
-  .fenster-zahl dt { font-size: 0.8125rem; color: var(--text-muted); }
+  .fenster-zahl dt { font-size: var(--groesse-begleit); color: var(--text-muted); }
   .fenster-zahl dd { margin: 0.125rem 0 0; font-size: 1.375rem; line-height: 1.75rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
-  .fenster-zahl-zusatz { margin-top: 0.125rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .fenster-zahl-zusatz { margin-top: 0.125rem; font-size: var(--groesse-begleit); color: var(--text-muted); }
 
   /*
     DIE AKTIONEN EINES SEITENFENSTERS KOMPAKT RECHTS (V10, 13.11.2026): vorher
@@ -171,9 +171,9 @@
 
   /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
   .wahl-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-top: 0; border-radius: var(--radius); overflow: hidden; }
-  .wahl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font-size: 0.9375rem; cursor: pointer; }
+  .wahl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); color: var(--text); text-align: left; font-size: var(--groesse-inhalt); cursor: pointer; }
   .wahl-zeile:hover { background: var(--hover-flaeche); color: var(--accent-deep); }
-  .wahl-zeile-info { flex: none; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .wahl-zeile-info { flex: none; font-size: var(--groesse-begleit); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   /* ── Material anfordern: der Warenkorb im Daumenbereich ───────────────── */
   /*
@@ -220,8 +220,8 @@
   .korb-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; flex: 1; }
   .korb-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); text-decoration: none; }
   .korb-titel:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
-  .korb-info { font-size: 0.8125rem; }
-  .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }
+  .korb-info { font-size: var(--groesse-begleit); }
+  .korb-fehler { flex-basis: 100%; font-size: var(--groesse-begleit); color: var(--danger); }
   /*
     Am Handy „Leeren“ in seiner Breite, das Abschicken nimmt den Rest (E72,
     09.11.2026): mit einem Drittel zu zwei Dritteln brachen beide Knöpfe bei
@@ -260,13 +260,13 @@
   .zaehl-zeile:hover { background: var(--hover-flaeche); }
   .zaehl-zeile[data-gezaehlt] { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); border-radius: var(--radius-sm); }
   .zaehl-zeile-text { display: flex; flex: 1; flex-direction: column; gap: 0.125rem; min-width: 0; }
-  .zaehl-zeile-name { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: anywhere; }
-  .zaehl-zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .zaehl-zeile-fehler { font-size: 0.8125rem; line-height: 1.125rem; color: var(--danger); }
+  .zaehl-zeile-name { font-size: var(--groesse-inhalt); line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: anywhere; }
+  .zaehl-zeile-meta { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); }
+  .zaehl-zeile-fehler { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--danger); }
   .zaehl-zeile-menge { display: inline-flex; flex: none; align-items: center; gap: 0.5rem; }
-  .zaehl-zeile-feld { width: 5.5rem; height: 3rem; padding: 0 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); text-align: right; font-family: var(--schrift-mono); font-size: 1rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .zaehl-zeile-feld { width: 5.5rem; height: 3rem; padding: 0 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); text-align: right; font-family: var(--schrift-mono); font-size: var(--groesse-feld); font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .zaehl-zeile-feld:focus { outline: none; border-color: var(--brand-fixed); }
   .zaehl-zeile-feld[aria-invalid='true'] { border-color: var(--danger); }
-  .zaehl-zeile-einheit { min-width: 2rem; font-size: 0.875rem; color: var(--text-muted); }
+  .zaehl-zeile-einheit { min-width: 2rem; font-size: var(--groesse-begleit); color: var(--text-muted); }
   @media (max-width: 759px) { .zaehl-zeile-feld { width: 4.5rem; } }
 }

@@ -518,7 +518,7 @@ export default function BaustellenakteView() {
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
         <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} baustelleId={darfAendern ? b.id : undefined} />}
-      {user && <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+      {user && <Suspense fallback={<p className="text-fliess text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
       <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
@@ -719,7 +719,7 @@ export default function BaustellenakteView() {
         ...(scheineKarte ? [{ id: 'dokumente', titel: 'Scheine', sprungziele: ['b-scheine'], inhalt: scheineKarte }] : []),
         { id: 'planung', titel: 'Termine', sprungziele: ['b-termine', 'b-einsaetze', 'b-team'], inhalt:
           termineKarte ? <div className="akten-spalte">{termineKarte}<EinsaetzeListe lage={einsatzLage} namen={(uid) => namen.get(uid)} grenze={EINSAETZE_JE_RICHTUNG} /></div>
-            : <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card> },
+            : <Card title="Termine"><p className="text-meta text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card> },
         { id: 'plaene', titel: 'Pläne', sprungziele: ['b-plaene'], inhalt: plaene },
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Baustelle bearbeiten"
@@ -987,7 +987,7 @@ function StammdatenFormular({
         </Gruppe>
         {!entwurf.customerId && entwurf.customerName && (
           <div className="akte-hinweis">
-            <p className="text-sm text-warning">
+            <p className="text-meta text-warning">
               Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
               wählen — oder in der{' '}
               <Link to="/customers" className="link-hinweis-weiter">Kundenverwaltung</Link>{' '}
@@ -1103,7 +1103,7 @@ function StammdatenFormular({
         )}
       </div>
 
-      {fehler && <p role="alert" className="mt-4 text-sm text-danger">{fehler}</p>}
+      {fehler && <p role="alert" className="mt-4 text-meta text-danger">{fehler}</p>}
 
       {/*
         DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste, wie

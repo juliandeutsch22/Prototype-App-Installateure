@@ -39,9 +39,9 @@ export default function AppErneuern() {
 
   return (
     <div className="mt-2 rounded-sm border border-line bg-surface-2 p-3">
-      <p className="text-sm text-ink">
+      <p className="text-fliess text-ink">
         Die App wird neu geladen.
-        <span className="mt-1 block text-xs text-ink-muted">
+        <span className="mt-1 block text-meta text-ink-muted">
           Nicht gespeicherte Eingaben gehen verloren. Anmeldung und gespeicherte Daten bleiben.
         </span>
       </p>

@@ -59,7 +59,7 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
   if (!bearbeiten) {
     return (
       <Card title="Belege per Mail" hint="Antwortadresse und Vorlagen pflegt die Geschäftsführung.">
-        <p className="text-sm text-ink">
+        <p className="text-fliess text-ink">
           {company?.belegMailAntwort
             ? `Antworten und die Kopie gehen an ${company.belegMailAntwort}.`
             : 'Noch keine Antwortadresse eingetragen — bis dahin gehen keine Belege per Mail hinaus.'}
@@ -130,7 +130,7 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
               aria-invalid={!!adressGrund || undefined}
               aria-describedby="beleg-mail-antwort-hinweis"
             />
-            <p id="beleg-mail-antwort-hinweis" className={`mt-1 text-sm ${adressGrund ? 'text-danger' : 'text-ink-muted'}`}>
+            <p id="beleg-mail-antwort-hinweis" className={`mt-1 text-meta ${adressGrund ? 'text-danger' : 'text-ink-muted'}`}>
               {adressGrund ?? 'Ohne Antwortadresse geht kein Beleg per Mail hinaus — sonst landeten Antworten der Kunden bei Senklot.'}
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
               />
             </fieldset>
           ))}
-          {vorlagenGrund && <p role="alert" className="text-sm text-danger">{vorlagenGrund}</p>}
+          {vorlagenGrund && <p role="alert" className="text-meta text-danger">{vorlagenGrund}</p>}
         </div>
       </Card>
       {fehler && <ErrorState message={fehler} />}

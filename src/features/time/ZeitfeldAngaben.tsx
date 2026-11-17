@@ -22,7 +22,7 @@ export default function ZeitfeldAngaben({
   const fehlt = offen?.fehlt ?? [];
   if (zeilen.length === 0 && nachpflege.length === 0 && fehlt.length === 0) return null;
   return (
-    <span className="zeitfeld-angaben mt-1 block text-sm text-ink-muted">
+    <span className="zeitfeld-angaben mt-1 block text-meta text-ink-muted">
       {zeilen.length > 0 && <span className="block">{zeilen.join(' · ')}</span>}
       {nachpflege.length > 0 && (
         <span className="block"><Warnung>Nachpflege: {nachpflege.join(', ')}</Warnung></span>

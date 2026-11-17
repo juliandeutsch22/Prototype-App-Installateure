@@ -110,7 +110,7 @@ export default function ZweiFaktorKarte({
         <WiederherstellungsCodes codes={codes} onWeiter={() => setCodes(null)} />
       ) : stand.eingerichtet ? (
         <div className="space-y-3">
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             Eingerichtet. Noch {stand.codesOffen} von 10 Wiederherstellungscodes offen.
             {stand.codeZuletztVerwendet && ` Zuletzt einen verwendet am ${datum(stand.codeZuletztVerwendet)}.`}
           </p>
@@ -136,7 +136,7 @@ export default function ZweiFaktorKarte({
             )}
           </div>
           {stand.pflicht && (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {stand.plattform
                 ? 'Für das Plattformkonto ist sie Pflicht.'
                 : 'Im Betrieb ist sie für Leitung und Buchhaltung Pflicht — ausschalten geht deshalb nicht.'}
@@ -153,7 +153,7 @@ export default function ZweiFaktorKarte({
         />
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-ink-muted">Noch nicht eingerichtet.</p>
+          <p className="text-meta text-ink-muted">Noch nicht eingerichtet.</p>
           <Button variant="secondary" onClick={() => setEinrichten(true)}>
             Einrichten
           </Button>
@@ -178,10 +178,10 @@ export default function ZweiFaktorKarte({
             }}
           />
           {!stand.eingerichtet && !stand.betriebPflicht && (
-            <p className="text-sm text-ink-muted">Zuerst für dich selbst einrichten, dann lässt sich die Pflicht einschalten.</p>
+            <p className="text-meta text-ink-muted">Zuerst für dich selbst einrichten, dann lässt sich die Pflicht einschalten.</p>
           )}
           {stand.betriebPflicht && (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {ohne && ohne.length > 0
                 ? `Noch ohne zweiten Faktor: ${namenListe(ohne)}. Die App führt sie beim nächsten Öffnen zur Einrichtung; bis dahin sehen sie keine Daten.`
                 : ohne
@@ -210,7 +210,7 @@ export default function ZweiFaktorKarte({
           }}
         >
           {ohne && ohne.length > 0 && (
-            <ul className="space-y-1 text-sm text-ink">
+            <ul className="space-y-1 text-fliess text-ink">
               {ohne.map((p) => <li key={p.uid}>{p.name} · {p.rolle}</li>)}
             </ul>
           )}

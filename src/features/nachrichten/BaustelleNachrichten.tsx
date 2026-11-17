@@ -46,7 +46,7 @@ export default function BaustelleNachrichten({ projektId }: { projektId: string 
     <Card title="Nachrichten" id="b-nachrichten">
       {fehler ? <TeilFehler was="die Nachrichten" /> : (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-ink-muted">
+          <p className="text-fliess text-ink-muted">
             {stand === null ? 'Wird geladen …'
               : stand.anzahl === 0 ? 'Noch keine Nachricht zu dieser Baustelle.'
               : <>

@@ -57,19 +57,19 @@ export default function NotzugangZweiFaktor({ kennung, name }: { kennung: string
   }
 
   if (ladeFehler) return <ErrorState message={ladeFehler} />;
-  if (!konten) return <p className="text-sm text-ink-muted">Konten werden geladen …</p>;
+  if (!konten) return <p className="text-fliess text-ink-muted">Konten werden geladen …</p>;
 
   return (
     <div className="plattform-wiederherstellung space-y-3">
-      <p className="text-sm font-normal text-ink">Zwei-Faktor-Anmeldung zurücksetzen (Leitung oder Buchhaltung) — {name}</p>
+      <p className="text-meta font-normal text-ink">Zwei-Faktor-Anmeldung zurücksetzen (Leitung oder Buchhaltung) — {name}</p>
       {erledigt !== null && (
-        <p className="text-sm text-ink" role="status">
+        <p className="text-fliess text-ink" role="status">
           Zurückgesetzt{erledigt ? ` für ${erledigt}` : ''}. Alle Sitzungen sind beendet, der Vorgang steht im
           Protokoll des Betriebs.
         </p>
       )}
       {konten.length === 0 ? (
-        <p className="text-sm text-ink-muted">Kein aktives Konto der Leitung oder Buchhaltung dieses Betriebs hat einen zweiten Faktor.</p>
+        <p className="text-fliess text-ink-muted">Kein aktives Konto der Leitung oder Buchhaltung dieses Betriebs hat einen zweiten Faktor.</p>
       ) : (
         <form onSubmit={zuruecksetzen} className="space-y-3">
           <SelectField id="nz-konto" label="Konto" value={uid} onChange={(e) => setUid(e.target.value)} required pflicht>

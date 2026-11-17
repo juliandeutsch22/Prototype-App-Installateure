@@ -80,7 +80,7 @@ export default function AnforderungFenster({
         </p>
         <dl className="divide-y divide-line">
           {angaben.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-4 py-2 text-sm">
+            <div key={k} className="flex justify-between gap-4 py-2 text-fliess">
               <dt className="text-ink-muted">{k}</dt>
               <dd className="text-right">{v}</dd>
             </div>

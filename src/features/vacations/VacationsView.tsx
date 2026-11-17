@@ -632,14 +632,14 @@ export default function VacationsView() {
     */
     if (!a) {
       return (
-        <span className="mt-1 block text-xs text-ink-muted">
+        <span className="mt-1 block text-meta text-ink-muted">
           <Wert bereit={false} muster="Resturlaub: 00 Tage — nach Genehmigung 00 Tage">{null}</Wert>
         </span>
       );
     }
     if (a === 'fehler') {
       return (
-        <span className="mt-1 block text-xs text-ink-muted">Resturlaub konnte nicht ermittelt werden.</span>
+        <span className="mt-1 block text-meta text-ink-muted">Resturlaub konnte nicht ermittelt werden.</span>
       );
     }
     const verteilen = (x: { von: string; bis?: string | null; tage: number }) =>
@@ -652,7 +652,7 @@ export default function VacationsView() {
       .reduce((s, p) => s + p.tage, 0);
     const danach = rest - imJahr;
     return (
-      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-normal text-warning' : 'text-ink-muted'}`}>
+      <span className={`mt-1 block text-meta ${danach < 0 ? 'font-normal text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
         {danach < 0 ? ' (reicht nicht)' : ''}
       </span>
@@ -1020,18 +1020,18 @@ export default function VacationsView() {
   /** Das Zeitguthaben beim ZA-Antrag — Zahl und Einschätzung. */
   function guthabenZeile() {
     if (guthaben === 'laedt' || guthaben === null) {
-      return <span className="block text-xs">Zeitguthaben wird geladen …</span>;
+      return <span className="block text-meta">Zeitguthaben wird geladen …</span>;
     }
     if (guthaben === 'fehler') {
       return (
-        <span className="block text-xs text-warning">
+        <span className="block text-meta text-warning">
           Das Zeitguthaben konnte nicht geladen werden — der Antrag geht trotzdem.
         </span>
       );
     }
     if (!guthaben.hasConfig) {
       return (
-        <span className="block text-xs">
+        <span className="block text-meta">
           Für dieses Konto wird kein Zeitguthaben geführt — der Genehmigende entscheidet ohne Zahl.
         </span>
       );
@@ -1040,7 +1040,7 @@ export default function VacationsView() {
     const danach = jetzt - zaMin;
     if (jetzt > 0 && danach >= 0) {
       return (
-        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+        <span className="mt-1 flex flex-wrap items-center gap-2 text-meta">
           <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
           <span>
             {vorzeichen(jetzt)} Std, danach {vorzeichen(danach)} Std
@@ -1049,7 +1049,7 @@ export default function VacationsView() {
       );
     }
     return (
-      <span className="mt-1 block text-xs font-normal text-warning" role="alert">
+      <span className="mt-1 block text-meta font-normal text-warning" role="alert">
         {jetzt <= 0
           ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std) — der Zeitausgleich ginge ins Minus.`
           : `Das Zeitguthaben (${vorzeichen(jetzt)} Std) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
@@ -1116,7 +1116,7 @@ export default function VacationsView() {
                     */}
                     {istZa(v) && saldoMin !== null && (
                       <span
-                        className={`mt-1 block text-xs ${
+                        className={`mt-1 block text-meta ${
                           saldoMin - kostet < 0 ? 'font-normal text-warning' : 'text-ink-muted'
                         }`}
                       >
@@ -1130,7 +1130,7 @@ export default function VacationsView() {
                       bekäme dieselbe Woche genehmigt.
                     */}
                     {parallel.length > 0 && (
-                      <span className="mt-1 block text-xs text-warning">
+                      <span className="mt-1 block text-meta text-warning">
                         Gleichzeitig im Urlaub: {parallel.join(', ')}
                       </span>
                     )}
@@ -1138,7 +1138,7 @@ export default function VacationsView() {
                 }
               >
                 {v.userId === user?.uid && andereEntscheiden ? (
-                  <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
+                  <span className="text-meta text-ink-muted">Entscheidet jemand anderer</span>
                 ) : (
                   <>
                     <Button
@@ -1278,7 +1278,7 @@ export default function VacationsView() {
                   <>
                     <span className="block">{zeitraum(v)} · {umfang(v)}</span>
                     {(v.aenderungen?.length ?? 0) > 0 && (
-                      <span className="mt-1 block text-xs text-ink-muted">gekürzt</span>
+                      <span className="mt-1 block text-meta text-ink-muted">gekürzt</span>
                     )}
                   </>
                 }
@@ -1348,7 +1348,7 @@ export default function VacationsView() {
               role="tab"
               aria-selected={reiter === r.key}
               onClick={() => setReiter(r.key)}
-              className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
+              className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-fliess transition sm:px-4 ${
                 reiter === r.key
                   ? 'border-b-brand-fixed font-semibold text-ink-deep'
                   : 'border-b-transparent font-normal text-ink-muted hover:text-ink'
@@ -1575,7 +1575,7 @@ export default function VacationsView() {
           */}
           {art === 'Urlaub' && (
           // Die Rechnung als ruhiger Text unter den Feldern, kein getönter Kasten.
-          <div className="flex flex-wrap items-center text-sm text-ink-muted [&_strong]:text-ink-deep">
+          <div className="flex flex-wrap items-center text-meta text-ink-muted [&_strong]:text-ink-deep">
             {zeitraumGewaehlt && ueberschneidung && (
               <div className="basis-full">
                 <Hinweiszeile stufe="warn">
@@ -1616,7 +1616,7 @@ export default function VacationsView() {
               für diese Person gar nicht gilt. Ebenso „danach bleiben …“.
             */}
             {!ohneKonto && (
-            <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
+            <span className={`block basis-full text-meta ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
               {/*
                 DIE URLAUBSTAGE ALS MASSLINIE (Planlinie B2) statt des Satzes
                 „genehmigt: 5 von 25 Tagen“: genehmigt gegen den Anspruch, mit
@@ -1680,7 +1680,7 @@ export default function VacationsView() {
           )}
 
           {art === 'Zeitausgleich' && (
-            <div className="flex flex-wrap items-center text-sm text-ink-muted [&_strong]:text-ink-deep">
+            <div className="flex flex-wrap items-center text-meta text-ink-muted [&_strong]:text-ink-deep">
               <strong>{fmtDauer(zaMin)}</strong>
               <span className="ml-1">
                 Zeitausgleich
@@ -1707,7 +1707,7 @@ export default function VacationsView() {
 
           {/* Ein Satz; die ganze Erklärung hinter dem „i“ (Regel 9). */}
           {art === 'Krank' && (
-            <p className="flex flex-wrap items-center gap-x-1 text-sm text-ink-muted">
+            <p className="flex flex-wrap items-center gap-x-1 text-meta text-ink-muted">
               Keine Genehmigung nötig — die Tage stehen sofort im Zeitkonto.
               <InfoHint about="Krankmeldung">
                 Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank“ im
@@ -1766,19 +1766,19 @@ export default function VacationsView() {
                       keine Auskunft, sondern eine Kränkung.
                     */}
                     {v.betriebsurlaubId && v.status === 'Genehmigt' ? (
-                      <span className="mt-1 block text-xs text-ink-muted">
+                      <span className="mt-1 block text-meta text-ink-muted">
                         Betriebsurlaub{v.entschiedenVonName ? ` · eingetragen von ${v.entschiedenVonName}` : ''}
                       </span>
                     ) : (
                       v.entschiedenVonName && (
-                        <span className="mt-1 block text-xs text-ink-muted">
+                        <span className="mt-1 block text-meta text-ink-muted">
                           {v.status} von {v.entschiedenVonName}
                           {v.grund ? ` — ${v.grund}` : ''}
                         </span>
                       )
                     )}
                     {v.status === 'Beantragt' && (
-                      <span className="mt-1 block text-xs text-ink-muted">
+                      <span className="mt-1 block text-meta text-ink-muted">
                         Noch nicht entschieden — bitte noch nichts fix buchen.
                       </span>
                     )}

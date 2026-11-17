@@ -230,7 +230,7 @@ export default function FreistellungFormular({
             />
           )}
           {pflege && (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               In diesem Arbeitsjahr noch {fmtDauer(pflege.ersteWocheRestMin)} Pflegefreistellung
               {pflege.zusatzwocheMoeglich ? `, dazu ${fmtDauer(pflege.zusatzwocheRestMin)} der zweiten Woche` : ''}.
             </p>
@@ -239,7 +239,7 @@ export default function FreistellungFormular({
       )}
 
       {art === 'unbezahlt' && (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+        <div className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
           <span>
             {kalendertage(von, bis)} Kalendertage
             {kalendertage(von, bis) >= (company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE)
@@ -258,7 +258,7 @@ export default function FreistellungFormular({
       )}
 
       {art !== 'unbezahlt' && profil && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           {arbeitstage} {arbeitstage === 1 ? 'Arbeitstag' : 'Arbeitstage'} in diesem Zeitraum
           {gewaehlt?.tage != null && arbeitstage > gewaehlt.tage ? ` — vorgesehen ${gewaehlt.tage === 1 ? 'ist 1' : `sind ${gewaehlt.tage}`}` : ''}.
         </p>
@@ -276,12 +276,12 @@ export default function FreistellungFormular({
         <div className="flex flex-wrap items-center gap-2">
           <NachweisWahl id="fnachweis" onWahl={setDatei} />
           {datei ? (
-            <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
+            <span className="flex flex-wrap items-center gap-2 text-fliess text-ink">
               {datei.name}
               <LoeschenKnopf label={`${datei.name} entfernen`} onClick={() => setDatei(null)} />
             </span>
           ) : (
-            <span className="text-sm text-ink-muted">freiwillig</span>
+            <span className="text-meta text-ink-muted">freiwillig</span>
           )}
           <InfoHint about="Nachweis">
             Etwa Heiratsurkunde, Parte oder Geburtsurkunde. Wer bestätigt, sieht ihn und hakt „Nachweis geprüft“

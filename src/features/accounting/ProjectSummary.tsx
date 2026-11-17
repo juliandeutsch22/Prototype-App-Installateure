@@ -227,7 +227,7 @@ export default function ProjectSummary({
                         (Launch-Check 25.09.2026: „187" statt „PR-187"). Auch
                         solange die Baustelle noch lädt, siehe
                         `angezeigteNummer`. */}
-                    <span className="block text-sm text-ink-muted">{nummer}</span>
+                    <span className="block text-meta text-ink-muted">{nummer}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     {/*
@@ -236,7 +236,7 @@ export default function ProjectSummary({
                       die ganze Baustelle, also zwei Zahlen, die nichts
                       miteinander zu tun haben.
                     */}
-                    <span className="text-sm text-ink">{dauer(r.fachMin)}</span>
+                    <span className="text-fliess text-ink">{dauer(r.fachMin)}</span>
                     {/*
                       NUR DIE AUSNAHME BEKOMMT EINE PILLE. „Über Budget" ist
                       eine — Helferstunden sind es nicht, sie sind auf vielen
@@ -247,12 +247,12 @@ export default function ProjectSummary({
                     */}
                     {r.budget?.over && <Warnung stufe="dringend">über Budget</Warnung>}
                     {r.helperMin > 0 && (
-                      <span className="text-sm text-ink-muted">
+                      <span className="text-meta text-ink-muted">
                         +{dauer(r.helperMin)} Helfer
                       </span>
                     )}
                     {r.lehrlingMin > 0 && (
-                      <span className="text-sm text-ink-muted">
+                      <span className="text-meta text-ink-muted">
                         +{dauer(r.lehrlingMin)} nicht im Budget
                       </span>
                     )}
@@ -276,7 +276,7 @@ export default function ProjectSummary({
                 */}
                 {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
                   <>
-                    <p className="mt-2 text-xs text-ink-muted">
+                    <p className="mt-2 text-meta text-ink-muted">
                       <span>{dauer(r.fachMin)}</span> in {label} · gesamt{' '}
                       <span className="font-semibold">{dauer(r.gesamtFachMin)}</span> von{' '}
                       <span>{budgetDauer(r.project?.estimatedHours ?? 0)}</span>
@@ -304,7 +304,7 @@ export default function ProjectSummary({
                     </div>
                   </>
                 ) : (
-                  <p className="mt-1 text-xs text-ink-muted">
+                  <p className="mt-1 text-meta text-ink-muted">
                     {r.gesamtFachMin === null
                       ? 'Die Gesamtstunden der Baustelle konnten nicht geladen werden — ohne sie gibt es keinen Budgetstand.'
                       : 'Kein Stundenbudget hinterlegt.'}
@@ -319,7 +319,7 @@ export default function ProjectSummary({
                     {people.map((p) => (
                       <span
                         key={p.name}
-                        className="inline-flex items-baseline gap-1.5 text-xs"
+                        className="inline-flex items-baseline gap-1.5 text-meta"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
                         <span className="text-ink-muted">{dauer(p.fachMin)}</span>
@@ -334,7 +334,7 @@ export default function ProjectSummary({
                   </div>
 
                   <div className="mt-3 overflow-x-auto">
-                    <table className="w-full min-w-[28rem] text-sm">
+                    <table className="w-full min-w-[28rem] text-fliess">
                       <thead>
                         <tr className="border-b border-line text-left text-ink-muted">
                           <th className="py-1 pr-3 font-normal">Tag</th>
@@ -382,7 +382,7 @@ export default function ProjectSummary({
                     </table>
                   </div>
 
-                  <p className="mt-3 border-t border-line pt-2 text-sm">
+                  <p className="mt-3 border-t border-line pt-2 text-fliess">
                     {/*
                       Auch hier stand die Monatszahl direkt neben dem Budget.
                       Das Budget gehört zur ganzen Baustelle; es gehört

@@ -160,8 +160,8 @@ export default function AufteilenDialog({
 
         {a.plan.length > 1 && (
           <div>
-            <p className="text-sm text-ink-muted">So wird gebucht:</p>
-            <ul className="mt-1 divide-y divide-line border-y border-line text-sm">
+            <p className="text-meta text-ink-muted">So wird gebucht:</p>
+            <ul className="mt-1 divide-y divide-line border-y border-line text-fliess">
               {a.plan.map((p, i) => (
                 <li key={i} className="flex justify-between gap-3 py-1.5">
                   <span className="nr">{p.projectNumber || 'ohne Baustelle'}</span>

@@ -188,7 +188,7 @@
   [data-wischbar][data-wischt] > * { transition: none; }
   .wisch-aktionen { position: absolute; top: 0; bottom: 0; left: 100%; display: flex; }
   /* Keine rote Fläche (V10: Warnung und Fehler färben keine Flächen) — die Farbe trägt das Wort. */
-  .wisch-knopf { display: flex; align-items: center; justify-content: center; min-width: 5.5rem; padding: 0 1rem; border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); cursor: pointer; }
+  .wisch-knopf { display: flex; align-items: center; justify-content: center; min-width: 5.5rem; padding: 0 1rem; border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--ink-deep); font-size: var(--groesse-inhalt); font-weight: var(--gewicht-titel); cursor: pointer; }
   .wisch-knopf-gefahr { color: var(--danger); }
 }
 

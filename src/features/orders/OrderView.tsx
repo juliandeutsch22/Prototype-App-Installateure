@@ -553,7 +553,7 @@ export default function OrderView() {
               }}
             />
             {vorbelegt && projectNumber && (
-              <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
+              <p className="mt-1 text-meta text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
             )}
           </div>
         </div>
@@ -577,7 +577,7 @@ export default function OrderView() {
               ausgegrautes Kaestchen ohne Begruendung ist eine Sackgasse,
               und die Zeile verschwindet, sobald eine Baustelle steht. */}
           {!projectNumber && (
-            <p className="basis-full text-sm text-ink-muted">
+            <p className="basis-full text-meta text-ink-muted">
               Dafür zuerst die Baustelle wählen.
             </p>
           )}
@@ -601,7 +601,7 @@ export default function OrderView() {
       {/* Nur ohne Suche: wer tippt, sucht etwas Bestimmtes, und die Zeilen schöben die Treffer nach unten. */}
       {meineGeladen && search.trim() === '' && zuletztZeilen.length > 0 && (
         <Card title="Zuletzt angefordert" buendig>
-          <p className="blatt-einzug pb-2 text-sm text-ink-muted">
+          <p className="blatt-einzug pb-2 text-meta text-ink-muted">
             {zuletzt.fuerBaustelle ? 'Für diese Baustelle' : `In den letzten ${ZULETZT_TAGE / 7} Wochen`}
           </p>
           <List>
@@ -881,7 +881,7 @@ export default function OrderView() {
               </ListRow>
             ))}
           </List>
-          <p className="mt-4 text-sm text-ink-muted">
+          <p className="mt-4 text-meta text-ink-muted">
             Erst mit „Anforderung abschicken“ geht sie an die Verwaltung.
           </p>
         </Card>
@@ -1233,7 +1233,7 @@ function KorbMenge({
         {/* Der Kreis der Zeile (E74, V10): er legt genau eines hinein. */}
         <InDieListe label={`${material.name} in die Liste`} onClick={() => onMenge(material, 1)} />
         {insgesamt > 0 && (
-          <p className="text-sm text-ink-muted" aria-live="polite">{`${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
+          <p className="text-meta text-ink-muted" aria-live="polite">{`${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
         )}
       </div>
     );
@@ -1282,7 +1282,7 @@ function KorbMenge({
         </button>
       </div>
       {insgesamt > imKorb && (
-        <p className="text-sm text-ink-muted" aria-live="polite">{`insgesamt ${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
+        <p className="text-meta text-ink-muted" aria-live="polite">{`insgesamt ${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
       )}
     </div>
   );

@@ -60,14 +60,14 @@ export default function UidVies({
   if (!uid) {
     return kunde.kundenart === 'unternehmen' ? (
       <Rahmen>
-        <p className="text-sm text-ink-muted">Mit einer gespeicherten UID-Nummer lässt sie sich hier bei VIES prüfen.</p>
+        <p className="text-meta text-ink-muted">Mit einer gespeicherten UID-Nummer lässt sie sich hier bei VIES prüfen.</p>
       </Rahmen>
     ) : null;
   }
   if (uidFehler(uid)) {
     return (
       <Rahmen>
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Die gespeicherte UID-Nummer hat nicht die richtige Form: {uidFehler(uid)} Geprüft wird sie, sobald sie stimmt.
         </p>
       </Rahmen>
@@ -76,7 +76,7 @@ export default function UidVies({
   if (!beiViesPruefbar(uid)) {
     return (
       <Rahmen>
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Eine UID-Nummer außerhalb der EU lässt sich bei VIES nicht prüfen.
         </p>
       </Rahmen>
@@ -90,9 +90,9 @@ export default function UidVies({
   return (
     <Rahmen>
       {liste === null ? (
-        <p className="text-sm text-ink-muted">Lädt …</p>
+        <p className="text-fliess text-ink-muted">Lädt …</p>
       ) : letzte ? (
-        <div className="space-y-0.5 text-sm">
+        <div className="space-y-0.5 text-fliess">
           <p className="flex flex-wrap items-center gap-x-2">
             <Zustand stand={letzte.gueltig ? 'erledigt' : 'schlecht'}>{letzte.gueltig ? 'gültig' : 'nicht gültig'}</Zustand>
             <span className="text-ink">laut VIES am {zeitpunkt(letzte.abgefragtAm)}</span>
@@ -110,15 +110,15 @@ export default function UidVies({
           )}
         </div>
       ) : (
-        <p className="text-sm text-ink-muted">Noch nicht bei VIES geprüft.</p>
+        <p className="text-meta text-ink-muted">Noch nicht bei VIES geprüft.</p>
       )}
 
-      {hinweis && <p className="text-sm text-ink-muted">{hinweis}</p>}
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      {hinweis && <p className="text-meta text-ink-muted">{hinweis}</p>}
+      {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
       {darfPruefen && (
         uidGeaendert ? (
-          <p className="text-sm text-ink-muted">Erst speichern — geprüft wird die gespeicherte UID-Nummer.</p>
+          <p className="text-meta text-ink-muted">Erst speichern — geprüft wird die gespeicherte UID-Nummer.</p>
         ) : (
           <Button variant="secondary" loading={laeuft} onClick={() => void pruefen()}>
             {letzte ? 'Erneut bei VIES prüfen' : 'Bei VIES prüfen'}
@@ -127,7 +127,7 @@ export default function UidVies({
       )}
 
       {fruehere.length > 0 && (
-        <details className="text-sm">
+        <details className="text-fliess">
           <summary className="weiteres-kopf">Frühere Abfragen ({fruehere.length})</summary>
           <ul className="mt-1 space-y-0.5 text-ink-muted">
             {fruehere.map((p) => (

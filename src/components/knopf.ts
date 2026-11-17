@@ -86,14 +86,15 @@ export const variants: Record<Variant, string> = {
  * `normal`: 48 px hoch (`min-h-touch`), Schrift 15 px — die Grösse der
  * Linie für jeden Knopf, am Telefon wie am Schreibtisch.
  *
- * `klein`: 36 px hoch, kleinere Rundung. Seit der Designlinie „Fassung 3"
+ * `klein`: 36 px hoch, kleinere Rundung, Schrift 13 px (Begleitung, E97: vorher
+ * 14 — eine Zwischenstufe, die es in der Skala nicht mehr gibt). Seit der Designlinie „Fassung 3"
  * (docs/design/linie.md § 7, Regel 8) ist das die eine erlaubte Ausnahme
  * von 44 px — für Nebenknöpfe IN einer Zeile („Hinzufügen" neben einem
  * Artikel) und Reihen von Schaltern, nie für die Hauptaktion einer Seite.
  */
 export const groessen: Record<Groesse, string> = {
   normal: 'min-h-touch rounded px-4 py-2 text-fliess',
-  klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-sm',
+  klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-meta',
 };
 
 /** Die Klassen eines Knopfs dieser Variante und Größe. */

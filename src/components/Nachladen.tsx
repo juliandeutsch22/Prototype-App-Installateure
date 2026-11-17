@@ -68,7 +68,7 @@ export default function Nachladen({
       <Button variant="secondary" loading={laeuft} onClick={onMehr}>
         Weitere {einheit} laden
       </Button>
-      <span className="text-sm text-ink-muted">
+      <span className="text-meta text-ink-muted">
         {gesamt !== undefined ? `${geladen} von ${gesamt} geladen.` : `${geladen} von möglicherweise mehr geladen.`}
         {sucheImBrowser ? ` ${sucheSatz ?? 'Die Suche geht nur über diese.'}` : ''}
       </span>

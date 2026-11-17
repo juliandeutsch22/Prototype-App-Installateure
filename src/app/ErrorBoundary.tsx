@@ -118,7 +118,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (laedtNeu) {
       return (
         <div className="flex min-h-full items-center justify-center p-6">
-          <p className="text-sm text-ink-muted">Neue Fassung wird geladen …</p>
+          <p className="text-fliess text-ink-muted">Neue Fassung wird geladen …</p>
         </div>
       );
     }
@@ -127,7 +127,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       <div className="flex min-h-full items-center justify-center p-6">
         <div className="panel w-full max-w-md p-6">
           <h1 className="text-xl font-semibold text-ink">Da ist etwas schiefgelaufen</h1>
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mt-2 text-meta text-ink-muted">
             {istNachladeFehler(error)
               ? 'Die Ansicht konnte nicht nachgeladen werden — meist, weil es gerade eine neue Fassung gibt. „Zur Startseite“ holt sie. Deine gespeicherten Daten sind davon nicht betroffen.'
               : 'Die Ansicht konnte nicht geladen werden. Deine gespeicherten Daten sind davon nicht betroffen.'}
@@ -157,7 +157,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 <button
                   type="button"
                   onClick={oeffnen}
-                  className="link mt-3 min-h-touch text-sm"
+                  className="link mt-3 min-h-touch text-fliess"
                 >
                   Problem melden
                 </button>

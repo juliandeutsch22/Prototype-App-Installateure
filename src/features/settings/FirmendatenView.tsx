@@ -157,7 +157,7 @@ export default function FirmendatenView() {
       <div className="space-y-6">
         <PageHeader ort="Einstellungen" title="Firmendaten" subtitle="Was auf den Belegen steht" />
         <Card>
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Diese Angaben pflegt die Geschäftsführung. Sie stehen auf Rechnungen und Belegen und
             gelten für den ganzen Betrieb.
           </p>
@@ -353,7 +353,7 @@ export default function FirmendatenView() {
             <div className="sm:col-span-2">
               <AdressteileFelder idPrefix="fd-adresse" wert={adresse} onChange={setAdresse} />
               {adresseZeile(adresse) && (
-                <p className="mt-1 text-sm text-ink-muted">Im Briefkopf: {adresseZeile(adresse)}</p>
+                <p className="mt-1 text-meta text-ink-muted">Im Briefkopf: {adresseZeile(adresse)}</p>
               )}
             </div>
             <InputField
@@ -386,7 +386,7 @@ export default function FirmendatenView() {
               <div className="inline-flex items-center justify-center rounded border border-line bg-white p-2">
                 <img src={logoUrl} alt="Logo des Betriebs" className="h-12 w-auto" />
               </div>
-              <p className="text-xs text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Rund <span>{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
               </p>
               <Button type="button" variant="danger" onClick={() => setLogoUrl('')}>
@@ -394,7 +394,7 @@ export default function FirmendatenView() {
               </Button>
             </div>
           ) : (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {logoUrl
                 ? 'Hier steht eine Adresse statt eines Bildes. Für die Oberfläche reicht das, für das PDF nicht — dort muss das Bild selbst hinterlegt sein. Bitte die Datei auswählen.'
                 : 'Noch kein Logo hinterlegt. Die Belege tragen dann nur den Firmennamen.'}
@@ -465,13 +465,13 @@ export default function FirmendatenView() {
                 onChange={(wert) => setEingetragen(wert)}
               />
               {gesperrt && (
-                <p id="fd-firmenbuch-grund" className="mt-1 text-sm text-ink-muted">
+                <p id="fd-firmenbuch-grund" className="mt-1 text-meta text-ink-muted">
                   Eine {gesperrt} ist immer im Firmenbuch eingetragen. Firmenbuchnummer und -gericht gehören
                   auf jede Rechnung.
                 </p>
               )}
               {gruendung && (
-                <p id="fd-firmenbuch-grund" className="mt-1 text-sm text-ink-muted">
+                <p id="fd-firmenbuch-grund" className="mt-1 text-meta text-ink-muted">
                   Firmenbuchnummer nachtragen, sobald eingetragen.
                 </p>
               )}
@@ -631,13 +631,13 @@ export default function FirmendatenView() {
                     über Lesbarkeit.
                   */}
                   <span
-                    className="inline-flex min-h-touch items-center rounded px-4 py-2 text-sm font-semibold"
+                    className="inline-flex min-h-touch items-center rounded px-4 py-2 text-fliess font-semibold"
                     style={{ backgroundColor: hintergrund || undefined, color: schrift || undefined }}
                   >
                     {bezeichnung}
                   </span>
                   <span
-                    className={`text-sm ${u.reicht ? 'text-ink-muted' : 'text-warning'}`}
+                    className={`text-meta ${u.reicht ? 'text-ink-muted' : 'text-warning'}`}
                     role={u.reicht ? undefined : 'alert'}
                   >
                     {u.text}
@@ -682,7 +682,7 @@ export default function FirmendatenView() {
           await speichern(true);
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(plzFrage ?? []).map((f) => <li key={f}>{f}</li>)}
         </ul>
       </ConfirmDialog>
