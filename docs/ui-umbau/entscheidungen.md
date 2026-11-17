@@ -4182,3 +4182,10 @@ rund 60 freie Zwischenwerte.
   die Fläche stand im ganzen Fenster noch auf „Start“. Die Endlage wird
   jetzt nach dem Wechsel gemessen; kein Abbild und keine Zwischenstellung
   prüft der Weg wie vorher.
+- **Nebenbei: Speicherleiste mit reduzierter Bewegung (B4).** Die Prüfung
+  zählte die Lage der Leiste erst nach „Gespeichert“ und dem Haken; in der
+  CI (WebKit) war die Lesezeit von 1,2 s da schon vorbei, und es gab nur
+  das Bild „weg“. Jetzt zählt die Seite selbst ab dem Moment, in dem die
+  Leiste ruht. Gegenprobe: mit 1,3 s Verzug vor der Zählung ist die alte
+  Fassung rot wie in der CI, die neue grün; eine Leiste mit Weg (300 ms)
+  macht die neue rot. An der App ändert sich nichts.

@@ -421,6 +421,26 @@ test.describe('B4 Speichern bestätigt', () => {
         if (t0 < 0 || performance.now() - t0 < 200) requestAnimationFrame(bild); else w.hakenFertig = true;
       };
       requestAnimationFrame(bild);
+      /*
+        Die Lage der Leiste wird ab dem Moment gezählt, in dem sie ruht — in
+        der Seite, nicht vom Test aus. Vorher begann die Zählung erst nach
+        „Gespeichert“ und dem Haken; auf einem langsamen Läufer (WebKit, CI)
+        lag dann schon die Lesezeit von 1,2 s dahinter, und es gab nur noch
+        das Bild „weg“.
+      */
+      const w2 = window as unknown as { lagen: string[]; lagenFertig: boolean };
+      w2.lagen = []; w2.lagenFertig = false;
+      let r0 = -1;
+      const lage = () => {
+        const el = [...document.querySelectorAll<HTMLElement>('.aktionsleiste')].pop();
+        if (el?.hasAttribute('data-ruht') && r0 < 0) r0 = performance.now();
+        if (el && r0 >= 0) {
+          const t = getComputedStyle(el).transform;
+          w2.lagen.push(`${getComputedStyle(el).opacity} ${t === 'none' ? 0 : Math.round(new DOMMatrixReadOnly(t).m42)}`);
+        }
+        if (r0 < 0 || performance.now() - r0 < 1700) requestAnimationFrame(lage); else w2.lagenFertig = true;
+      };
+      requestAnimationFrame(lage);
     });
     await page.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Gespeichert' })).toBeVisible();
@@ -450,16 +470,8 @@ test.describe('B4 Speichern bestätigt', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const { leiste, haken } = await aendernUndSpeichern(page);
     expect(Math.max(...haken)).toBe(0);
-    const lagen = await leiste.evaluate((el) => new Promise<string[]>((fertig) => {
-      const werte: string[] = [];
-      const t0 = performance.now();
-      const bild = () => {
-        const t = getComputedStyle(el).transform;
-        werte.push(`${getComputedStyle(el).opacity} ${t === 'none' ? 0 : Math.round(new DOMMatrixReadOnly(t).m42)}`);
-        if (performance.now() - t0 < 1700) requestAnimationFrame(bild); else fertig(werte);
-      };
-      requestAnimationFrame(bild);
-    }));
+    await page.waitForFunction(() => (window as unknown as { lagenFertig: boolean }).lagenFertig);
+    const lagen = await page.evaluate(() => (window as unknown as { lagen: string[] }).lagen);
     // Nur zwei Bilder: stehend, dann weg — kein Zwischenstand.
     expect([...new Set(lagen)].length).toBe(2);
     expect(lagen[0]).toBe('1 0');
