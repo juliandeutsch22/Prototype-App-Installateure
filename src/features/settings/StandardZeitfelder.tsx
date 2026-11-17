@@ -5,8 +5,8 @@ import { STANDARD_ZEITFELDER, standardZeitfeldAktiv, type StandardZeitfelder as 
 import { grundAus } from '@/lib/fehlerGrund';
 import Card from '@/components/Card';
 import Speicherleiste from '@/components/Speicherleiste';
-import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
+import Schalter from '@/components/Schalter';
 
 export default function StandardZeitfelder({ darf }: { darf: boolean }) {
   const { user, company, reloadCompany } = useAuth();
@@ -30,8 +30,8 @@ export default function StandardZeitfelder({ darf }: { darf: boolean }) {
     <p className="text-sm text-ink-muted">Datum, Person, Stand, Arbeitszeit und Pause bleiben als Grundlage aktiv.</p>
     <div className="divide-y divide-line">
       {STANDARD_ZEITFELDER.map(({ id, name, grund }) => <div key={id} className="py-3">
-        <CheckboxField id={`standard-${id}`} label={name} checked={standardZeitfeldAktiv(felder, id)} disabled={!darf || speichert}
-          onChange={(e) => setFelder((alt) => ({ ...alt, [id]: e.target.checked }))} />
+        <Schalter id={`standard-${id}`} label={name} an={standardZeitfeldAktiv(felder, id)} gesperrt={!darf || speichert}
+          onChange={(wert) => setFelder((alt) => ({ ...alt, [id]: wert }))} />
         <p className="mt-1 text-sm text-ink-muted">{grund}</p>
       </div>)}
     </div>

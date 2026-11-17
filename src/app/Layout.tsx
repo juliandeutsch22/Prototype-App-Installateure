@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigationType } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
@@ -128,6 +128,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [kopfTitel, setKopfTitel] = useState<string | null>(null);
   const [darstellung, setDarstellung] = useDarstellung();
   const ort = useLocation();
+  const navigationsArt = useNavigationType();
   // Suche und Filter einer Liste gehen mit dem Rückweg aus ihrer Akte mit (L8).
   useEffect(() => listenAdresseMerken(ort.pathname, ort.search), [ort.pathname, ort.search]);
   const posten = useOffenePosten();
@@ -166,8 +167,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   /*
-    BEWEGUNGEN, DIE ERKLÄREN (B2, B3, B5, B8, B10, B11): je ein Beobachter
-    über der Inhaltsspalte, für jede Seite an einer Stelle, wie der Takt
+    BEWEGUNGEN, DIE ERKLÄREN (B2, B3, B5, B8, B10, B11, E95): je ein Beobachter
+    über der Inhaltsspalte und der unteren Leiste, für jede Seite an einer Stelle, wie der Takt
     (`lib/bewegungenHalten.ts`). Nach dem ersten Bild nachgeladen — vorher
     braucht sie niemand, und vor dem ersten Bild zählt jedes KB (L11).
   */
@@ -179,7 +180,10 @@ export default function Layout({ children }: { children: ReactNode }) {
     void import('@/lib/bewegungenHalten')
       .then((m) => {
         if (vorbei) return;
-        abmelden = m.bewegungenHalten(main);
+        const inhaltAb = m.bewegungenHalten(main);
+        // E95: die Auswahlfläche der unteren Leiste gleitet zum neuen Punkt.
+        const leisteAb = m.untenGleitenHalten(reiterleiste.current);
+        abmelden = () => { inhaltAb(); leisteAb(); };
         // Für Prüfungen: ab hier wirken die Beobachter.
         main.setAttribute('data-bewegungen', '');
       })
@@ -352,7 +356,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       Seite statt am Daumen. Sie blendet deshalb erst danach ein
       (`data-seitenwechsel`, lot-bewegung.css).
     */
-    const richtung = seitenRichtung(von, ort.pathname);
+    const richtung = seitenRichtung(von, ort.pathname, navigationsArt === 'REPLACE');
+    // Dieselbe Seite, nur auf ihren Reiter weitergeleitet: die Bewegung des ersten Schritts läuft weiter.
+    if (richtung === 'weiter') return;
     if (richtung === 'quer') {
       el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
       return;
@@ -365,7 +371,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     const fertig = () => el.removeAttribute('data-seitenwechsel');
     fahrt.onfinish = fertig;
     fahrt.oncancel = fertig;
-  }, [ort.pathname]);
+  }, [ort.pathname, navigationsArt]);
 
   /*
     DIE ANSICHTEN DER EIGENEN NAVIGATION VORAB HOLEN (Analyse 10.10.2026):

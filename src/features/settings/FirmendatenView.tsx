@@ -11,7 +11,7 @@ import LotZeichnung from '@/components/LotZeichnung';
 import { einrichtungsstand } from './EinstellungenUebersicht';
 import PageHeader from '@/components/PageHeader';
 import { Hinweislinie } from '@/components/Planlinie';
-import { InputField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { firmenbuchEingetragen, firmenbuchGesperrt, firmenbuchPflichtform, imFirmenbuch, inGruendung } from '@/lib/firmenbuch';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -24,6 +24,7 @@ import Speicherleiste from '@/components/Speicherleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
+import Schalter from '@/components/Schalter';
 
 /**
  * Die Stammdaten des Betriebs — was auf Rechnung, Stundenbericht und
@@ -455,13 +456,13 @@ export default function FirmendatenView() {
               {uidFalsch && <Hinweislinie stufe="fehl" id="fd-uid-fehler">{uidFalsch}</Hinweislinie>}
             </div>
             <div className="sm:col-span-2">
-              <CheckboxField
+              <Schalter
                 id="fd-firmenbuch"
                 label="Im Firmenbuch eingetragen"
-                checked={gesperrt ? true : eingetragen}
-                disabled={!!gesperrt}
+                an={gesperrt ? true : eingetragen}
+                gesperrt={!!gesperrt}
                 aria-describedby={gesperrt || gruendung ? 'fd-firmenbuch-grund' : undefined}
-                onChange={(e) => setEingetragen(e.target.checked)}
+                onChange={(wert) => setEingetragen(wert)}
               />
               {gesperrt && (
                 <p id="fd-firmenbuch-grund" className="mt-1 text-sm text-ink-muted">

@@ -20,8 +20,8 @@ function geraet(dunkel: boolean) {
 
 function vorab(wahl: string | null, dunkel = false) {
   document.documentElement.removeAttribute('data-theme');
-  document.documentElement.setAttribute('style', 'background-color:#f4f0e8');
-  document.head.innerHTML = '<meta name="theme-color" content="#f4f0e8">';
+  document.documentElement.setAttribute('style', 'background-color:#ffffff');
+  document.head.innerHTML = '<meta name="theme-color" content="#ffffff">';
   if (wahl) localStorage.setItem('senklot.darstellung', wahl);
   else localStorage.removeItem('senklot.darstellung');
   geraet(dunkel);
@@ -37,7 +37,7 @@ beforeEach(() => localStorage.clear());
 
 describe('Darstellung vor dem ersten Bild', () => {
   it('„Dunkel“: dunkler Grund, Statusbalken dunkel', () => {
-    expect(vorab('dunkel')).toEqual({ theme: 'dark', grund: 'rgb(33, 31, 28)', leiste: '#211f1c' });
+    expect(vorab('dunkel')).toEqual({ theme: 'dark', grund: 'rgb(12, 28, 32)', leiste: '#0c1c20' });
   });
 
   it('„System“ folgt dem Gerät', () => {
@@ -45,8 +45,8 @@ describe('Darstellung vor dem ersten Bild', () => {
     expect(vorab('system', false).theme).toBeNull();
   });
 
-  it('bleibt gleich: „Hell“ und ohne Wahl das helle Papier', () => {
-    expect(vorab(null, true)).toEqual({ theme: null, grund: 'rgb(244, 240, 232)', leiste: '#f4f0e8' });
+  it('bleibt gleich: „Hell“ und ohne Wahl der helle Grund', () => {
+    expect(vorab(null, true)).toEqual({ theme: null, grund: 'rgb(255, 255, 255)', leiste: '#ffffff' });
     expect(vorab('hell', true).theme).toBeNull();
   });
 

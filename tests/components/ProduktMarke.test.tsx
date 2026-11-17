@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /*
-  V10 (13.11.2026): die Marke ist zweifarbig (Zeichen Terrakotta, Schriftzug
+  V10 (13.11.2026): die Marke ist zweifarbig (Zeichen im Akzent, Schriftzug
   Tinte) und lässt sich nicht mehr per Filter weiß färben. Im dunklen Satz
   zeigt sie deshalb die Fassung für dunkle Flächen — auch, wenn der Satz
   während der Arbeit wechselt. Gegenprobe: mit der alten Marke (immer

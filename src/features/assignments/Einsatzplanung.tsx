@@ -440,11 +440,11 @@ export default function Einsatzplanung() {
               steht statt der Zahl „frei unklar“ — mit „Erneut versuchen“ oben.
             </p>
             <p className="mt-2">
-              Ein Einsatz steht als helles Feld mit einer Terrakotta-Markierung links; der
-              ausgewählte ist ganz in Terrakotta. Ein Termin hat nur die feine Linie. Eingeteilt,
+              Ein Einsatz steht als helles Feld mit einer Petrol-Markierung links; der
+              ausgewählte ist ganz in Petrol. Ein Termin hat nur die feine Linie. Eingeteilt,
               aber abwesend steht mit dem Warnzeichen und „fehlt“ im Einsatz. Wer abwesend ist
               (Urlaub, Krankenstand, Berufsschule, Zeitausgleich) oder wann der Betrieb zu hat,
-              steht schraffiert. Heute hat einen dunklen Kopf über einer warm getönten Spalte.
+              steht schraffiert. Heute hat einen dunklen Kopf über einer leicht getönten Spalte.
             </p>
             <p className="mt-2">
               Umplanen: Am Schreibtisch ziehst du einen Einsatz auf eine andere Person oder einen

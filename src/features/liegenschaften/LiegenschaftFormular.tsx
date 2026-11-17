@@ -3,11 +3,12 @@ import { liegenschaftAendern, liegenschaftAnlegen, type LiegenschaftEingabe } fr
 import type { Liegenschaft } from '@/types';
 import AdressteileFelder from '@/components/AdressteileFelder';
 import Button from '@/components/Button';
-import { CheckboxField, InputField, TextareaField } from '@/components/Field';
+import { InputField, TextareaField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { liegenschaftFehler } from './liegenschaftText';
+import Schalter from '@/components/Schalter';
 
 /**
  * EINE LIEGENSCHAFT ANLEGEN ODER ÄNDERN (M02c): Bezeichnung (Pflicht), die
@@ -74,8 +75,8 @@ export default function LiegenschaftFormular({
         placeholder="z. B. Schlüssel beim Hausbesorger, Heizraum im Keller"
         value={f.notiz} onChange={(e) => setF({ ...f, notiz: e.target.value })} />
       {liegenschaft && (
-        <CheckboxField id="liegenschaft-aktiv" label="Aktiv (inaktive stehen nicht mehr zur Wahl)"
-          checked={f.aktiv} onChange={(e) => setF({ ...f, aktiv: e.target.checked })} />
+        <Schalter id="liegenschaft-aktiv" label="Aktiv (inaktive stehen nicht mehr zur Wahl)"
+          an={f.aktiv} onChange={(wert) => setF({ ...f, aktiv: wert })} />
       )}
       {fehler && <ErrorState message={fehler} />}
       {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}

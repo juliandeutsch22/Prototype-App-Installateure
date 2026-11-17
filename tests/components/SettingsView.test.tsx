@@ -269,7 +269,7 @@ describe('Anzahlungen und Teilrechnungen', () => {
     */
     // Seit Paket 2 (03.10.2026) unter „Rechnungsvorgaben“, nicht mehr unter „Sätze“.
     zeige('rechnung');
-    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(false);
+    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen')).not.toBeChecked();
   });
 
   it('gehen mit dem Speichern der Rechnungsvorgaben mit — ohne die Kostensätze', async () => {
@@ -289,7 +289,7 @@ describe('Anzahlungen und Teilrechnungen', () => {
   it('zeigen den eingeschalteten Zustand des Betriebs', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', rechnungsarten: true };
     zeige('rechnung');
-    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(true);
+    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen')).toBeChecked();
   });
 
   it('sagen, dass bestehende Belege unberührt bleiben', async () => {
@@ -307,7 +307,7 @@ describe('Wochenplan für alle', () => {
   it('ist ab Werk aus', async () => {
     // Wer wo arbeitet, zeigt ein Betrieb seinen Leuten nur, wenn er es will.
     zeige('personal');
-    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(false);
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)')).not.toBeChecked();
   });
 
   it('schreibt nur den Schalter — nicht nebenbei die Sätze', async () => {
@@ -330,7 +330,7 @@ describe('Wochenplan für alle', () => {
     const nutzer = userEvent.setup();
     zeige('personal');
     const schalter = feld('Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“');
-    expect(schalter.checked).toBe(false);
+    expect(schalter).not.toBeChecked();
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
@@ -347,7 +347,7 @@ describe('Wochenplan für alle', () => {
     const nutzer = userEvent.setup();
     zeige('personal');
     const schalter = feld('Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“');
-    expect(schalter.checked).toBe(false);
+    expect(schalter).not.toBeChecked();
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
@@ -359,7 +359,7 @@ describe('Wochenplan für alle', () => {
     const nutzer = userEvent.setup();
     zeige('personal');
     const schalter = feld('Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren');
-    expect(schalter.checked).toBe(false);
+    expect(schalter).not.toBeChecked();
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
@@ -370,13 +370,13 @@ describe('Wochenplan für alle', () => {
   it('zeigt ein eingeschaltetes Kalender-Abo des Betriebs', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', kalenderAboErlaubt: true };
     zeige('personal');
-    expect(feld('Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren').checked).toBe(true);
+    expect(feld('Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren')).toBeChecked();
   });
 
   it('zeigt den eingeschalteten Zustand des Betriebs', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', wochenplanFuerAlle: true };
     zeige('personal');
-    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)')).toBeChecked();
   });
 });
 
@@ -406,7 +406,7 @@ describe('24. und 31. Dezember', () => {
 
   it('ist ab Werk an — der Kollektivvertrag gilt, bis der Betrieb etwas anderes sagt', () => {
     zeige('personal');
-    expect(feld(HALB).checked).toBe(true);
+    expect(feld(HALB)).toBeChecked();
   });
 
   it('schreibt beim Abschalten nur diesen Schalter', async () => {
@@ -423,7 +423,7 @@ describe('24. und 31. Dezember', () => {
   it('Gegenprobe: zeigt einen abgeschalteten Betrieb als abgeschaltet', () => {
     firma = { id: 'perl', name: 'Perl Installationen', dezemberHalbtage: false };
     zeige('personal');
-    expect(feld(HALB).checked).toBe(false);
+    expect(feld(HALB)).not.toBeChecked();
   });
 });
 
@@ -658,7 +658,8 @@ describe('P10: speichert eine Karte, bleiben Eingaben der anderen stehen', () =>
     const nacht = feld('Nachtzeit von');
     fireEvent.change(nacht, { target: { value: '21:00' } });
     const arzt = feld('Für Arztbesuche eine Bestätigung verlangen');
-    const arztVorher = arzt.checked;
+    // Ein Schalter (E95): der Zustand steht in aria-checked.
+    const arztVorher = arzt.getAttribute('aria-checked') === 'true';
     await nutzer.click(arzt);
 
     const dezember = feld('24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)');
@@ -667,19 +668,19 @@ describe('P10: speichert eine Karte, bleiben Eingaben der anderen stehen', () =>
     await waitFor(() => expect(reloadCompany).toHaveBeenCalled());
     rerender(<ToastProvider><SettingsView teil="personal" /></ToastProvider>);
 
-    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)')).toBeChecked();
     expect(feld('Nachtzeit von').value).toBe('21:00');
-    expect(feld('Für Arztbesuche eine Bestätigung verlangen').checked).toBe(!arztVorher);
+    expect(feld('Für Arztbesuche eine Bestätigung verlangen').getAttribute('aria-checked') === 'true').toBe(!arztVorher);
     // Bleibt gleich: die gespeicherte Karte zeigt den gespeicherten Stand.
-    expect(feld('24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)').checked).toBe(false);
+    expect(feld('24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)')).not.toBeChecked();
     reloadCompany.mockReset();
   });
 
   it('bleibt gleich: ändert sich der Betrieb selbst (anderswo gespeichert), übernimmt die Karte den neuen Stand', async () => {
     const { rerender } = zeige('personal');
-    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(false);
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)')).not.toBeChecked();
     firma = { ...firma, wochenplanFuerAlle: true };
     rerender(<ToastProvider><SettingsView teil="personal" /></ToastProvider>);
-    await waitFor(() => expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true));
+    await waitFor(() => expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)')).toBeChecked());
   });
 });

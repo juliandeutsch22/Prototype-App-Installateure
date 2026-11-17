@@ -15,13 +15,16 @@ import { initialsOf } from './initials';
  * Blick sieht, wer angemeldet ist.
  *
  * Der schmale weisse Ring setzt ihn von der dunklen Leiste ab, auf der er
- * meistens steht — dieselbe Trennung wie zwischen Navigation und Inhalt.
+ * meistens steht — dieselbe Trennung wie zwischen Navigation und Inhalt. *
+ * GANZ RUND (E95, 17.11.2026): wie jedes Kürzel einer Person in der App
+ * (Nachrichten, Neue Nachricht); das gerundete Viereck las sich daneben wie
+ * ein Knopf oder eine Baustelle, die in den Nachrichten eckig steht.
  */
 export default function Avatar({ name, size = 34 }: { name: string; size?: number }) {
   return (
     <span
       aria-hidden
-      className="lot-avatar flex shrink-0 select-none items-center justify-center rounded font-semibold"
+      className="lot-avatar flex shrink-0 select-none items-center justify-center rounded-full font-semibold"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initialsOf(name)}

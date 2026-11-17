@@ -6,13 +6,13 @@ import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import DokumentAblage, { type AblageDatei } from '@/components/DokumentAblage';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
 import { klingtNachBueroBeleg } from './bueroBeleg';
+import Schalter from '@/components/Schalter';
 
 /**
  * Pläne und Dokumente in der Baustellenakte — hochladen, ansehen, löschen.
@@ -273,11 +273,11 @@ export default function BaustellenPlaene({
           onClose={schliessen}
           zusatz={
             <div>
-              <CheckboxField
+              <Schalter
                 id="plaene-nur-buero"
                 label="Nur fürs Büro"
-                checked={nurBuero}
-                onChange={(e) => setNurBuero(e.target.checked)}
+                an={nurBuero}
+                onChange={(wert) => setNurBuero(wert)}
               />
               <p className="text-xs text-ink-muted">
                 {nurBuero
@@ -304,11 +304,11 @@ export default function BaustellenPlaene({
           void hochladen(rueckfrageNurBuero);
         }}
       >
-        <CheckboxField
+        <Schalter
           id="plaene-rueckfrage-nur-buero"
           label="Nur fürs Büro"
-          checked={rueckfrageNurBuero}
-          onChange={(e) => setRueckfrageNurBuero(e.target.checked)}
+          an={rueckfrageNurBuero}
+          onChange={(wert) => setRueckfrageNurBuero(wert)}
         />
       </ConfirmDialog>
 

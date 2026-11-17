@@ -24,7 +24,7 @@ import AktenKopf from '@/components/AktenKopf';
 import { canAccess } from '@/app/navigation';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import InfoHint from '@/components/InfoHint';
-import { InputField, SelectField, FormGrid, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
@@ -52,6 +52,7 @@ import { leseZahl } from '@/lib/zahl';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
+import Schalter from '@/components/Schalter';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -783,11 +784,11 @@ function StammdatenFormular({
       {mitKundenFreigabe(entwurf.role) && (
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <CheckboxField
+            <Schalter
               id="b-kunden"
               label="Darf Kunden anlegen und ändern"
-              checked={entwurf.kundenPflegen}
-              onChange={(e) => setze('kundenPflegen', e.target.checked)}
+              an={entwurf.kundenPflegen}
+              onChange={(wert) => setze('kundenPflegen', wert)}
             />
           </div>
           <InfoHint about="Kunden anlegen und ändern">
@@ -803,29 +804,29 @@ function StammdatenFormular({
       */}
       {mitLagerFreigaben(entwurf.role) && (
         <div className="space-y-1">
-          <CheckboxField
+          <Schalter
             id="b-katalog"
             label="Darf den Katalog einspielen (DATANORM, mit Einkaufspreisen)"
-            checked={entwurf.katalogEinspielen}
-            onChange={(e) => setze('katalogEinspielen', e.target.checked)}
+            an={entwurf.katalogEinspielen}
+            onChange={(wert) => setze('katalogEinspielen', wert)}
           />
-          <CheckboxField
+          <Schalter
             id="b-einkauf"
             label="Darf Einkaufspreise sehen"
-            checked={entwurf.einkaufSehen || entwurf.katalogEinspielen}
-            disabled={entwurf.katalogEinspielen}
-            onChange={(e) => setze('einkaufSehen', e.target.checked)}
+            an={entwurf.einkaufSehen || entwurf.katalogEinspielen}
+            gesperrt={entwurf.katalogEinspielen}
+            onChange={(wert) => setze('einkaufSehen', wert)}
           />
         </div>
       )}
       {mitRechnungsFreigabe(entwurf.role) && (
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <CheckboxField
+            <Schalter
               id="b-rechnungen"
               label="Darf die Rechnungen seiner Baustellen lesen"
-              checked={entwurf.rechnungenLesen}
-              onChange={(e) => setze('rechnungenLesen', e.target.checked)}
+              an={entwurf.rechnungenLesen}
+              onChange={(wert) => setze('rechnungenLesen', wert)}
             />
           </div>
           <InfoHint about="Rechnungen lesen">
@@ -850,11 +851,11 @@ function StammdatenFormular({
         {mitZeitkontoWahl(entwurf.role) && (
           <div className="flex flex-wrap items-center gap-2">
             <div className="min-w-0 flex-1">
-              <CheckboxField
+              <Schalter
                 id="b-zeitkonto"
                 label="Führt ein Zeitkonto"
-                checked={entwurf.fuehrtZeitkonto}
-                onChange={(e) => setze('fuehrtZeitkonto', e.target.checked)}
+                an={entwurf.fuehrtZeitkonto}
+                onChange={(wert) => setze('fuehrtZeitkonto', wert)}
               />
             </div>
             <InfoHint about="Zeitkonto der Geschäftsführung">

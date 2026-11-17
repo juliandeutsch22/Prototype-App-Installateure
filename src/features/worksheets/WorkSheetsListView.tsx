@@ -65,6 +65,7 @@ import { AUFFAELLIG_AB_TAGEN, auffaelligBis, unverrechnetZeilen } from './unverr
 import { SCHEIN_STAND } from './scheinStand';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { PdfKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 const STAND = SCHEIN_STAND;
 
@@ -1384,15 +1385,14 @@ export default function WorkSheetsListView() {
               der Schalter nennt deshalb ihre Zahl — in jeder Ansicht.
             */}
             {verworfene > 0 && (
-              <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
-                <input
-                  type="checkbox"
-                  checked={zeigeVerworfene}
-                  onChange={(e) => setZeigeVerworfene(e.target.checked)}
-                  className="checkbox"
+              <div className="mb-3">
+                <Schalter
+                  id="scheine-verworfene"
+                  label={<>{verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen</>}
+                  an={zeigeVerworfene}
+                  onChange={setZeigeVerworfene}
                 />
-                {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
-              </label>
+              </div>
             )}
           </div>
         )}

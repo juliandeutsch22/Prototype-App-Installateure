@@ -21,22 +21,23 @@ function satz(name: 'hell' | 'dunkel'): string {
 const wert = (s: string, name: string) => new RegExp(`\\n\\s*${name}:\\s*([^;]+);`).exec(s)?.[1]?.replace(' !important', '').trim();
 
 describe('V10 Grundwerte', () => {
-  it('Terrakotta ist die Primärfarbe, warmes Papier der Grund, das Blatt hell', () => {
+  // E95 (17.11.2026): wieder das Petrol der Linie „Lot“ — Formen, Radien und Schriften bleiben V10.
+  it('Petrol ist die Primärfarbe, der Zeichentisch weiß, die Navigation tiefes Petrol', () => {
     const hell = satz('hell');
-    expect(wert(hell, '--brand')).toBe('#a85439');
-    expect(wert(hell, '--bg')).toBe('#f4f0e8');
-    expect(wert(hell, '--surface')).toBe('#fffdf8');
-    expect(wert(hell, '--navi')).toBe('#292722');
-    expect(wert(hell, '--auswahl')).toBe('#f3e4d8');
+    expect(wert(hell, '--brand')).toBe('#0f4552');
+    expect(wert(hell, '--bg')).toBe('#ffffff');
+    expect(wert(hell, '--surface')).toBe('#ffffff');
+    expect(wert(hell, '--navi')).toBe('#0f3c47');
+    expect(wert(hell, '--auswahl')).toBe('#e4eef0');
   });
 
-  it('der dunkle Satz ist eine eigene warme Welt, keine Inversion — die Primäraktion bleibt Terrakotta', () => {
+  it('der dunkle Satz ist eine eigene Petrol-Welt, keine Inversion — die Primäraktion bleibt Petrol', () => {
     const dunkel = satz('dunkel');
-    expect(wert(dunkel, '--bg')).toBe('#211f1c');
-    expect(wert(dunkel, '--surface')).toBe('#25221f');
-    expect(wert(dunkel, '--brand')).toBe('#a85439');
-    expect(wert(dunkel, '--accent-deep')).toBe('#d08a68');
-    expect(wert(dunkel, '--chat-eigen')).toBe('#43362f');
+    expect(wert(dunkel, '--bg')).toBe('#0c1c20');
+    expect(wert(dunkel, '--surface')).toBe('#12262b');
+    expect(wert(dunkel, '--brand')).toBe('#236c7b');
+    expect(wert(dunkel, '--accent-deep')).toBe('#7cc4d2');
+    expect(wert(dunkel, '--chat-eigen')).toBe('#17343b');
   });
 
   it('Warnung und Fehler färben keine Flächen — ihre Hintergründe sind neutral', () => {
@@ -98,7 +99,7 @@ describe('V10 App-Hülle', () => {
   Nachrichten“, Auftrag 11.6): eingehende Beiträge ohne Blase, nur eigene
   in einer kompakten warmen Blase; eine Eingabefläche mit Anhang links und
   rundem Sendeziel rechts; Suche im gemeinsamen Muster, Filter als Texttabs,
-  Ungelesen als Zahl in Terrakotta. Gegenprobe: mit dem Stand vor dem Umbau
+  Ungelesen als Zahl im Akzent. Gegenprobe: mit dem Stand vor dem Umbau
   (graue Blasen mit Zipfel, Petrol-Blase, Zeichen neben einer Pille,
   Filter-Pillen, gefüllte Zahl) ist jeder Test dieses Blocks rot.
 */
@@ -137,7 +138,7 @@ describe('V10 Nachrichten', () => {
     expect(blaseFuerEingehende('  .nachricht[data-eigene] .nachricht-blatt { background: var(--chat-eigen); }')).toBe(false);
   });
 
-  it('nur die eigene Nachricht ist eine kompakte warme Blase: --chat-eigen, feine Kontur, 12 px', () => {
+  it('nur die eigene Nachricht ist eine kompakte Blase: --chat-eigen, feine Kontur, 12 px', () => {
     const r = regel('.nachricht[data-eigene] .nachricht-blatt');
     expect(r).toContain('border: 1px solid var(--chat-eigen-kontur);');
     expect(r).toContain('border-radius: var(--radius);');
@@ -145,11 +146,11 @@ describe('V10 Nachrichten', () => {
     expect(r).toContain('color: var(--chat-eigen-text);');
     expect(r).toMatch(/max-width: \d+%;/);
     expect(regel('.nachricht[data-eigene] .nachricht-text')).toContain('color: var(--chat-eigen-text);');
-    // Dunkel: #43362F mit #F3EEE6 und der Kontur #654C3E; hell #E8DACC mit #2D2924.
-    expect(wert(satz('dunkel'), '--chat-eigen-text')).toBe('#f3eee6');
-    expect(wert(satz('dunkel'), '--chat-eigen-kontur')).toBe('#654c3e');
-    expect(wert(satz('hell'), '--chat-eigen')).toBe('#e8dacc');
-    expect(wert(satz('hell'), '--chat-eigen-text')).toBe('#2d2924');
+    // Seit E95 im Petrol-Auswahlton: dunkel #17343B mit #E5EFF0 und der Kontur #2F5A64; hell #E4EEF0 mit #13262C.
+    expect(wert(satz('dunkel'), '--chat-eigen-text')).toBe('#e5eff0');
+    expect(wert(satz('dunkel'), '--chat-eigen-kontur')).toBe('#2f5a64');
+    expect(wert(satz('hell'), '--chat-eigen')).toBe('#e4eef0');
+    expect(wert(satz('hell'), '--chat-eigen-text')).toBe('#13262c');
   });
 
   it('der Kopf der Gruppe: Absenderzeichen, Name und Uhrzeit in Plex Mono', () => {
@@ -160,7 +161,7 @@ describe('V10 Nachrichten', () => {
     expect(g).toContain('<span className="nachricht-zeichen">{kuerzel(name)}</span>');
   });
 
-  it('eine Eingabefläche: Anhang links darin, rundes Sendeziel rechts, 44 px, Terrakotta', () => {
+  it('eine Eingabefläche: Anhang links darin, rundes Sendeziel rechts, 44 px, im Akzent', () => {
     const g = quelle('src/features/nachrichten/Gespraech.tsx');
     const pille = g.indexOf('<div className="eingabe-pille">');
     const anhang = g.indexOf('aria-label="Anhang"');
@@ -173,7 +174,7 @@ describe('V10 Nachrichten', () => {
     expect(s).toContain('width: 2.75rem; height: 2.75rem; border-radius: 999px; background: var(--petrol);');
   });
 
-  it('Liste: gemeinsames Suchmuster, Filter als Texttabs, Ungelesen als Zahl in Terrakotta ohne Fläche', () => {
+  it('Liste: gemeinsames Suchmuster, Filter als Texttabs, Ungelesen als Zahl im Akzent ohne Fläche', () => {
     const p = quelle('src/features/nachrichten/Postfach.tsx');
     expect(p).toContain('<label className="suche chat-suche">');
     expect(p).toContain('className="segment chat-filter"');
@@ -199,7 +200,7 @@ describe('V10 Nachrichten', () => {
 /*
   V10 START UND ZEIT (13.11.2026; style.md „Kernseiten, Arbeitstag“, „Mobile
   Kernabläufe · E90“, Auftrag 11.1): der laufende Arbeitstag ist eine
-  dunkle ruhige Fläche mit Terrakotta nur als Punkt, bereit und Pause sind
+  dunkle ruhige Fläche mit dem Akzent nur als Punkt, bereit und Pause sind
   hell und voneinander verschieden; die große Karte beschriftet ihre Knöpfe,
   die kompakte Karte und die Leiste tragen nur Symbole; die Leiste ist am
   Handy eine Insel wie Kopf und Fuß. Gegenprobe: mit dem Stand vor dem Umbau
@@ -243,17 +244,17 @@ describe('V10 Start und Zeit', () => {
     expect(quelle('src/features/time/ArbeitstagKarte.tsx')).toContain("data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}");
   });
 
-  it('Terrakotta ist auf der laufenden Karte nur der Punkt — keine orange Fläche', () => {
-    const terrakotta = (css: string) => regeln(css)
+  it('der Akzent ist auf der laufenden Karte nur der Punkt — keine Akzentfläche', () => {
+    const akzentflaechen = (css: string) => regeln(css)
       .filter(([s]) => s.includes("[data-stand='laeuft']"))
       .filter(([, k]) => /background(?:-color)?:[^;]*var\(--(petrol|brand|accent)\b/.test(k))
       .map(([s]) => s)
       .filter((s) => !/arbeitstag-punkt$/.test(s));
-    expect(terrakotta(TK)).toEqual([]);
-    // Der Punkt selbst ist aufgehellt (Token „Terrakotta auf Dunkel“), damit er auf dem Dunkel sichtbar bleibt.
+    expect(akzentflaechen(TK)).toEqual([]);
+    // Der Punkt selbst ist aufgehellt (Token „Akzent auf Dunkel“), damit er auf dem Dunkel sichtbar bleibt.
     expect(koerper(TK, ".arbeitstag[data-stand='laeuft'] .arbeitstag-punkt")).toContain('var(--auf-dunkel-akzent)');
-    // Gegenprobe: ein Terrakotta-Knopf auf dem Dunkel fiele auf.
-    expect(terrakotta(".arbeitstag[data-stand='laeuft'] .rund-knopf-voll { background: var(--petrol); }")).toHaveLength(1);
+    // Gegenprobe: ein Akzentknopf auf dem Dunkel fiele auf.
+    expect(akzentflaechen(".arbeitstag[data-stand='laeuft'] .rund-knopf-voll { background: var(--petrol); }")).toHaveLength(1);
   });
 
   it('jede Schrift auf dem Dunkel und dem Pausenton trägt 4,5 : 1 — in beiden Sätzen', () => {
@@ -370,7 +371,7 @@ describe('V10 Aufträge', () => {
     expect(eckmarken(' min-width: 0; background-color: transparent; background-image: linear-gradient(var(--border-strong), var(--border-strong)); ')).toBe(true);
   });
 
-  it('Aktenbereiche sind Texttabs mit Unterlinie in Terrakotta, keine Segmentkästen', () => {
+  it('Aktenbereiche sind Texttabs mit Unterlinie im Akzent, keine Segmentkästen', () => {
     const an = aRegel(AKTEN, ".akten-reiter[aria-selected='true']");
     expect(an).toContain('border-bottom-color: var(--brand);');
     expect(an).not.toMatch(/background|border-radius|box-shadow/);
@@ -483,7 +484,7 @@ describe('V10 Material', () => {
   /** Ein gefüllter Kreis: eine Fläche in Primär- oder Akzentfarbe am Knopf selbst. */
   const gefuellt = (r: string) => /background(-color)?:\s*var\(--(petrol|brand|brand-fixed|accent-deep)\)/.test(r);
 
-  it('der Kreis „In die Liste“ ist eine Linie in Terrakotta, keine gefüllte Fläche', () => {
+  it('der Kreis „In die Liste“ ist eine Linie im Akzent, keine gefüllte Fläche', () => {
     const kreis = regel('.korb-kreis');
     expect(kreis).toContain('background: transparent');
     expect(kreis).toContain('color: var(--accent-deep)');
@@ -614,7 +615,7 @@ describe('V10 Finanzen und Team', () => {
 /*
   V10 PLANUNG (13.11.2026, style.md „Einsatzplanung · E88 bleibt fachlich
   maßgeblich“, Auftrag 11.2 und 12.2): helle Arbeitsblätter, nur der
-  ausgewählte Einsatz vollflächig Terrakotta, heute dunkler Kopf über warmer
+  ausgewählte Einsatz vollflächig im Akzent, heute dunkler Kopf über getönter
   Spalte, keine Bernsteinkanten, Namen ohne Kürzel-Kreis, Ziel und Ablegen
   über die Bewegungs-Tokens. Jede Prüfung hat ihre Gegenprobe darunter.
 */
@@ -630,14 +631,14 @@ describe('V10 Planung', () => {
   /** Warnfarbe als Rand, Kante oder Schattenkontur — das, was V10 in der Planung nicht mehr kennt. */
   const WARNKANTE = /(border[a-z-]*:[^;]*var\(--warning\)|box-shadow:[^;]*var\(--warning\)|background: var\(--warning-bg\))/;
 
-  it('ein Einsatz ist ein helles Blatt mit feiner Kontur, Terrakotta-Markierung und dem Radius der Arbeitszeile', () => {
+  it('ein Einsatz ist ein helles Blatt mit feiner Kontur, Akzentmarkierung und dem Radius der Arbeitszeile', () => {
     const r = rumpf(PLANUNG, '.eintrag, .eintrag-konflikt');
     expect(r).toContain('background: var(--surface);');
     expect(r).toContain('border: 1px solid var(--border-strong); border-left: 3px solid var(--petrol);');
     expect(r).toContain('border-radius: var(--radius-sm);');
   });
 
-  it('nur der ausgewählte Einsatz ist vollflächig Terrakotta, und die Auswahl ändert die Form nicht', () => {
+  it('nur der ausgewählte Einsatz ist vollflächig im Akzent, und die Auswahl ändert die Form nicht', () => {
     const ausgewaehlt = rumpf(PLANUNG, ':is(.einsatz-halter:is(:focus-within, [data-offen]) > :is(.eintrag, .eintrag-konflikt), :is(.eintrag, .eintrag-konflikt):focus-visible)');
     expect(ausgewaehlt).toContain('background: var(--petrol); color: var(--auf-petrol);');
     expect(ausgewaehlt).not.toMatch(/border-radius|padding|width|height/);
@@ -833,10 +834,10 @@ describe('V10 zentrale Bausteine (Querschnitt)', () => {
     expect(hoverAufAuswahl).toEqual([]);
   });
 
-  it('Terrakotta auf Dunkel ist ein Token, kein fester Wert in den Bausteinen', () => {
-    expect(wert(satz('hell'), '--auf-dunkel-akzent')).toBe('#d08a68');
+  it('der Akzent auf Dunkel ist ein Token, kein fester Wert in den Bausteinen', () => {
+    expect(wert(satz('hell'), '--auf-dunkel-akzent')).toBe('#7cc4d2');
     expect(LOT).toContain('.meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--auf-dunkel-akzent);');
-    expect(ohneKommentare(LOT)).not.toMatch(/#d08a68/i);
+    expect(ohneKommentare(LOT)).not.toMatch(/#7cc4d2/i);
   });
 
   it('die Titelschrift ist in Tailwind gültig gequotet — sonst fiele font-titel still auf DM Sans zurück', () => {

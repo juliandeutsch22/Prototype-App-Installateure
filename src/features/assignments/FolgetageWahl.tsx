@@ -1,5 +1,6 @@
-import { CheckboxField, InputField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import { FOLGETAGE_HOECHSTENS, tagDanach, type FolgetageStand } from './folgetage';
+import Schalter from '@/components/Schalter';
 
 /**
  * „AUCH AN DEN FOLGENDEN TAGEN“ BEIM ENTFERNEN (Durchsicht 15.11.2026, V13):
@@ -22,11 +23,11 @@ export default function FolgetageWahl({
 }) {
   return (
     <div className="space-y-2">
-      <CheckboxField
+      <Schalter
         id={`${id}-an`}
         label="Auch an den folgenden Tagen entfernen"
-        checked={stand.an}
-        onChange={(e) => onStand({ an: e.target.checked, bis: stand.bis || tagDanach(tag, 4) })}
+        an={stand.an}
+        onChange={(wert) => onStand({ an: wert, bis: stand.bis || tagDanach(tag, 4) })}
       />
       {stand.an && (
         <InputField

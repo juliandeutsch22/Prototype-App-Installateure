@@ -547,7 +547,7 @@ describe('E72 Team und Verwaltung', () => {
   });
 
   it('Schalterlisten mit 8 px, Einrichtungsstand am Handy vier Zellen hoch, Untertitel einzeilig (N1, N10, N11)', () => {
-    expect(quelle('src/features/settings/SettingsView.tsx')).toMatch(/<div className="space-y-2">\s*<CheckboxField\s*id="wochenplanFuerAlle"/);
+    expect(quelle('src/features/settings/SettingsView.tsx')).toMatch(/<div className="space-y-2">\s*<Schalter\s*id="wochenplanFuerAlle"/);
     expect(quelle('src/features/settings/NotificationSettings.tsx')).not.toContain('<div className="space-y-1">');
     expect(quelle('src/features/settings/EinstellungenUebersicht.tsx')).toContain('<div className="einrichtung-masslinie max-md:mt-3">');
     expect(quelle('src/features/settings/ZeitfelderView.tsx')).toContain('subtitle="Standardfelder und eigene Angaben je Buchung"');

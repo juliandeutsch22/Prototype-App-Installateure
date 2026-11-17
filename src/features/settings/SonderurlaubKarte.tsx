@@ -6,10 +6,11 @@ import { ANLAESSE, KUERZUNG_AB_VORGABE } from '@shared/freistellung';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
 import Speicherleiste from '@/components/Speicherleiste';
-import { CheckboxField, InputField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import Schalter from '@/components/Schalter';
 
 /** Nur die Anlässe mit fester Tageszahl — „die notwendige Zeit" stellt niemand ein. */
 const MIT_TAGEN = ANLAESSE.filter((a) => a.tage !== null);
@@ -111,11 +112,11 @@ export default function SonderurlaubKarte() {
             onChange={(e) => setTage({ ...tage, [a.schluessel]: e.target.value })}
           />
         ))}
-        <CheckboxField
+        <Schalter
           id="arztbesuchNachweis"
           label="Für Arztbesuche eine Bestätigung verlangen"
-          checked={nachweis}
-          onChange={(e) => setNachweis(e.target.checked)}
+          an={nachweis}
+          onChange={(wert) => setNachweis(wert)}
         />
         <InputField
           id="kuerzungAb"

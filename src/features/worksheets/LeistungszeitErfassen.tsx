@@ -7,7 +7,8 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
-import { InputField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, FormGrid } from '@/components/Field';
+import Schalter from '@/components/Schalter';
 
 /**
  * Leistungszeit beim Kunden — auf dem Schein selbst erfasst.
@@ -191,11 +192,11 @@ export default function LeistungszeitErfassen({
       </FormGrid>
 
       <div className="mt-2">
-        <CheckboxField
+        <Schalter
           id="lz-helfer"
           label="Als Helfer gearbeitet"
-          checked={form.helfer}
-          onChange={(e) => setForm({ ...form, helfer: e.target.checked })}
+          an={form.helfer}
+          onChange={(wert) => setForm({ ...form, helfer: wert })}
         />
         <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
           Helferstunden werden anders verrechnet.

@@ -14,7 +14,16 @@ import { aktiverMenuepunktFuer } from '@/app/navigation';
  * (`/customers` → `/customers/k1`). Ein Schein (`/worksheet…`) steht bei
  * seiner Liste `/worksheets`, obwohl er nicht unter ihrem Pfad liegt.
  */
-export function seitenRichtung(von: string, nach: string): 'tiefer' | 'zurueck' | 'quer' {
+export function seitenRichtung(von: string, nach: string, ersetzt = false): 'tiefer' | 'zurueck' | 'quer' | 'weiter' {
+  /*
+    DIE WEITERLEITUNG AUF DEN REITER IST KEIN ZWEITER SCHRITT (E95,
+    17.11.2026). „Planung“ führt auf `/assignments` und gleich weiter auf
+    `/assignments/woche` (ersetzt, nicht angehängt). Als „tiefer“ gewertet,
+    schob sich die eben eingeblendete Seite noch einmal von rechts herein,
+    und die schwebende Hauptaktion wartete das ab — sie kam am Handy rund
+    eine halbe Sekunde später als auf jeder anderen Seite.
+  */
+  if (ersetzt && nach.startsWith(`${von.replace(/\/$/, '')}/`)) return 'weiter';
   const a = teile(von);
   const b = teile(nach);
   if (!a.length || !b.length || a[0] !== b[0] || a.length === b.length) return 'quer';

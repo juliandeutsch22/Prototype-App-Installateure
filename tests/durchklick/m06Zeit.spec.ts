@@ -29,8 +29,8 @@ test.afterEach(async () => {
 test('Standardfelder: ausschalten, bestehende Werte ändern ohne Verlust, wieder einschalten', async ({ page, context }, info) => {
   await anmelden(page, CHEFIN.email);
   await page.goto('/settings/zeitfelder');
-  await page.getByRole('checkbox', { name: 'Wegzeit', exact: true }).uncheck();
-  await page.getByRole('checkbox', { name: 'Kommentar / Tätigkeiten', exact: true }).uncheck();
+  await page.getByRole('switch', { name: 'Wegzeit', exact: true }).uncheck();
+  await page.getByRole('switch', { name: 'Kommentar / Tätigkeiten', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Standardfelder speichern' }).click();
   await expect(page.getByText('Standard-Zeitfelder gespeichert')).toBeVisible();
   await page.screenshot({ path: info.outputPath('standardfelder.png'), fullPage: true });
@@ -52,7 +52,7 @@ test('Standardfelder: ausschalten, bestehende Werte ändern ohne Verlust, wieder
   }).toPass();
   await context.clearCookies(); await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await anmelden(page, CHEFIN.email); await page.goto('/settings/zeitfelder');
-  await page.getByRole('checkbox', { name: 'Wegzeit', exact: true }).check();
+  await page.getByRole('switch', { name: 'Wegzeit', exact: true }).check();
   await page.getByRole('button', { name: 'Standardfelder speichern' }).click();
   await expect(page.getByText('Standard-Zeitfelder gespeichert')).toBeVisible();
   await keineFehlermeldung(page);

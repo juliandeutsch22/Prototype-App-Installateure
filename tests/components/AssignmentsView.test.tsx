@@ -370,7 +370,7 @@ describe('Einsatzplanung — speichern', () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'als Helfer' }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'als Helfer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
     await waitFor(() => expect(speichere).toHaveBeenCalled());
@@ -398,7 +398,7 @@ describe('Einsatzplanung — speichern', () => {
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
     // Auch der Helfer-Haken kommt mit — sonst wäre er nach dem nächsten
     // Speichern weg, und die Stunden gingen zum vollen Satz auf die Rechnung.
-    expect(screen.getByRole('checkbox', { name: 'als Helfer' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'als Helfer' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /^Erna Beispiel/ })).not.toBeChecked();
   });
 
@@ -1009,7 +1009,7 @@ describe('Mehrtägig entfernen und ändern (V13)', () => {
     zeige();
     await nutzer.click(await screen.findByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
     const dialog = await screen.findByRole('dialog');
-    await nutzer.click(within(dialog).getByRole('checkbox', { name: 'Auch an den folgenden Tagen entfernen' }));
+    await nutzer.click(within(dialog).getByRole('switch', { name: 'Auch an den folgenden Tagen entfernen' }));
     const bis = within(dialog).getByLabelText('bis einschließlich');
     fireEvent.change(bis, { target: { value: '2026-09-04' } });
     await nutzer.click(within(dialog).getByRole('button', { name: /löschen/i }));
@@ -1036,7 +1036,7 @@ describe('Mehrtägig entfernen und ändern (V13)', () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     expect(await screen.findByText(/Für diese Baustelle ist der Tag bereits geplant/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' }));
     expect(screen.getByText(/Die folgenden Tage werden angeglichen/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
     await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
@@ -1175,7 +1175,7 @@ describe('Einsatzplanung — Einstufung', () => {
     personen = [MONTEUR, HELFERIN];
     zeige();
     await einplanenUndSpeichern(/^Hanna Helfer/);
-    expect(screen.queryByRole('checkbox', { name: 'als Helfer' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'als Helfer' })).toBeNull();
     const zeilen = await speichern();
     expect(zeilen).toEqual([expect.objectContaining({ userId: 'u3', asHelper: true })]);
   });
@@ -1192,7 +1192,7 @@ describe('Einsatzplanung — Einstufung', () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Leo Lehrling/ })).toBeChecked());
-    expect(screen.queryByRole('checkbox', { name: 'als Helfer' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'als Helfer' })).toBeNull();
     const zeilen = await speichern();
     expect(zeilen).toEqual([expect.objectContaining({ userId: 'u4', asHelper: false })]);
   });
@@ -1201,7 +1201,7 @@ describe('Einsatzplanung — Einstufung', () => {
     personen = [MONTEUR, OBERMONTEUR];
     zeige();
     await einplanenUndSpeichern(/^Max Mustermann/, /^Otto Ober/);
-    const haken = screen.getAllByRole('checkbox', { name: 'als Helfer' });
+    const haken = screen.getAllByRole('switch', { name: 'als Helfer' });
     expect(haken).toHaveLength(2);
     haken.forEach((h) => expect(h).not.toBeChecked());
     await userEvent.click(haken[1]);
@@ -1616,8 +1616,8 @@ describe('Einsatzplanung — mehrere Tage', () => {
   it('plant den ersten Tag wie bisher und übergibt die Folgetage bis einschließlich, nur Werktage', async () => {
     folgeAntwort = [geplant('2026-09-02'), geplant('2026-09-03'), geplant('2026-09-04')];
     await waehleMax();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
-    expect(screen.getByRole('checkbox', { name: 'nur Werktage' })).toBeChecked();
+    await userEvent.click(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' }));
+    expect(screen.getByRole('switch', { name: 'nur Werktage' })).toBeChecked();
     await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
@@ -1637,8 +1637,8 @@ describe('Einsatzplanung — mehrere Tage', () => {
       { datum: '2026-09-03', ergebnis: 'ergaenzt', eingeteilt: ['Max Mustermann'], abwesend: [], anderswo: [] },
     ];
     await waehleMax();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
-    await userEvent.click(screen.getByRole('checkbox', { name: 'nur Werktage' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'nur Werktage' }));
     await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-03');
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
@@ -1654,7 +1654,7 @@ describe('Einsatzplanung — mehrere Tage', () => {
 
   it('verlangt ein Ende nach dem ersten Tag und höchstens 62 Tage', async () => {
     await waehleMax();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' }));
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
     expect(await screen.findByText(/„bis einschließlich“ nach dem ersten Tag/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-11-02');
@@ -1667,7 +1667,7 @@ describe('Einsatzplanung — mehrere Tage', () => {
   it('scheitern die Folgetage, steht da, dass der erste Tag gespeichert ist', async () => {
     folgeFehler = true;
     await waehleMax();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' }));
     await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
     expect(await screen.findByText(/Die weiteren Tage sind nicht gespeichert/)).toBeInTheDocument();
@@ -1719,7 +1719,7 @@ describe('Einsatzplanung — im Einblick des Supports', () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
-    expect(screen.queryByRole('checkbox', { name: 'Auch an den folgenden Tagen' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Auch an den folgenden Tagen' })).toBeNull();
     expect(screen.queryByRole('button', { name: /kopieren$/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
     await waitFor(() => expect(speichere).toHaveBeenCalled());
@@ -1732,7 +1732,7 @@ describe('Einsatzplanung — im Einblick des Supports', () => {
     zeige();
     expect(await screen.findByRole('button', { name: /kopieren$/ })).toBeInTheDocument();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
-    expect(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Auch an den folgenden Tagen' })).toBeInTheDocument();
   });
 });
 

@@ -352,9 +352,9 @@
   .unten-punkt, .unten-punkt-aktiv { padding-top: 0.75rem; }
   .unten-punkt-aktiv { font-weight: 500; }
   .unten-lot { display: none; }
-  .unten-punkt-aktiv .unten-lot { display: block; position: absolute; top: 0; left: 50%; width: 6px; height: 0.6875rem; margin-left: -3px; color: var(--accent-deep); }
-  .unten-punkt-aktiv .unten-lot::before { content: ''; position: absolute; left: 2.5px; top: 0; width: 1px; height: 0.25rem; background: currentColor; }
-  .unten-punkt-aktiv .unten-lot::after { content: ''; position: absolute; left: 0; top: 0.25rem; width: 6px; height: 0.4375rem; background: currentColor; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  .unten-gleiter .unten-lot, .unten-punkt-aktiv .unten-lot { display: block; position: absolute; top: 0; left: 50%; width: 6px; height: 0.6875rem; margin-left: -3px; color: var(--accent-deep); }
+  .unten-gleiter .unten-lot::before, .unten-punkt-aktiv .unten-lot::before { content: ''; position: absolute; left: 2.5px; top: 0; width: 1px; height: 0.25rem; background: currentColor; }
+  .unten-gleiter .unten-lot::after, .unten-punkt-aktiv .unten-lot::after { content: ''; position: absolute; left: 0; top: 0.25rem; width: 6px; height: 0.4375rem; background: currentColor; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
 
   /* ── B5 Gruppenkopf mit Achskreis ─────────────────────────────────────── */
   /*

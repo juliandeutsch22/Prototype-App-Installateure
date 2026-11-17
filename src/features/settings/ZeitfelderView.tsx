@@ -28,6 +28,7 @@ import { useToast } from '@/components/Toast';
 import { abfrageSpeicher } from '@/lib/zwischenspeicher';
 import { FELDSATZ_SCHLUESSEL } from '@/features/time/useZeitfelder';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 /**
  * DIE FREIEN ZEITFELDER (SHK-Ausbau M06b, N01) — Einstellungen › Zeitfelder.
@@ -405,13 +406,13 @@ export default function ZeitfelderView() {
                         })}
                       />
                     </div>
-                    <CheckboxField
+                    <Schalter
                       id={`zeitfeld-option-${i}-aktiv`}
                       label="wählbar"
-                      checked={o.aktiv}
-                      onChange={(e) => setEntwurf({
+                      an={o.aktiv}
+                      onChange={(wert) => setEntwurf({
                         ...entwurf,
-                        optionen: entwurf.optionen.map((x) => (x.id === o.id ? { ...x, aktiv: e.target.checked } : x)),
+                        optionen: entwurf.optionen.map((x) => (x.id === o.id ? { ...x, aktiv: wert } : x)),
                       })}
                     />
                     <LoeschenKnopf
@@ -452,8 +453,8 @@ export default function ZeitfelderView() {
             </SelectField>
 
             {entwurf.id && !typwechsel && !entwurf.ersetzt && (
-              <CheckboxField id="zeitfeld-aktiv" label="In Gebrauch (aus = beendet, die Werte bleiben)" checked={entwurf.aktiv}
-                onChange={(e) => setEntwurf({ ...entwurf, aktiv: e.target.checked })} />
+              <Schalter id="zeitfeld-aktiv" label="In Gebrauch (aus = beendet, die Werte bleiben)" an={entwurf.aktiv}
+                onChange={(wert) => setEntwurf({ ...entwurf, aktiv: wert })} />
             )}
 
             {entwurf.id && entwurf.aktiv && !typwechsel && aktive.length > 1 && (

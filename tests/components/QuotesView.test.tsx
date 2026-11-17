@@ -243,7 +243,7 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(mengen[1], '2');
     await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
     await nutzer.type(preise[1], '45');
-    await nutzer.click(screen.getAllByRole('checkbox')[1]);
+    await nutzer.click(screen.getAllByRole('switch')[1]);
 
     // 20 h, nicht 22 — die Pauschale zählt nicht mit.
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('20 h');
@@ -288,11 +288,11 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getAllByLabelText('Menge')[1], '6');
     await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
 
-    expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
+    expect(screen.getAllByRole('switch')[1]).not.toBeChecked();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('10 h');
 
     // Wer es anders will, entscheidet selbst.
-    await nutzer.click(screen.getAllByRole('checkbox')[1]);
+    await nutzer.click(screen.getAllByRole('switch')[1]);
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
   });
 
@@ -417,7 +417,7 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getAllByLabelText('Einzelpreis netto')[1], '3');
 
     // Ohne Stunden-Einheit gibt es den Haken gar nicht (Runde 6, G24) — nur Montage hat einen.
-    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
   });
 
@@ -428,9 +428,9 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizkörper');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     expect(screen.getByLabelText('Einheit')).toHaveValue('');
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
     await nutzer.type(screen.getByLabelText('Einheit'), 'h');
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByRole('switch')).toBeChecked();
   });
 
   /*
@@ -446,17 +446,17 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizungstausch');
     await nutzer.type(screen.getByLabelText('Menge'), '1');
     await nutzer.type(screen.getByLabelText('Einheit'), 'Pauschale');
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
 
     // Erst in Stunden mit Haken — dann auf Pauschale umgestellt.
     await nutzer.clear(screen.getByLabelText('Einheit'));
     await nutzer.type(screen.getByLabelText('Einheit'), 'h');
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByRole('switch')).toBeChecked();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('1 h');
     await nutzer.clear(screen.getByLabelText('Einheit'));
     await nutzer.type(screen.getByLabelText('Einheit'), 'Pauschale');
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
   });
 
@@ -467,10 +467,10 @@ describe('Angebot kalkulieren', () => {
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Anfahrt');
     await nutzer.type(screen.getByLabelText('Menge'), '2');
     await nutzer.type(screen.getByLabelText('Einheit'), 'h');
-    await nutzer.click(screen.getByRole('checkbox'));
+    await nutzer.click(screen.getByRole('switch'));
     await nutzer.clear(screen.getByLabelText('Einheit'));
     await nutzer.type(screen.getByLabelText('Einheit'), 'Std');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.getByRole('switch')).not.toBeChecked();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('0 h');
   });
 

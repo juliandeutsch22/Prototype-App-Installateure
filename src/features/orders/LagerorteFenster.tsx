@@ -6,10 +6,11 @@ import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import { List, ListRow } from '@/components/ListRow';
 import { Zustand } from '@/components/Badge';
-import { CheckboxField, InputField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { HAUPTLAGER_NAME, ortReihenfolge } from './lagerorte';
+import Schalter from '@/components/Schalter';
 
 /**
  * DIE LAGERORTE PFLEGEN (M04a): weitere Lager bzw. Regale an einer Anschrift
@@ -100,11 +101,11 @@ export default function LagerorteFenster({
             />
           )}
           {entwurf.art === 'lager' && entwurf.id && (
-            <CheckboxField
+            <Schalter
               id="lagerort-aktiv"
               label="In Betrieb"
-              checked={entwurf.aktiv}
-              onChange={(e) => setEntwurf({ ...entwurf, aktiv: e.target.checked })}
+              an={entwurf.aktiv}
+              onChange={(wert) => setEntwurf({ ...entwurf, aktiv: wert })}
             />
           )}
           {fehler && <ErrorState message={fehler} />}

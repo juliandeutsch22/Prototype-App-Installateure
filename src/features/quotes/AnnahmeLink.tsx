@@ -16,6 +16,7 @@ import { praefixFehler } from '@/lib/praefixe';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import type { Abrechnungsart } from '@/types';
+import Schalter from '@/components/Schalter';
 import {
   annahmeAdresse, annahmeMail, linkZustandText, oeffnenText, spaetestensGueltigBis, vorgabeGueltigBis, zeitpunkt,
 } from './annahmeLink';
@@ -191,10 +192,12 @@ export function AnnahmeLinkDialog({
             </Hinweiszeile>
           )}
           {neuesDatum && angebot.quoteDate && (
-            <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
-              <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
-              Angebotsdatum auf heute setzen (statt {datumAT(angebot.quoteDate)}) — die Bindefrist rückt mit
-            </label>
+            <Schalter
+              id="annahme-link-datum-heute"
+              label={<>Angebotsdatum auf heute setzen (statt {datumAT(angebot.quoteDate)}) — die Bindefrist rückt mit</>}
+              an={datumHeute}
+              onChange={setDatumHeute}
+            />
           )}
           {/*
             A3: ein Nachtrag kommt auch über den Link an seine Baustelle. Abrechnung

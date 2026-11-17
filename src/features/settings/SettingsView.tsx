@@ -25,7 +25,7 @@ import Button from '@/components/Button';
 import Speicherleiste from '@/components/Speicherleiste';
 import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -36,6 +36,7 @@ import { euro, euroBetrag } from '@/lib/betrag';
 import { mahnspesenBefund } from '@/features/invoices/mahnung';
 import { unlesbareZahlIn, zahlOder } from '@/lib/zahl';
 import ZahlFeld, { ZahlWertFeld } from '@/components/ZahlFeld';
+import Schalter from '@/components/Schalter';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
@@ -725,11 +726,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               ab Werk aus.
             */}
             <div className="mt-4 border-t border-line pt-4">
-              <CheckboxField
+              <Schalter
                 id="rechnungsarten"
                 label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
-                checked={rechnungsarten}
-                onChange={(e) => setRechnungsarten(e.target.checked)}
+                an={rechnungsarten}
+                onChange={(wert) => setRechnungsarten(wert)}
               />
               <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
                 Die Schlussrechnung zieht die Anzahlungen samt Umsatzsteuer wieder ab.
@@ -1365,29 +1366,29 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         <div className="formular">
         {/* 8 px zwischen den Schaltern wie in „Mein Konto“ (E72, N11): zweizeilige Beschriftungen stießen sonst ohne Luft aneinander. */}
         <div className="space-y-2">
-        <CheckboxField
+        <Schalter
           id="wochenplanFuerAlle"
           label="Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
-          checked={wochenplanFuerAlle}
-          onChange={(e) => setWochenplanFuerAlle(e.target.checked)}
+          an={wochenplanFuerAlle}
+          onChange={(wert) => setWochenplanFuerAlle(wert)}
         />
-        <CheckboxField
+        <Schalter
           id="projektleitungImEinsatzplan"
           label="Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
-          checked={plImPlan}
-          onChange={(e) => setPlImPlan(e.target.checked)}
+          an={plImPlan}
+          onChange={(wert) => setPlImPlan(wert)}
         />
-        <CheckboxField
+        <Schalter
           id="leitungImEinsatzplan"
           label="Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
-          checked={leitungImPlan}
-          onChange={(e) => setLeitungImPlan(e.target.checked)}
+          an={leitungImPlan}
+          onChange={(wert) => setLeitungImPlan(wert)}
         />
-        <CheckboxField
+        <Schalter
           id="kalenderAboErlaubt"
           label="Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren"
-          checked={kalenderAbo}
-          onChange={(e) => setKalenderAbo(e.target.checked)}
+          an={kalenderAbo}
+          onChange={(wert) => setKalenderAbo(wert)}
         />
         </div>
         {fehlerBei('wochenplan')}
@@ -1416,11 +1417,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         }
       >
         <div className="formular">
-        <CheckboxField
+        <Schalter
           id="dezemberHalbtage"
           label="24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)"
-          checked={dezemberHalbtage}
-          onChange={(e) => setDezemberHalbtage(e.target.checked)}
+          an={dezemberHalbtage}
+          onChange={(wert) => setDezemberHalbtage(wert)}
         />
         {fehlerBei('dezember')}
         <Speicherleiste geaendert={dezemberHalbtage !== dezemberGespeichert} speichert={dezemberSpeichert} onVerwerfen={() => setDezemberHalbtage(dezemberGespeichert)} onSpeichern={dezemberSpeichern} />
@@ -1515,11 +1516,11 @@ function RechnungsvorgabenFelder({
         still etwas. Die Pauschale nach § 458 UGB ersetzt bei
         Firmenkunden die Spesen je Stufe; beides zusammen wäre zu viel.
       */}
-      <CheckboxField
+      <Schalter
         id="r-pauschale458"
         label="Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen"
-        checked={!!rates.pauschale458}
-        onChange={(e) => setRates({ ...rates, pauschale458: e.target.checked || undefined })}
+        an={!!rates.pauschale458}
+        onChange={(wert) => setRates({ ...rates, pauschale458: wert || undefined })}
       />
       {!rates.pauschale458 &&
         (['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (

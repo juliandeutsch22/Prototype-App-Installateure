@@ -210,3 +210,19 @@ export function sofortKaestchen(datei: string, text?: string): string[] {
   }).map(ort);
 }
 
+
+/**
+ * E95: jedes Kästchen einer Datei, benannt nach seiner `id` (ohne `id` nach
+ * seinem `aria-label`) — damit der Wächter jedes einzeln einer Begründung
+ * zuordnen kann.
+ */
+export function kaestchen(datei: string, text?: string): string[] {
+  return elemente(datei, text).flatMap((e) => {
+    const t = tagName(e);
+    const typ = attribut(e, 'type');
+    const ist = t === 'CheckboxField' || (t === 'input' && !!typ && typ !== true && /checkbox/.test(typ.getText()));
+    if (!ist) return [];
+    const id = attribut(e, 'id') ?? attribut(e, 'aria-label');
+    return [id && id !== true ? id.getText().replace(/^\{|\}$/g, '') : '(ohne id)'];
+  });
+}

@@ -4,8 +4,8 @@ import { updateCompany } from '@/lib/db/company';
 import { grundAus } from '@/lib/fehlerGrund';
 import Card from '@/components/Card';
 import Speicherleiste from '@/components/Speicherleiste';
-import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
+import Schalter from '@/components/Schalter';
 
 /**
  * MONATSABSCHLUSS DER ZEITEN (Durchsicht 15.11.2026, Z6 + F3; E1: Einstellung
@@ -49,11 +49,11 @@ export default function MonatsabschlussEinstellung() {
       hint="Eingeschaltet schließen Buchhaltung, Geschäftsführung oder Administration in der Mitarbeiterübersicht einen vergangenen Monat ab — etwa nach dem Lohnexport. Danach lässt sich in diesem Monat nichts mehr buchen, ändern oder löschen, auch nicht vom Büro und nicht über Urlaub, Krankmeldung oder Timer. Wer noch etwas ändern muss, stellt einen Korrekturantrag; das Büro setzt ihn um. Den Korrekturantrag gibt es mit dem Modul „Korrekturanträge“ (Einstellungen → Module); ist es aus, öffnet das Büro den Monat mit Grund wieder. Ein abgeschlossener Monat lässt sich mit Grund wieder öffnen; Abschluss und Öffnen stehen mit Name und Zeit im Verlauf. Ausgeschaltet gilt kein Abschluss — wie bisher."
     >
       <div className="formular">
-        <CheckboxField
+        <Schalter
           id="zeitMonatsabschluss"
           label="Monate abschließen — danach Änderungen nur über einen Korrekturantrag"
-          checked={an}
-          onChange={(e) => setAn(e.target.checked)}
+          an={an}
+          onChange={(wert) => setAn(wert)}
         />
         {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
         <Speicherleiste geaendert={an !== gespeichert} speichert={speichert} onVerwerfen={() => { setFehler(null); setAn(gespeichert); }} onSpeichern={() => void speichern()} />

@@ -30,7 +30,7 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, CheckboxField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbelegung';
 import { VORBELEG_TEXT, zuletztMerken, type VorbelegGrund } from '@/lib/baustelleVorbelegen';
@@ -51,6 +51,7 @@ import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
+import Schalter from '@/components/Schalter';
 
 /** Gruppen höchstens 20 Zeilen (Regel 4), dann „und N weitere anzeigen“. */
 const JE_SEITE = 20;
@@ -560,12 +561,12 @@ export default function OrderView() {
             Baustelle gibt es keine zustaendige Projektleitung und damit
             niemanden, den eine Eilmeldung erreichen koennte. */}
         <div className="flex flex-wrap items-center gap-2">
-          <CheckboxField
+          <Schalter
             id="ourgent"
             label="Eilzustellung"
-            checked={urgent && !!projectNumber}
-            disabled={!projectNumber}
-            onChange={(e) => setUrgent(e.target.checked)}
+            an={urgent && !!projectNumber}
+            gesperrt={!projectNumber}
+            onChange={(wert) => setUrgent(wert)}
           />
           <InfoHint about="Eilzustellung">
             Die Projektleitung der Baustelle wird sofort verständigt — bei der Anforderung
@@ -1290,9 +1291,9 @@ function KorbMenge({
 /**
  * DER KREIS „IN DIE LISTE“ (V10, 13.11.2026). Bis dahin der gefüllte
  * Petrol-Kreis (`IconButton rund`): in einem Katalog mit zwanzig Zeilen
- * standen zwanzig gefüllte Terrakotta-Kreise untereinander — eine Wand aus
+ * standen zwanzig gefüllte Akzentkreise untereinander — eine Wand aus
  * Hauptaktionen, wo die Hauptaktion der Seite unten „Abschicken“ ist. Jetzt
- * ein feiner Linienkreis in Terrakotta: sichtbar 36 px, getippt 48 px — so
+ * ein feiner Linienkreis im Akzent: sichtbar 36 px, getippt 48 px — so
  * hoch wie die Mengensteuerung, die nach dem Tipp an derselben Stelle steht.
  * `data-icon`, damit die Zeile ihn nicht wie einen Wortknopf verkleinert.
  */

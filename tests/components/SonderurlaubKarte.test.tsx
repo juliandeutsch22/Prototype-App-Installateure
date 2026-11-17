@@ -52,7 +52,7 @@ describe('Sonderurlaub in den Einstellungen', () => {
   it('der Betrieb verzichtet auf die Arztbestätigung — ab Werk verlangt', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    const haken = screen.getByRole('checkbox', { name: /Für Arztbesuche eine Bestätigung verlangen/ });
+    const haken = screen.getByRole('switch', { name: /Für Arztbesuche eine Bestätigung verlangen/ });
     expect(haken).toBeChecked();
     await nutzer.click(haken);
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));

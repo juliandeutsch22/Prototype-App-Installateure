@@ -2,8 +2,9 @@ import { useState } from 'react';
 import type { AppUser, Assignment } from '@/types';
 import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
-import { CheckboxField, InputField, SelectField } from '@/components/Field';
+import { InputField, SelectField } from '@/components/Field';
 import { tagLang } from './wochenTermine';
+import Schalter from '@/components/Schalter';
 
 /**
  * „VERSCHIEBEN“ (E88): derselbe Schritt wie das Ziehen, ohne Ziehen — für
@@ -58,7 +59,7 @@ export default function VerschiebenFenster({
             <option key={u.uid} value={u.uid}>{u.name}</option>
           ))}
         </SelectField>
-        <CheckboxField id="verschieben-kopieren" label="Kopieren statt verschieben" checked={kopieren} onChange={(e) => setKopieren(e.target.checked)} />
+        <Schalter id="verschieben-kopieren" label="Kopieren statt verschieben" an={kopieren} onChange={(wert) => setKopieren(wert)} />
         {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
         <div className="fuss-aktionen">
           <Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>

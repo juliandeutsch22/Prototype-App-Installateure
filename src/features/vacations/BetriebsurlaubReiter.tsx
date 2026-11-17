@@ -23,6 +23,7 @@ import { useToast } from '@/components/Toast';
 import { zeitraumText } from './abwesenheitText';
 import { grundAus } from '@/lib/fehlerGrund';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 /**
  * Betriebsurlaub — der Betrieb hat zu.
@@ -209,11 +210,11 @@ export default function BetriebsurlaubReiter({ companyId, meinName, neuOffen = f
           */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="min-w-0 flex-1">
-              <CheckboxField
+              <Schalter
                 id="bu-abbuchen"
                 label="Urlaubskonto aller aktiven Mitarbeiter belasten"
-                checked={abbuchen}
-                onChange={(e) => setAbbuchen(e.target.checked)}
+                an={abbuchen}
+                onChange={(wert) => setAbbuchen(wert)}
               />
             </div>
             <InfoHint about="Urlaubskonto belasten">

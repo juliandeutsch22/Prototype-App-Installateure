@@ -27,8 +27,8 @@ test('Startseite anpassen: Zahl abwählen, Bereich ausblenden, bleibt nach dem N
   await page.getByRole('menuitem', { name: 'Startseite anpassen …' }).click();
   const bogen = page.getByRole('dialog', { name: 'Startseite anpassen' });
   await bogen.getByRole('checkbox', { name: 'Resturlaub', exact: true }).uncheck();
-  await bogen.getByRole('checkbox', { name: 'Tagesüberblick: Einsatz, Termine, heute' }).uncheck();
-  await bogen.getByRole('checkbox', { name: 'Tage ohne Buchung', exact: true }).uncheck();
+  await bogen.getByRole('switch', { name: 'Tagesüberblick: Einsatz, Termine, heute' }).uncheck();
+  await bogen.getByRole('switch', { name: 'Tage ohne Buchung', exact: true }).uncheck();
   await bogen.getByRole('button', { name: 'Speichern' }).click();
   await expect(bogen).toBeHidden({ timeout: 15_000 });
   await expect(urlaub).toHaveCount(0);

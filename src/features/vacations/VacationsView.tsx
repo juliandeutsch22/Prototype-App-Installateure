@@ -63,7 +63,7 @@ import PageHeader from '@/components/PageHeader';
 import EingeteiltHinweis from '@/features/assignments/EingeteiltHinweis';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, SkeletonMetrics, TeilFehler } from '@/components/States';
@@ -77,6 +77,7 @@ import { useReiterImBild } from '@/components/reiterImBild';
 import UrlaubMonat from './UrlaubMonat';
 import KuerzenDialog from './UrlaubKuerzen';
 import { GENEHMIGT_GRENZE, gleichzeitigMit, zeitspanne } from './urlaubMonat';
+import Schalter from '@/components/Schalter';
 
 /** Wie viele genehmigte Anträge „Genehmigt, noch nicht vorbei“ auf einmal lädt. */
 const GENEHMIGT_JE_SEITE = 100;
@@ -1497,11 +1498,11 @@ export default function VacationsView() {
         <form onSubmit={beantragen} className="space-y-4">
 
           {art === 'Zeitausgleich' && (
-            <CheckboxField
+            <Schalter
               id="uzastunden"
               label="Nur einige Stunden (an einem Tag)"
-              checked={zaStundenweise}
-              onChange={(e) => setZaStundenweise(e.target.checked)}
+              an={zaStundenweise}
+              onChange={(wert) => setZaStundenweise(wert)}
             />
           )}
 

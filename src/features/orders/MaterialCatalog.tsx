@@ -27,7 +27,7 @@ import BottomSheet from '@/components/BottomSheet';
 import { Listenleiste, MehrAnzeigen, WeitereAngaben } from '@/components/LotBausteine';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { euro } from '@/lib/betrag';
 import { fmtMenge } from '@/lib/belegLayout';
 import InfoHint from '@/components/InfoHint';
@@ -41,6 +41,7 @@ import EinheitFeld from '@/components/EinheitFeld';
 import Lieferantenvergleich from '@/features/materials/Lieferantenvergleich';
 import { useModul } from '@/lib/useModule';
 import { NeuKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 /*
   Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
@@ -629,12 +630,12 @@ export default function MaterialCatalog({
               keiner Lagerliste.
             */}
             <div className="space-y-1">
-              <CheckboxField
+              <Schalter
                 id="mlager"
                 label="Im Lager führen"
-                checked={form.lagerartikel}
-                disabled={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
-                onChange={(e) => setForm({ ...form, lagerartikel: e.target.checked })}
+                an={form.lagerartikel}
+                gesperrt={!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0}
+                onChange={(wert) => setForm({ ...form, lagerartikel: wert })}
               />
               <p className="text-xs text-ink-muted">
                 {!!editId && form.lagerartikel && zahlOder(form.stock, 0) !== 0

@@ -18,6 +18,7 @@ import {
   type RechtstextZeile,
 } from '@/lib/db/rechtstexte';
 import RechtInhalt from '@/features/recht/RechtInhalt';
+import Schalter from '@/components/Schalter';
 import {
   BETREIBER_FELDER, LEERER_BETREIBER, VERARBEITER_PLATZHALTER, aenderungenText, betreiberAenderungen,
   neueVerarbeiter, offeneAngaben, textFehler,
@@ -370,11 +371,11 @@ function Editor({ art, verlauf, geaendert, zurueck }: {
             </>
           )}
           {art === 'datenschutz' && (
-            <CheckboxField
+            <Schalter
               id="rt-hinweisen"
               label="Alle, die die App benutzen, auf die Änderung hinweisen"
-              checked={hinweisen}
-              onChange={(ev) => setHinweisen(ev.target.checked)}
+              an={hinweisen}
+              onChange={(wert) => setHinweisen(wert)}
             />
           )}
           {neu.length > 0 && (

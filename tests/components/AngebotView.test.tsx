@@ -204,7 +204,7 @@ describe('Angebot per Mail (F16)', () => {
     // Höchstens zwei Schritte als Knopf, die übrigen im ⋯ am selben Punkt (U4).
     await nutzer.click(await waitFor(() => handlung({ name: 'Per Mail senden' })));
     const fenster = await screen.findByRole('dialog', { name: 'Angebot per Mail' });
-    expect(within(fenster).getByRole('checkbox', { name: /Angebotsdatum auf heute setzen \(statt 01\.09\.2026\)/ })).toBeChecked();
+    expect(within(fenster).getByRole('switch', { name: /Angebotsdatum auf heute setzen \(statt 01\.09\.2026\)/ })).toBeChecked();
     // Beim Kunden steht keine Adresse — sie wird eingetragen.
     await nutzer.type(within(fenster).getByRole('textbox', { name: /^An/ }), 'amt@neudorf.at');
     await nutzer.click(await within(fenster).findByRole('button', { name: 'Senden' }));
@@ -856,7 +856,7 @@ describe('Angebotsdatum beim Versand (A12)', () => {
     zeige();
     await nutzer.click(await screen.findByRole('button', { name: 'Als versendet markieren' }));
     const dialog = await screen.findByRole('dialog', { name: 'Als versendet markieren?' });
-    expect(within(dialog).getByRole('checkbox', { name: /Angebotsdatum auf heute setzen \(statt 01\.01\.2020\)/ })).toBeChecked();
+    expect(within(dialog).getByRole('switch', { name: /Angebotsdatum auf heute setzen \(statt 01\.01\.2020\)/ })).toBeChecked();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Als versendet markieren' }));
     await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, expect.objectContaining({
       status: 'Versendet', quoteDate: todayStr(),

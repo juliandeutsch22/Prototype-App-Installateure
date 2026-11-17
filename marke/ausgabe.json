@@ -1,19 +1,19 @@
 {
   "quelle": "Senklot-Markenpaket-2026-11-03",
   "vorlagen": {
-    "logo.svg": "5efcbbb5eb54c530798e278e05415ccb7252e4fe2fd887a8b1c584531fb83fcc",
-    "logo-weiss.svg": "8a562a7f702913db7d7354aef4d012f72f19486679566082dd984fa4b8ee5c66",
-    "zeichen.svg": "a3d662fa381beadf2d2ef29f77de1cbda4f949115a35e61c8a2fc4d0da2419c2",
-    "schriftzug.svg": "335bd20319df4b706f28b03a3aed2870272cb0ea8fe2772b1e433fb69bdfd8b9"
+    "logo.svg": "f2b7fb0ecb0cdba988e2915644e4770a00904c5446f31ee6f18dae89201a034c",
+    "logo-weiss.svg": "bf4a9d85c14c3edfc3b964edadc23af1be256bb11c79bd0f3f7f19269511abeb",
+    "zeichen.svg": "d8bf23fb0e2e683dbffb1de83f8afb8a89a159d70b6c4fdd2b561741076a8c05",
+    "schriftzug.svg": "e0846bd14356b66ec4b6352078cbb93577dbfb10827a5966fb538b6d2f976dcc"
   },
   "bilder": {
-    "icon-192.png": "3da68a4a016ad8b762f5273f50f31a2fc4c2a1eadded1be320b044e073689921",
-    "icon-512.png": "18917f5e13d8b49ab5c99ea7fca1a1808acdf46ee8db1ef6787b30332cdc9e9c",
-    "icon-maskable-512.png": "9994acba34cf4537892efa40538b6286f1849c6951dbcd98f2bfd8d17a1eeecc",
-    "apple-touch-icon.png": "2d01b0c42e4c03431a192242f4be048c193481582b120d08f1a0f346fd7b19f7",
-    "favicon-16.png": "604c94a5a38d33f117ea8db2924df218fa6e6e133798584ea141ece7146517b1",
-    "favicon-32.png": "bce033238d464ea32785eee7a5faadd220e3444cec8ba0cd964f5a1ccb06d345",
-    "favicon-64.png": "616422b2ff769cae11501b809667e98eafeebe0a2ac498666eaebce74a6f0d6d",
+    "icon-192.png": "fe2331e63caeecba660526aa4f5a57cc7aec511ff86b5f17042fc9dc72e94c40",
+    "icon-512.png": "44fdb0df35fa20401fc6d394802a29c25f354e590ee04d6807ad98b6ffe627a8",
+    "icon-maskable-512.png": "fda17e45c7b8e7ddeb896b895e5adc07ae8a081e38b9dee6773d716c2f2671d1",
+    "apple-touch-icon.png": "331f86d7f38b82fd34db01093d3e043d42f9d038165505113916f4333477d201",
+    "favicon-16.png": "85201fd4a5477a943103713510de5e45ce2e523d4e528e52ffa7eb8b2e70a38c",
+    "favicon-32.png": "ac7d460c973db08f170e53754f0a3d282f179a9d62ef32e8860ef4670be973d8",
+    "favicon-64.png": "e59cd94d7c83d3276a8e860dc64a40fce48107b68f68fbcc669687800fd0e497",
     "badge-96.png": "23d722fe6d2cb39fc41dd6c61111f00501bc2e7c43bf7ee787dd02709c29f4bf"
   }
 }

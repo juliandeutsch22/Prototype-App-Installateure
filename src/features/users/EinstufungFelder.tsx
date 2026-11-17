@@ -1,4 +1,4 @@
-import { InputField, SelectField, FormGrid, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { todayStr } from '@/lib/time';
@@ -7,6 +7,7 @@ import {
   EINSTUFUNGEN, LEHRZEIT_VORGABE, lehrjahr, lehrzeitEnde, type Einstufung, type FruehereEinstufung,
 } from '@/lib/einstufung';
 import { lehrbeginnVorEintritt, type BenutzerEntwurf } from './benutzerEntwurf';
+import Schalter from '@/components/Schalter';
 
 /** Übliche Lehrzeiten: zwei bis vier Jahre, halbjährlich. */
 const LEHRZEITEN = [24, 30, 36, 42, 48];
@@ -123,11 +124,11 @@ export default function EinstufungFelder({
       */}
       {lehrling && (
         <div className="flex flex-wrap items-center gap-1">
-          <CheckboxField
+          <Schalter
             id={`${idPrefix}-insbudget`}
             label="Stunden zählen ins Projekt-Budget"
-            checked={form.stundenInsBudget}
-            onChange={(e) => setForm({ ...form, stundenInsBudget: e.target.checked })}
+            an={form.stundenInsBudget}
+            onChange={(wert) => setForm({ ...form, stundenInsBudget: wert })}
           />
           <InfoHint about="Stunden im Projekt-Budget">
             Gilt für Buchungen ab dem Umschalten. Bisher gebuchte Stunden bleiben, wie sie gezählt

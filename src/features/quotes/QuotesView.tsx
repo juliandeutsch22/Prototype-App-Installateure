@@ -71,6 +71,7 @@ import Nachladen from '@/components/Nachladen';
 import { Listenleiste, MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 import { akteVorbereiten } from '@/lib/akteVorbereiten';
+import Schalter from '@/components/Schalter';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -1399,21 +1400,20 @@ export default function QuotesView() {
                     Ampel bliebe grün, während der Auftrag längst gerissen ist.
                   */}
                   {istStundenEinheit(z.unit) && (
-                    <label className="mt-2 flex min-h-touch items-center gap-2 text-sm text-ink">
-                      <input
-                        type="checkbox"
-                        checked={z.istArbeitszeit}
-                        onChange={(e) =>
+                    <div className="mt-2">
+                      <Schalter
+                        id={`zeile-${i}-arbeitszeit`}
+                        label="Zählt als Arbeitszeit ins Stundenbudget"
+                        an={z.istArbeitszeit}
+                        onChange={(wert) =>
                           setZeilen((v) =>
                             v.map((x, j) =>
-                              j === i ? { ...x, istArbeitszeit: e.target.checked, hakenVonHand: true } : x,
+                              j === i ? { ...x, istArbeitszeit: wert, hakenVonHand: true } : x,
                             ),
                           )
                         }
-                        className="checkbox"
                       />
-                      Zählt als Arbeitszeit ins Stundenbudget
-                    </label>
+                    </div>
                   )}
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-muted">
@@ -1670,10 +1670,12 @@ export default function QuotesView() {
       >
         {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
           && datumAufHeute(wechselFrage.q, todayStr()) && (
-          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
-            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
-            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
-          </label>
+          <Schalter
+            id="angebot-datum-heute"
+            label={<>Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit</>}
+            an={datumHeute}
+            onChange={setDatumHeute}
+          />
         )}
       </ConfirmDialog>
 

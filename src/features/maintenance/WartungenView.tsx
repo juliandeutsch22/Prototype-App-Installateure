@@ -60,7 +60,6 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   InputField,
   SelectField,
-  CheckboxField,
   FormGrid,
   Pflichthinweis,
 } from '@/components/Field';
@@ -71,6 +70,7 @@ import { datumAT } from '@/lib/datum';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 import { euro } from '@/lib/betrag';
 import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -1055,10 +1055,10 @@ export default function WartungenView() {
           )}
           {tagGeaendert && (
             <div className="flex flex-wrap items-center">
-              <CheckboxField id="w-berichtigen"
+              <Schalter id="w-berichtigen"
                 label={`Der ${fmtDatum(bearbeitet?.zuletztAm)} war falsch — berichtigen`}
-                checked={berichtigen}
-                onChange={(e) => setBerichtigen(e.target.checked)}
+                an={berichtigen}
+                onChange={(wert) => setBerichtigen(wert)}
               />
               <InfoHint about="Berichtigen">
                 Mit Haken ersetzt der neue Tag den bisherigen im Verlauf der Anlage. Ohne Haken bleibt
@@ -1088,10 +1088,10 @@ export default function WartungenView() {
             onChange={(e) => setForm({ ...form, hinweis: e.target.value })}
           />
           <div className="flex flex-wrap items-center">
-            <CheckboxField id="w-aktiv"
+            <Schalter id="w-aktiv"
               label="Vereinbarung läuft"
-              checked={form.aktiv}
-              onChange={(e) => setForm({ ...form, aktiv: e.target.checked })}
+              an={form.aktiv}
+              onChange={(wert) => setForm({ ...form, aktiv: wert })}
             />
             <InfoHint about="Vereinbarung läuft">
               Eine gekündigte Vereinbarung wird nicht gelöscht, sondern angehalten — die

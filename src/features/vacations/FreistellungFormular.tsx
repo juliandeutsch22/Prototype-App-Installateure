@@ -15,13 +15,14 @@ import {
 import { arbeitszeitAm, fmtDauer, todayStr, urlaubsTage } from '@/lib/time';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { datumAT } from '@/lib/datum';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 /**
  * DER ANTRAG AUF SONDERURLAUB, PFLEGEFREISTELLUNG ODER UNBEZAHLTEN URLAUB
@@ -175,9 +176,9 @@ export default function FreistellungFormular({
       )}
 
       {stundenErlaubt && (
-        <CheckboxField
+        <Schalter
           id="fstunden" label="Nur einige Stunden (an einem Tag)"
-          checked={stundenweise} onChange={(e) => setStundenweise(e.target.checked)}
+          an={stundenweise} onChange={(wert) => setStundenweise(wert)}
         />
       )}
 
@@ -211,9 +212,9 @@ export default function FreistellungFormular({
       {art === 'pflegefreistellung' && (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <CheckboxField
+            <Schalter
               id="fkind" label="Für ein erkranktes Kind unter 12 Jahren"
-              checked={kind} onChange={(e) => { setKind(e.target.checked); if (!e.target.checked) setZusatz(false); }}
+              an={kind} onChange={(wert) => { setKind(wert); if (!wert) setZusatz(false); }}
             />
             <InfoHint about="Pflegefreistellung">
               Bis zu einer Arbeitswoche je Arbeitsjahr für die Pflege eines erkrankten nahen Angehörigen im
@@ -223,9 +224,9 @@ export default function FreistellungFormular({
             </InfoHint>
           </div>
           {kind && pflege?.zusatzwocheMoeglich && (
-            <CheckboxField
+            <Schalter
               id="fzusatz" label="Zweite Woche (die erste ist in diesem Arbeitsjahr verbraucht)"
-              checked={zusatz} onChange={(e) => setZusatz(e.target.checked)}
+              an={zusatz} onChange={(wert) => setZusatz(wert)}
             />
           )}
           {pflege && (

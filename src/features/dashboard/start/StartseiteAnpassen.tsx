@@ -21,6 +21,7 @@ import {
   type StartWahl,
 } from './einrichtung';
 import { startWahlNeuLaden } from './useStartWahl';
+import Schalter from '@/components/Schalter';
 
 /**
  * „STARTSEITE ANPASSEN“ (E68) — im ⋯ des Seitenkopfs der Startseite.
@@ -157,7 +158,7 @@ function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl, themen }: 
       <fieldset className="anpassen-gruppe">
         <legend className="anpassen-titel">Bereiche</legend>
         {bereiche.map((k) => (
-          <CheckboxField key={k} id={`zeige-${k}`} label={BEREICH_NAMEN[k]} checked={!aus.has(k)} onChange={(e) => zeigen(k, e.target.checked)} />
+          <Schalter key={k} id={`zeige-${k}`} label={BEREICH_NAMEN[k]} an={!aus.has(k)} onChange={(wert) => zeigen(k, wert)} />
         ))}
       </fieldset>
 
@@ -165,7 +166,7 @@ function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl, themen }: 
         <legend className="anpassen-titel">Zu erledigen</legend>
         <p className="anpassen-hinweis">Ausgeblendetes verschwindet nicht: unter „Zu erledigen“ steht, wie viel ausgeblendet ist, und ein Tipp zeigt es.</p>
         {themen.map((t) => (
-          <CheckboxField key={t.key} id={`zeige-${t.key}`} label={t.name} checked={!aus.has(t.key)} onChange={(e) => zeigen(t.key, e.target.checked)} />
+          <Schalter key={t.key} id={`zeige-${t.key}`} label={t.name} an={!aus.has(t.key)} onChange={(wert) => zeigen(t.key, wert)} />
         ))}
       </fieldset>
 

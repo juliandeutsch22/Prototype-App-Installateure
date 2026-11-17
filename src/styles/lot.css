@@ -150,7 +150,7 @@
   .meldung-text { flex: 1; }
   .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--auf-dunkel-akzent); font-weight: var(--gewicht-titel); cursor: pointer; }
 
-  /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift in Terrakotta — in beiden Sätzen lesbar. */
+  /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift im Akzent — in beiden Sätzen lesbar. */
   .lot-avatar { background: var(--auswahl); color: var(--accent-deep); border: 1px solid var(--auswahl-kontur); }
 
   /* ── Auswahl mit Häkchen (V10) ───────────────────────────────────────── */
@@ -331,7 +331,7 @@
   /*
     Für alles, was sofort wirkt. Dieselbe Schiene wie „Dunkle Darstellung“:
     aus = helle Schiene mit gedämpfter Kontur und grauem Griff links, an =
-    Terrakotta mit hellem Griff rechts und Häkchen. Die Zeile ist 48 px hoch
+    Akzent mit hellem Griff rechts und Häkchen. Die Zeile ist 48 px hoch
     und ganz antippbar (das Etikett gehört zum Knopf). Kein Schatten: der
     Schalter schwebt nicht.
   */
@@ -354,15 +354,6 @@
   .schalter-allein { min-height: 0; padding: 0; flex: none; }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
-  /* E4-Vorschlag: beide Sätze nebeneinander, unabhängig von der gewählten Darstellung. */
-  .muster-gefahr { display: grid; gap: 1.5rem; }
-  .muster-gefahr-paar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin-bottom: 0.75rem; }
-  @media (min-width: 760px) { .muster-gefahr-paar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .muster-gefahr-probe { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: 0.875rem; }
-  .muster-gefahr-titel { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
-  .muster-gefahr-reihe { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .muster-gefahr-zeile { display: flex; align-items: center; gap: 0.375rem; }
-  .muster-gefahr-knopf { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border-radius: var(--radius); }
   .muster-farbe { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; font-size: 0.875rem; }
   .muster-feld { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 }
@@ -485,7 +476,7 @@
   @media (min-width: 760px) { .unten { display: none; } }
   .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
   .unten-punkt { color: var(--inaktiv-symbol); }
-  /* V10: der aktive Bereich trägt eine warme Auswahlfläche hinter Symbol und Text — nicht nur die Farbe. */
+  /* V10: der aktive Bereich trägt eine Auswahlfläche hinter Symbol und Text — nicht nur die Farbe. */
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
   /*
     DIE RUNDUNG DER INSEL, NACH INNEN VERSETZT (14.11.2026). Mit 12 px stand

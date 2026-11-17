@@ -25,15 +25,15 @@ function regel(css: string, selektor: string): string {
 /*
   V10 „WARMES PAPIER“ (13.11.2026, style.md „Einsatzplanung · E88“, Auftrag
   11.2) löst E33 und die volle Fläche „heute“ ab: jeder Einsatz ist ein
-  helles Arbeitsblatt mit feiner Kontur, Terrakotta-Markierung und dem
-  normalen Einsatzradius — an jedem Tag gleich. Vollflächig Terrakotta ist
+  helles Arbeitsblatt mit feiner Kontur, Akzentmarkierung und dem
+  normalen Einsatzradius — an jedem Tag gleich. Vollflächig im Akzent ist
   nur der AUSGEWÄHLTE Einsatz. „Eingeteilt, aber abwesend“ ist dasselbe
   Blatt; den Konflikt sagt Text mit Warnzeichen, keine Bernsteinkante.
   Gegenprobe: mit dem Stand vor V10 (Petrol-Fläche heute, Bernsteinrahmen,
   eckig) ist jede Prüfung hier rot.
 */
 describe('Einsatz als helles Arbeitsblatt (V10)', () => {
-  it('Woche: helles Blatt, feine Kontur, Terrakotta-Markierung, normaler Radius, zwei Zellen hoch', () => {
+  it('Woche: helles Blatt, feine Kontur, Akzentmarkierung, normaler Radius, zwei Zellen hoch', () => {
     const r = regel(planung, '.eintrag, .eintrag-konflikt');
     expect(r).toMatch(/background: var\(--surface\)/);
     expect(r).toMatch(/color: var\(--ink-deep\)/);
@@ -48,7 +48,7 @@ describe('Einsatz als helles Arbeitsblatt (V10)', () => {
     expect(planung).not.toMatch(/\.handy-woche\[data-heute\][^{]*\.eintrag/);
   });
 
-  it('nur der ausgewählte Einsatz ist vollflächig Terrakotta — mit derselben Form', () => {
+  it('nur der ausgewählte Einsatz ist vollflächig im Akzent — mit derselben Form', () => {
     const sel = ':is(.einsatz-halter:is(:focus-within, [data-offen]) > :is(.eintrag, .eintrag-konflikt), :is(.eintrag, .eintrag-konflikt):focus-visible)';
     const r = regel(planung, sel);
     expect(r).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);

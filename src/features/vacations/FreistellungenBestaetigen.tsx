@@ -44,6 +44,7 @@ import { anrechnungVermerk, freistellungWas, freistellungZeitraum, leseDauer, na
 import type { ArztbesuchVorschlag } from '@/lib/db/freistellungen';
 import { eintraegeUmDenTag } from '@/lib/db/timeEntries';
 import { ueberschneidungen, type Ueberschneidung } from './freistellungUeberschneidung';
+import Schalter from '@/components/Schalter';
 
 /** Was ein Bestätigen im Zeitkonto bewirkt hat, in einem Satz. */
 function ergebnis(e: { angelegt: number; uebersprungen: number; entfernt: number; alsUrlaub?: number }): string {
@@ -515,11 +516,11 @@ export default function FreistellungenBestaetigen({
                 </span>
                 {kz.map((z, i) => (
                   <span key={z.urlaubsjahr} className="flex flex-wrap items-end gap-3">
-                    <CheckboxField
+                    <Schalter
                       id={`kz-an-${f.id}-${z.urlaubsjahr}`}
                       label={`Urlaubsjahr ${z.urlaubsjahr} kürzen`}
-                      checked={z.an}
-                      onChange={(e) => setKuerzung({ ...kuerzung, [f.id]: kz.map((x, j) => (j === i ? { ...x, an: e.target.checked } : x)) })}
+                      an={z.an}
+                      onChange={(wert) => setKuerzung({ ...kuerzung, [f.id]: kz.map((x, j) => (j === i ? { ...x, an: wert } : x)) })}
                     />
                     <InputField
                       id={`kz-tage-${f.id}-${z.urlaubsjahr}`}

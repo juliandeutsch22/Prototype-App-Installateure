@@ -4,13 +4,14 @@ import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import Card from '@/components/Card';
 import Speicherleiste from '@/components/Speicherleiste';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { decktKvNacht, nachtzeitVon, ueberstundenRegelVon, VOLLZEIT_TAG_HOECHSTENS } from '@/lib/lohnregeln';
 import { leseZahl } from '@/lib/zahl';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { durchrechnungsWochen } from '@/features/accounting/arbeitszeitGrenzen';
+import Schalter from '@/components/Schalter';
 
 /**
  * NACHTZEIT UND ÜBERSTUNDEN (Testbericht 30.09.2026, Paket 2c: M35 und das
@@ -275,11 +276,11 @@ export default function LohnregelnKarte() {
       </FormGrid>
       {vollzeitSichtbar && (
         <div className="mt-3 flex flex-col gap-2">
-          <CheckboxField
+          <Schalter
             id="vollzeitVerteilt"
             label="Vollzeit ungleich auf die Tage verteilt"
-            checked={verteilt}
-            onChange={(e) => setVerteilt(e.target.checked)}
+            an={verteilt}
+            onChange={(wert) => setVerteilt(wert)}
           />
           {verteilt && (
             <>
@@ -322,26 +323,26 @@ export default function LohnregelnKarte() {
       )}
       {modell === 'tagesgrenze' && (
         <div className="mt-3 flex flex-col gap-2">
-          <CheckboxField
+          <Schalter
             id="ueberstundenKvMetall"
             label="Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)"
-            checked={kvMetall}
-            onChange={(e) => setKvMetall(e.target.checked)}
+            an={kvMetall}
+            onChange={(wert) => setKvMetall(wert)}
           />
-          <CheckboxField
+          <Schalter
             id="ueberstundenHundert"
             label={kvMetall ? 'Arbeit an Sonn- und Feiertagen als Überstunden mit 100 % — für Angestellte' : 'Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %'}
-            checked={hundert}
-            onChange={(e) => setHundert(e.target.checked)}
+            an={hundert}
+            onChange={(wert) => setHundert(wert)}
           />
         </div>
       )}
       <div className="mt-3">
-        <CheckboxField
+        <Schalter
           id="kjbgVerteilungKv"
           label="Kollektivvertrag lässt für Jugendliche eine andere Verteilung der Arbeitszeit zu (§ 11 Abs 3 KJBG)"
-          checked={kjbgKv}
-          onChange={(e) => setKjbgKv(e.target.checked)}
+          an={kjbgKv}
+          onChange={(wert) => setKjbgKv(wert)}
         />
       </div>
       {fehler && !fehler.feld && <p role="alert" className="mt-2 text-sm text-danger">{fehler.text}</p>}

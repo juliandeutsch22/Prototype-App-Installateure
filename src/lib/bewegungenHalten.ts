@@ -4,6 +4,9 @@ import { platzhalterHalten } from './platzhalter';
 import { aufklappenHalten } from './aufklappen';
 import { feldfehlerHalten } from './feldfehler';
 
+// Die untere Leiste liegt außerhalb der Inhaltsspalte; Layout und Plattform halten ihren Beobachter selbst (E95).
+export { untenGleitenHalten } from './untenGleiten';
+
 /**
  * DIE BEOBACHTER DER BEWEGUNGEN, ZUSAMMEN (Plan 15.11.2026, Abschnitt 4).
  *

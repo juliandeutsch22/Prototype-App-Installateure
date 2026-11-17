@@ -106,7 +106,7 @@ test('ein verworfener Entwurf lässt sich löschen; ein unterschriebener Schein 
   const beleg = await scheinAnlegen(KUNDEN[2], 'Unterschrieben');
   await anmelden(page, CHEFIN.email);
   await page.goto('/worksheets');
-  await page.getByRole('checkbox', { name: /verworfene/ }).check();
+  await page.getByRole('switch', { name: /verworfene/ }).check();
   await page.locator('.zeile-ziel', { hasText: KUNDEN[1] }).click();
   await (await imMenue(page, page.getByRole('dialog'), 'Löschen')).click();
   await page.getByRole('dialog', { name: 'Verworfenen Entwurf löschen' }).getByRole('button', { name: 'Endgültig löschen' }).click();

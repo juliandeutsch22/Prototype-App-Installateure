@@ -26,15 +26,18 @@ Grenze, keine Annahme über „den“ Betrieb.
   `docs/design/v10/implementierungsauftrag.md`, Mappe
   `docs/design/v10/designmappe-v10.pptx` (Orientierung, keine 1:1-Vorlage;
   ihre kleinen Schriftgrößen sind keine CSS-Werte). Sie ersetzt die
-  rein visuellen Regeln der Linie „Lot“ (eckig, ohne Schatten, Petrol);
-  fachliche Entscheidungen aus `docs/ui-umbau/entscheidungen.md` gelten
+  rein visuellen Regeln der Linie „Lot“ (eckig, ohne Schatten);
+  **die Farben sind seit E95 (17.11.2026) wieder Petrol** auf weißem
+  Grund (Tokens in `src/index.css`, Tabelle in `style.md`). Fachliche Entscheidungen aus `docs/ui-umbau/entscheidungen.md` gelten
   weiter. Bausteine: Tokens in `src/index.css`, Stile in `src/styles/`,
   `src/components/`; alles zum Ansehen auf `/_muster`.
-- Warmes Papier als Grund, helle Arbeitsblätter mit feiner Kontur darauf;
-  Terrakotta (`--brand`) für Primäraktion, aktive Auswahl und wenige
+- Weißer Grund mit leisem Raster, helle Arbeitsblätter mit feiner Kontur
+  darauf; Petrol (`--brand`) für Primäraktion, aktive Auswahl und wenige
   Markierungen; keine Karte in einer Karte; jede Seite beginnt mit
   `PageHeader` (eine Hauptaktion, ⋯ nur im Seitenkopf); ganze Zeilen
-  antippbar; Zustände als Text und sparsames Symbol.
+  antippbar; Zustände als Text und sparsames Symbol. Ein/Aus heißt
+  `Schalter`, Kästchen nur für Auswahl aus einer Liste, Abhaken und
+  Bestätigen (E95, `schalterRegel.test.ts`).
 - **Radien nach Rolle:** Arbeitszeile 8 px, Feld/Knopf 12 px, Blatt 16 px,
   Sheet und mobile Kopf-/Fußinsel 24 px. **Schatten nur für Schwebendes**
   (Fenster, Sheets, Menüs, Meldung, mobile Inseln), nie an Zeilen, Feldern

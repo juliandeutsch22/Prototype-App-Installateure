@@ -71,7 +71,7 @@ describe('Die dunkle Trägerfläche', () => {
       Leiste. Genau das war vor der flachen Fläche der Fall.
     */
     /*
-      V10 (13.11.2026): am Telefon liegt unter dem Balken das warme Papier mit
+      V10 (13.11.2026): am Telefon liegt unter dem Balken der Grund mit
       der hellen Kopfinsel darauf — der Balken trägt das Papier (`--bg`), nicht
       mehr die dunkle Navigation. `darstellung.ts` setzt ihn je Satz neu.
     */

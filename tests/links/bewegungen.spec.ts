@@ -566,6 +566,44 @@ test.describe('B9 Schwebende Hauptaktion', () => {
     expect(await treffer(page)).toEqual({ links: false, rechts: true });
   });
 
+  /*
+    E95 (17.11.2026): „auf der Einsatz-planen-Seite ist der Effekt nicht
+    vorhanden, und der mitfliegende Button erscheint zeitverzögert.“ Zwei
+    Ursachen: das Plus kannte nur „Neu …“, und die Weiterleitung von
+    `/assignments` auf `/assignments/woche` galt als Schritt „tiefer“ — die
+    Seite schob sich ein zweites Mal herein, der Knopf wartete darauf
+    (`data-seitenwechsel`). Gegenprobe: mit dem Stand davor steht der Knopf
+    nie eingezogen, und das Gleiten wird während der Weiterleitung gemeldet.
+  */
+  test('Einsatzplanung: kein zweites Hereingleiten nach dem Wechsel, und „Einsatz planen“ zieht sich zum Plus zusammen', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await expect(page.locator('.unten')).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { gleitet: boolean };
+      w.gleitet = false;
+      const ende = performance.now() + 1500;
+      const schauen = () => {
+        if (document.querySelector('.inhalt[data-seitenwechsel]')) w.gleitet = true;
+        if (performance.now() < ende) requestAnimationFrame(schauen);
+      };
+      requestAnimationFrame(schauen);
+    });
+    await page.locator('.unten').getByText('Planung', { exact: true }).click();
+    const daumen = page.locator('.daumen');
+    await expect(daumen.getByRole('button', { name: 'Einsatz planen' })).toBeVisible();
+    await page.waitForTimeout(1600);
+    expect(await page.evaluate(() => (window as unknown as { gleitet: boolean }).gleitet)).toBe(false);
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    await expect(daumen).toHaveAttribute('data-eingezogen', '');
+    await expect(daumen.locator('.daumen-symbol')).toHaveCSS('opacity', '1');
+    await page.waitForTimeout(300);
+    expect(await treffer(page)).toEqual({ links: false, rechts: true });
+    await rollen(page, 300);
+    await expect(daumen).not.toHaveAttribute('data-eingezogen');
+  });
+
   test('gleich geblieben: am Tablet steht die Aktion im Kopf und zieht sich nie zusammen', async ({ page }) => {
     await page.setViewportSize({ width: 834, height: 1112 });
     await page.goto(pfad('/invoices'));
@@ -790,13 +828,112 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
   });
 });
 
+test.describe('E95 Untere Leiste: die Auswahlfläche gleitet', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /*
+    Je Bild: wo die sichtbare Auswahlfläche steht (Mitte, in px) — die des
+    fahrenden Abbilds, sonst die des aktiven Punkts — und ob es genau eine
+    gibt. Gegenprobe: ohne `untenGleiten.ts` gibt es kein Abbild, die Fläche
+    springt in einem Bild von Start nach Rechnungen (kein Zwischenwert, rot).
+  */
+  const aufnehmen = (page: Page) => page.evaluate(() => {
+    const w = window as unknown as { flaeche: Array<[number, number]>; flaecheFertig: boolean };
+    w.flaeche = []; w.flaecheFertig = false;
+    const t0 = performance.now();
+    const sichtbar = (el: Element) => getComputedStyle(el, '::before').visibility !== 'hidden' && getComputedStyle(el, '::before').content !== 'none';
+    const bild = () => {
+      const abbild = document.querySelector('.unten [data-unten-gleiter]');
+      const aktive = [...document.querySelectorAll('.unten .unten-punkt-aktiv')].filter(sichtbar);
+      const mitte = (el: Element) => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+      w.flaeche.push([abbild ? mitte(abbild) : aktive.length ? mitte(aktive[0]) : NaN, (abbild ? 1 : 0) + aktive.length]);
+      if (performance.now() - t0 < 900) requestAnimationFrame(bild); else w.flaecheFertig = true;
+    };
+    requestAnimationFrame(bild);
+  });
+  const lesen = async (page: Page) => {
+    await page.waitForFunction(() => (window as unknown as { flaecheFertig: boolean }).flaecheFertig);
+    return page.evaluate(() => (window as unknown as { flaeche: Array<[number, number]> }).flaeche);
+  };
+  const punkt = (page: Page, text: string) => page.locator('.unten a, .unten button').filter({ hasText: text }).first();
+  const mitteVon = (page: Page, text: string) => punkt(page, text).evaluate((el) => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; });
+
+  test('fährt von Start nach Rechnungen, federt nach und gibt die Fläche danach dem Punkt zurück', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await expect(punkt(page, 'Start')).toHaveClass('unten-punkt-aktiv');
+    await beobachterBereit(page);
+    const von = await mitteVon(page, 'Start');
+    const nach = await mitteVon(page, 'Rechnungen');
+    await aufnehmen(page);
+    await punkt(page, 'Rechnungen').click();
+    const spur = await lesen(page);
+    // Immer genau eine Fläche — nie zwei, nie keine.
+    expect(spur.every(([, n]) => n === 1)).toBe(true);
+    const lagen = spur.map(([x]) => x);
+    // Ein Weg: Zwischenwerte zwischen alter und neuer Stelle.
+    expect(lagen.filter((x) => x > von + 20 && x < nach - 20).length).toBeGreaterThan(2);
+    // Ein paar Pixel über das Ziel hinaus, dann zurück.
+    expect(Math.max(...lagen)).toBeGreaterThan(nach + 0.5);
+    expect(Math.max(...lagen)).toBeLessThanOrEqual(nach + 4.5);
+    expect(lagen[lagen.length - 1]).toBeCloseTo(nach, 0);
+    // Am Ende ist das Abbild weg, die Fläche gehört wieder dem Punkt.
+    await expect(page.locator('.unten [data-unten-gleiter]')).toHaveCount(0);
+    await expect(punkt(page, 'Rechnungen')).not.toHaveAttribute('data-gleitet');
+  });
+
+  test('zweimal schnell getippt: von der Stelle weiter, an der die Fläche gerade ist', async ({ page, browserName }) => {
+    wegNurInChromium(browserName);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/'));
+    await beobachterBereit(page);
+    const von = await mitteVon(page, 'Start');
+    const nach = await mitteVon(page, 'Baustellen');
+    await aufnehmen(page);
+    await punkt(page, 'Rechnungen').click();
+    await page.waitForTimeout(120);
+    await punkt(page, 'Baustellen').click();
+    const lagen = (await lesen(page)).map(([x]) => x);
+    expect(lagen.some((x) => x > von + 20 && x < nach - 20)).toBe(true);
+    // Kein Sprung zurück zu Start: nach dem ersten Bild bleibt die Fläche rechts von ihm.
+    expect(Math.min(...lagen.slice(lagen.findIndex((x) => x > von + 2)))).toBeGreaterThan(von + 2);
+    expect(lagen[lagen.length - 1]).toBeCloseTo(nach, 0);
+    await expect(page.locator('.unten [data-unten-gleiter]')).toHaveCount(0);
+  });
+
+  test('mit reduzierter Bewegung wechselt die Fläche sofort, ohne Abbild', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/'));
+    await beobachterBereit(page);
+    const nach = await mitteVon(page, 'Rechnungen');
+    await aufnehmen(page);
+    await punkt(page, 'Rechnungen').click();
+    const spur = await lesen(page);
+    expect(spur.every(([, n]) => n === 1)).toBe(true);
+    expect(spur.some(([x]) => Math.abs(x - nach) > 1 && Math.abs(x - nach) < 100)).toBe(false);
+    expect(spur[spur.length - 1][0]).toBeCloseTo(nach, 0);
+  });
+});
+
 test.describe('U7 Zeiterfassung am Handy', () => {
   test('kompakte Zeile, Löschen im Fenster mit derselben Rückfrage', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(pfad('/time', 'Mitarbeiter'));
     const zeilen = page.locator('#meine-eintraege li.zeile');
     await expect(zeilen.first()).toBeVisible();
-    const hoehen = await zeilen.evaluateAll((z) => z.slice(0, 6).map((e) => e.getBoundingClientRect().height));
+    /*
+      GEMESSEN WERDEN DIE BUCHUNGEN OHNE EIGENEN KNOPF (E95, 17.11.2026). Ein
+      Berufsschultag hat kein Fenster — er wird gelöscht und neu eingetragen —
+      und trägt deshalb seinen Löschknopf in der Zeile; mit ihm bricht sie um.
+      In der Vorschau ist jeder fünfte Werktag einer; ob er unter den ersten
+      sechs Zeilen lag, hing vom Datum ab (am 17.11. rot, am 16.11. grün).
+    */
+    const hoehen = await zeilen.evaluateAll((z) => z
+      .filter((e) => !e.querySelector('.zeile-rechts button'))
+      .slice(0, 6)
+      .map((e) => e.getBoundingClientRect().height));
+    expect(hoehen.length).toBeGreaterThanOrEqual(3);
     // Vorher 152–176 px je Buchung (drei bis vier Zeilen und ein Papierkorb).
     expect(Math.max(...hoehen)).toBeLessThan(110);
     const erste = zeilen.first();

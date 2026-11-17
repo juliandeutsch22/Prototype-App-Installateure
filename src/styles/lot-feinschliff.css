@@ -13,6 +13,8 @@
   --motion-meldung: 240ms;
   --motion-exit: 140ms;
   --motion-route: 160ms;
+  /* B9, seit E95: die schwebende Hauptaktion zieht sich in einem Zug zusammen — etwas länger als ein Zustand, damit der Weg zu sehen ist. */
+  --motion-einziehen: 280ms;
   --motion-reduziert: 80ms;
   --ease-response: cubic-bezier(.22, 1, .36, 1);
 }
