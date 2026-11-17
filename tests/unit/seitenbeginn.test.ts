@@ -37,7 +37,7 @@ describe('Abstand unter dem Seitenkopf', () => {
 
 describe('Die Kontextspalte der Akten in einer Schrift (Rückmeldung 31.10.2026)', () => {
   it('Anschrift, Notiz und Angaben stehen gleich groß', () => {
-    expect(AKTEN).toContain('.akten-kontext :is(.akten-angaben dd, .karte-koerper > p, .akten-notiz) { font-size: var(--groesse-inhalt); line-height: 1.375rem; }');
+    expect(AKTEN).toContain('.akten-kontext :is(.akten-angaben dd, .karte-koerper > p, .akten-notiz) { font-size: var(--groesse-inhalt); line-height: 1.25rem; }');
   });
 
   it('Links tragen ihre Tastfläche ohne die Zeile höher zu machen', () => {

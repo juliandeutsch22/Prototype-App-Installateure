@@ -29,7 +29,7 @@
   .beleg-kontext .karte-kopf h2 { font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   .beleg-kontext .beleg-angaben { grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
   .beleg-kontext .beleg-angaben dt { font-size: var(--groesse-begleit); line-height: 1.125rem; color: var(--text-muted); margin-bottom: 0.125rem; }
-  .beleg-kontext :is(.beleg-angaben dd, .karte-koerper > p) { margin-top: 0; font-size: var(--groesse-inhalt); line-height: 1.375rem; }
+  .beleg-kontext :is(.beleg-angaben dd, .karte-koerper > p) { margin-top: 0; font-size: var(--groesse-inhalt); line-height: 1.25rem; }
   /*
     EIN VERWEIS IN DER SPALTE BEHÄLT SEINE TASTFLÄCHE, OHNE DIE ZEILE HÖHER
     ZU MACHEN (wie E31 in den Akten): „Familie Huber“ stand 12 px tiefer als

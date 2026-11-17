@@ -51,13 +51,14 @@
     öffnen →“) trug seine 48-px-Tastfläche als Zeilenhöhe. Jetzt steht jede
     Angabe gleich groß — seit E97 (17.11.2026) in der Inhaltsstufe (15 px) wie
     dieselben Angaben in der Hauptspalte, die Beschriftung darüber in der
-    Begleitstufe (13 px); vorher 13 und 12 px. Die Links behalten ihre Tastfläche über Polster und
+    Begleitstufe (13 px); vorher 13 und 12 px. Die Zeile bleibt 20 px hoch —
+    der Takt der Spalte (`kontextEinheitlich.spec.ts`). Die Links behalten ihre Tastfläche über Polster und
     Gegenrand, ohne die Zeile höher zu machen, und jeder Abschnitt hat
     denselben Abstand zur Überschrift und zum nächsten.
   */
   .akten-kontext .karte-kopf { min-height: 0; padding: 1.25rem 0 0.5rem; }
   .akten-kontext .karte-koerper { padding: 0; }
-  .akten-kontext :is(.akten-angaben dd, .karte-koerper > p, .akten-notiz) { font-size: var(--groesse-inhalt); line-height: 1.375rem; }
+  .akten-kontext :is(.akten-angaben dd, .karte-koerper > p, .akten-notiz) { font-size: var(--groesse-inhalt); line-height: 1.25rem; }
   .akten-kontext .akten-notiz { padding: 0; }
   .akten-kontext :is(.link-kontakt, .akten-verweis) { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; }
   /* 16 px Zeile + 2 × 14 px Polster = 44 px Tastfläche (E72, R3); vorher 40 px. */
