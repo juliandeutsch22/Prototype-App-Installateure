@@ -4,11 +4,12 @@ import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import KnopfLink from '@/components/KnopfLink';
-import { CheckboxField, InputField, TextareaField } from '@/components/Field';
+import { InputField, TextareaField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { grundAus } from '@/lib/fehlerGrund';
+import Schalter from '@/components/Schalter';
 import {
   ANHANG_MAX_BYTES, anhangName, betreffFehler, empfaengerLesen, textFehler, vorlageFuellen, vorlageFuer, type BelegArt,
 } from '@shared/belegMail';
@@ -196,7 +197,7 @@ export default function BelegMailDialog({
           </p>
         </div>
         {antwort && (
-          <CheckboxField id="beleg-mail-kopie" label={`Kopie an ${antwort}`} checked={kopie} onChange={(e) => setKopie(e.target.checked)} />
+          <Schalter id="beleg-mail-kopie" label={`Kopie an ${antwort}`} an={kopie} onChange={(wert) => setKopie(wert)} />
         )}
         <InputField id="beleg-mail-betreff" label="Betreff" pflicht value={betreff} onChange={(e) => setBetreff(e.target.value)} />
         <TextareaField id="beleg-mail-text" label="Text" pflicht rows={10} value={text} onChange={(e) => setText(e.target.value)} />

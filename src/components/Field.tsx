@@ -222,7 +222,9 @@ interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 }
 
 /**
- * Checkbox mit großem Touch-Ziel und einheitlichem Label.
+ * Checkbox mit großem Touch-Ziel und einheitlichem Label — seit E95 nur für
+ * Auswahl aus einer Liste, Abhaken und eine Bestätigung; jedes Ein/Aus ist
+ * ein `Schalter`.
  *
  * Das Aussehen steckt in `.checkbox` (index.css) und nicht hier: es gibt
  * sieben weitere Kästchen in der App, die nicht durch diesen Baustein laufen

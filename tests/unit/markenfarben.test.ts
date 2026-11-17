@@ -48,14 +48,14 @@ describe('Belegfarben', () => {
   });
 
   /*
-    V10 (13.11.2026): die Oberfläche trägt Terrakotta, die Belege bleiben,
-    wie sie sind — Druck- und PDF-Ausgaben folgen ihren bestehenden
-    Fachregeln (style.md) und sind prüfsummengleich (`belegReferenz`). Das
-    Petrol der Belege ist deshalb nicht mehr die Farbe der Oberfläche.
+    Die Belege bleiben, wie sie sind — Druck- und PDF-Ausgaben folgen ihren
+    bestehenden Fachregeln (style.md) und sind prüfsummengleich
+    (`belegReferenz`). Seit E95 (17.11.2026) trägt die Oberfläche wieder
+    dasselbe Petrol wie die Belege; davor (V10) Terrakotta.
   */
-  it('Petrol bleibt die Farbe der Belege, auch nachdem die Oberfläche Terrakotta trägt', () => {
+  it('Petrol der Belege und der Oberfläche sind wieder derselbe Ton', () => {
     expect(PETROL).toEqual([15, 69, 82]);
-    expect(token('--brand-fixed')).toEqual([168, 84, 57]);
+    expect(token('--brand-fixed')).toEqual([15, 69, 82]);
   });
 });
 

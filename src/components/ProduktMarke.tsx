@@ -10,7 +10,7 @@ interface Props {
 }
 
 /*
-  V10 (13.11.2026): Zeichen in Terrakotta (Form seit E93), Schriftzug in Tinte. Auf dunklem
+  V10 (13.11.2026): Zeichen in Petrol (Form seit E93, Farbe seit E95), Schriftzug in Tinte. Auf dunklem
   Satz zeigt die Marke die Fassung für dunkle Flächen — vorher wurde die
   helle Fassung per Filter weiß gefärbt, das hätte auch das Zeichen weiß
   gemacht.

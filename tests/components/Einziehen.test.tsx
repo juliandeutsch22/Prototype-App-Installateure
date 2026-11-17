@@ -13,4 +13,23 @@ describe('aktionSymbol', () => {
     expect(aktionSymbol(<Button>Neu laden</Button>)).toBeNull();
     expect(aktionSymbol(undefined)).toBeNull();
   });
+
+  /*
+    E95: in der Einsatzplanung zog sich „Einsatz planen“ nicht zusammen —
+    das Plus kannte nur „Neu …“. Gegenprobe: mit der Regel davor ist jede
+    dieser Zeilen null (rot).
+  */
+  it('auch „… planen“, „… anlegen“, „… erfassen“ und „Antrag stellen“ legen etwas an', () => {
+    expect(aktionSymbol(<Button>Einsatz planen</Button>)).toBe('plus');
+    expect(aktionSymbol(<Button>Benutzer anlegen</Button>)).toBe('plus');
+    expect(aktionSymbol(<Button>Eintrag erfassen</Button>)).toBe('plus');
+    expect(aktionSymbol(<Button>Antrag stellen</Button>)).toBe('plus');
+  });
+
+  it('gleich geblieben: was nichts anlegt, zieht sich nicht zusammen', () => {
+    expect(aktionSymbol(<Button>Bearbeiten</Button>)).toBeNull();
+    expect(aktionSymbol(<Button>Abweichungen buchen</Button>)).toBeNull();
+    expect(aktionSymbol(<Button>Abschließen</Button>)).toBeNull();
+    expect(aktionSymbol(<Button>planen</Button>)).toBeNull();
+  });
 });

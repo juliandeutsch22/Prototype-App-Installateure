@@ -17,10 +17,11 @@ import Speicherleiste from '@/components/Speicherleiste';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
 import { Zustand } from '@/components/Badge';
-import { CheckboxField, InputField, SelectField } from '@/components/Field';
+import { InputField, SelectField } from '@/components/Field';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { fahrzeugText } from '@/features/orders/lagerorte';
+import Schalter from '@/components/Schalter';
 
 /**
  * FAHRZEUGE (SHK-Ausbau M04a) — unter Einstellungen, weil hier später die
@@ -227,12 +228,12 @@ export default function FahrzeugeView() {
         hint="Heute bucht das Lager die Verwaltung oder die Leitung. Ist das eingeschaltet, lagert der Standardfahrer Material aus seinem Fahrzeug selbst ins Hauptlager zurück — unter „Mein Fahrzeug“. In andere Fahrzeuge oder Lager umlagern kann er nicht. Festlegen darf es die Geschäftsführung."
       >
         <div className="formular flex flex-col gap-4">
-          <CheckboxField
+          <Schalter
             id="lagerRueckgabeFahrer"
             label="Der Standardfahrer lagert aus seinem Fahrzeug selbst ins Hauptlager zurück"
-            checked={rueckgabe}
-            disabled={!spitze}
-            onChange={(e) => setRueckgabe(e.target.checked)}
+            an={rueckgabe}
+            gesperrt={!spitze}
+            onChange={(wert) => setRueckgabe(wert)}
           />
           {spitze && (
             <Speicherleiste geaendert={rueckgabe !== rueckgabeGespeichert} speichert={rueckgabeSpeichert} onVerwerfen={() => setRueckgabe(rueckgabeGespeichert)} onSpeichern={() => void rueckgabeSpeichern()} />
@@ -275,11 +276,11 @@ export default function FahrzeugeView() {
               {fahrerWahl.map((p) => <option key={p.uid} value={p.uid}>{p.name}</option>)}
             </SelectField>
             {entwurf.id && (
-              <CheckboxField
+              <Schalter
                 id="fahrzeug-aktiv"
                 label="In Betrieb"
-                checked={entwurf.aktiv}
-                onChange={(e) => setEntwurf({ ...entwurf, aktiv: e.target.checked })}
+                an={entwurf.aktiv}
+                onChange={(wert) => setEntwurf({ ...entwurf, aktiv: wert })}
               />
             )}
             {fehler && <ErrorState message={fehler} />}

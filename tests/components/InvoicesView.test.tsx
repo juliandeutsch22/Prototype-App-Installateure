@@ -1124,7 +1124,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
     // Bei einem Betrieb, der überwiegend für Private arbeitet, bleibt der
     // Haken das ganze Jahr aus. Er darf sich nicht von selbst setzen.
     await bisZurVorschau();
-    expect(screen.getByRole('checkbox', { name: /Bauleistung/ })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: /Bauleistung/ })).not.toBeChecked();
     await userEvent.click(handlung({ name: /Rechnung erstellen/ }));
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(lege.mock.calls[0][0]).toMatchObject({ reverseCharge: false, vatRate: 0.2 });
@@ -1136,14 +1136,14 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
       später berichtigt werden muss. Hier gibt es nichts abzuwägen.
     */
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     expect(await waitFor(() => handlung({ name: /Rechnung erstellen/ }))).toBeDisabled();
     expect(screen.getByText(/nicht belegt/)).toBeInTheDocument();
   });
 
   it('gibt ihn frei, sobald sie dasteht — und schreibt sie in die Rechnung', async () => {
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
 
     const knopf = await waitFor(() => handlung({ name: /Rechnung erstellen/ }));
@@ -1165,7 +1165,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
     // Abtippen vom Briefkopf ist die Stelle, an der die Ziffer verlorengeht.
     kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     expect(screen.getByLabelText(/UID-Nummer des Kunden/)).toHaveValue('ATU55556666');
   });
 
@@ -1182,7 +1182,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
 
   it('weist auf eine UID hin, die keine sein kann', async () => {
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
     expect(await screen.findByText(/„ATU“ und acht Ziffern/)).toBeInTheDocument();
   });
@@ -1190,7 +1190,7 @@ describe('Reverse Charge in der Rechnungsmaske', () => {
   it('rechnet die Steuer aus der Vorschau heraus', async () => {
     // 8 Stunden Facharbeit — ohne Übergang mit 20 %, mit Übergang ohne.
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
     expect(await screen.findByText('Übergang der Steuerschuld')).toBeInTheDocument();
     expect(screen.getByText('Rechnungsbetrag')).toBeInTheDocument();
@@ -1702,7 +1702,7 @@ describe('Die UID des Kunden ohne Reverse Charge', () => {
     await bisZurVorschau();
 
     // Kein Haken — eine ganz gewöhnliche Rechnung mit 20 % Umsatzsteuer.
-    expect(screen.getByRole('checkbox', { name: /Bauleistung/ })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: /Bauleistung/ })).not.toBeChecked();
     await userEvent.click(handlung({ name: /Rechnung erstellen/ }));
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -1746,7 +1746,7 @@ describe('Die korrigierte UID', () => {
     await userEvent.clear(feld);
     await userEvent.type(feld, 'atu 5555 7777');
     // Runde 3, M11: die Frage steht da und ist mit „ja“ vorbelegt.
-    expect(screen.getByRole('checkbox', { name: /UID auch beim Kunden speichern\? \(dort steht ATU55556666\)/ })).toBeChecked();
+    expect(screen.getByRole('switch', { name: /UID auch beim Kunden speichern\? \(dort steht ATU55556666\)/ })).toBeChecked();
     await userEvent.click(handlung({ name: /Rechnung erstellen/ }));
 
     await waitFor(() => expect(updateCustomer).toHaveBeenCalled());
@@ -1762,7 +1762,7 @@ describe('Die korrigierte UID', () => {
     const feld = screen.getByLabelText(/UID-Nummer des Kunden/);
     await userEvent.clear(feld);
     await userEvent.type(feld, 'ATU55557777');
-    await userEvent.click(screen.getByRole('checkbox', { name: /UID auch beim Kunden speichern\?/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /UID auch beim Kunden speichern\?/ }));
     await userEvent.click(handlung({ name: /Rechnung erstellen/ }));
     await waitFor(() => expect(lege).toHaveBeenCalled());
     expect(updateCustomer).not.toHaveBeenCalled();
@@ -1771,7 +1771,7 @@ describe('Die korrigierte UID', () => {
   it('Gegenprobe: dieselbe UID bietet nichts an', async () => {
     kunden = [{ id: 'k9', name: 'Familie Huber', vatId: 'ATU55556666' }];
     await bisZurVorschau();
-    expect(screen.queryByRole('checkbox', { name: /UID auch beim Kunden speichern/ })).toBeNull();
+    expect(screen.queryByRole('switch', { name: /UID auch beim Kunden speichern/ })).toBeNull();
   });
 
   it('eine UID in falscher Form sperrt das Erstellen', async () => {
@@ -3649,7 +3649,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
   // Testbericht 30.09.2026, G16 — bei einer Anzahlung gibt es nichts nachzuweisen.
   it('bietet bei der Anzahlung keinen gesetzten Haken „Leistungsnachweis anhängen“ an (G16)', async () => {
     const bestaetigen = await bisZurVorschau('anzahlung');
-    expect(screen.queryByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Leistungsnachweis anhängen' })).toBeNull();
 
     const preis = screen.getByLabelText('Einzelpreis Position 1');
     await userEvent.clear(preis);
@@ -3664,7 +3664,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
 
   it('Gegenprobe: bei der Einzelrechnung steht der Haken da und ist gesetzt (G16)', async () => {
     await bisZurVorschau();
-    expect(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
   });
 
   it('bietet die Anzahlung der Baustelle zum Abzug an und rechnet den Rest aus', async () => {
@@ -3732,7 +3732,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     const bestaetigen = await bisZurVorschau('schluss');
     expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
 
     expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
@@ -3750,7 +3750,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeChecked();
     expect(screen.getByText(/Restforderung brutto/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     expect(screen.queryByText(/Restforderung brutto/)).toBeNull();
   });
 
@@ -3788,7 +3788,7 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     // Ohne Haken passt sie nicht …
     expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
     // … mit Haken schon.
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
   });
 
@@ -4196,7 +4196,7 @@ describe('Die Kennzahl „Bezahlt“', () => {
 describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
   it('rechnet nach dem Neuaufbau mit Reverse Charge ohne USt', async () => {
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
     await userEvent.click(handlung({ name: 'Positionen zusammenstellen' }));
     const uid = (await screen.findByLabelText(/UID-Nummer des Kunden/)) as HTMLInputElement;
@@ -4680,7 +4680,7 @@ describe('Rechnung ohne Umsatzsteuer', () => {
 
   it('Gegenprobe: bei Reverse Charge steht der Pflichtsatz, nicht der Grund', async () => {
     await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Bauleistung/ }));
     expect(screen.queryByLabelText(/Grund der Steuerbefreiung/)).not.toBeInTheDocument();
   });
 });
@@ -6331,7 +6331,7 @@ describe('Konditionen gelten nur für die Rechnung, die gerade entsteht (G1)', (
 describe('Leistungsnachweis wird mit der Rechnung festgehalten (G6)', () => {
   it('mit Haken: Rechnung und PDF tragen dieselben Zeilen', async () => {
     const bestaetigen = await bisZurVorschau();
-    expect(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
     await userEvent.click(bestaetigen);
     await waitFor(() => expect(lege).toHaveBeenCalledOnce());
     const nachweis = lege.mock.calls[0][0].leistungsnachweis;
@@ -6344,7 +6344,7 @@ describe('Leistungsnachweis wird mit der Rechnung festgehalten (G6)', () => {
 
   it('ohne Haken: kein Nachweis an der Rechnung', async () => {
     const bestaetigen = await bisZurVorschau();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Leistungsnachweis anhängen' }));
     await userEvent.click(bestaetigen);
     await waitFor(() => expect(lege).toHaveBeenCalledOnce());
     expect(lege.mock.calls[0][0].leistungsnachweis).toBeNull();

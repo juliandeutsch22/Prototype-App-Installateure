@@ -29,7 +29,7 @@
   /*
     „WEITER ZURÜCK PRÜFEN“ ALS AUSWAHL (V10): der gewählte Zeitraum ist eine
     Auswahl, keine Hauptaktion — warme Fläche und feine Kontur statt des
-    gefüllten Terrakotta-Knopfs, der neben „Neuer Schein“ als zweite
+    gefüllten Akzentknopfs, der neben „Neuer Schein“ als zweite
     Primäraktion las. Die Rahmenstärke bleibt, nichts springt.
   */
   .pruef-zeitraum[aria-pressed='true'] { background: var(--auswahl); border-color: var(--auswahl-kontur); color: var(--ink-deep); }

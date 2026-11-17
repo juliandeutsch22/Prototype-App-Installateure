@@ -44,8 +44,8 @@ test('Über mehrere Tage: der erste Tag und die Werktage danach', async ({ page 
   await expect(baustelle).toBeVisible({ timeout: 15_000 });
   await baustelle.selectOption(BAUSTELLE.nummer);
   await page.getByRole('checkbox', { name: new RegExp(`^${MONTEUR.name}`) }).check();
-  await page.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }).check();
-  await expect(page.getByRole('checkbox', { name: 'nur Werktage' })).toBeChecked();
+  await page.getByRole('switch', { name: 'Auch an den folgenden Tagen' }).check();
+  await expect(page.getByRole('switch', { name: 'nur Werktage' })).toBeChecked();
   const bis = plusTage(heute(), 6);
   await page.getByLabel('bis einschließlich').fill(bis);
   await page.getByRole('button', { name: /speichern$/ }).first().click();

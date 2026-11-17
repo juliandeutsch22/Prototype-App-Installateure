@@ -427,7 +427,7 @@ describe('Material anfordern — der Warenkorb', () => {
      * bekommen hat.
      */
     zeige();
-    expect(await screen.findByRole('checkbox', { name: /Eilzustellung/ })).toBeDisabled();
+    expect(await screen.findByRole('switch', { name: /Eilzustellung/ })).toBeDisabled();
     expect(screen.getByText('Dafür zuerst die Baustelle wählen.')).toBeInTheDocument();
 
     // Erst Baustelle und Haken setzen, dann die Baustelle wieder wegnehmen:
@@ -436,11 +436,11 @@ describe('Material anfordern — der Warenkorb', () => {
     // ist — und der Test wäre auch dann grün, wenn die Bedingung fehlte.
     const baustelle = await baustelleFeld();
     await userEvent.selectOptions(baustelle, '2026-042');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: /Eilzustellung/ })).toBeChecked());
+    await userEvent.click(screen.getByRole('switch', { name: /Eilzustellung/ }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: /Eilzustellung/ })).toBeChecked());
     await userEvent.selectOptions(baustelle, '');
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: /Eilzustellung/ })).toBeDisabled(),
+      expect(screen.getByRole('switch', { name: /Eilzustellung/ })).toBeDisabled(),
     );
 
     await userEvent.click(await waitFor(() => handlung({ name: /Dichtung .* in die Liste/ })));
@@ -459,7 +459,7 @@ describe('Material anfordern — der Warenkorb', () => {
       await baustelleFeld(),
       '2026-099',
     );
-    await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Eilzustellung/ }));
 
     expect(
       await screen.findByText(/keine Projektleitung zugeteilt/),
@@ -472,9 +472,9 @@ describe('Material anfordern — der Warenkorb', () => {
       await baustelleFeld(),
       '2026-042',
     );
-    await userEvent.click(screen.getByRole('checkbox', { name: /Eilzustellung/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Eilzustellung/ }));
 
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: /Eilzustellung/ })).toBeChecked());
+    await waitFor(() => expect(screen.getByRole('switch', { name: /Eilzustellung/ })).toBeChecked());
     expect(screen.queryByText(/keine Projektleitung zugeteilt/)).not.toBeInTheDocument();
   });
 });

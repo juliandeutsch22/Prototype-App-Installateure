@@ -62,6 +62,16 @@ export default function PlattformHuelle({
   // Jedes Blatt auf eine Rasterlinie — derselbe Taktgeber wie im Layout der App.
   useEffect(() => (flaeche.current ? taktHalten(flaeche.current) : undefined), []);
 
+  // Die Auswahlfläche der unteren Leiste gleitet wie in der App (E95); nachgeladen, sie wird erst beim ersten Wechsel gebraucht.
+  useEffect(() => {
+    let abmelden: (() => void) | null = null;
+    let vorbei = false;
+    void import('@/lib/untenGleiten')
+      .then((m) => { if (!vorbei) abmelden = m.untenGleitenHalten(reiterleiste.current); })
+      .catch(() => undefined);
+    return () => { vorbei = true; abmelden?.(); };
+  }, []);
+
   /*
     DIE HÖHE DER REITERLEISTE (`--reiter-hoehe` am body), wie im Layout:
     Leisten, die am Handy unten kleben (Rechtstexte: Speichern und

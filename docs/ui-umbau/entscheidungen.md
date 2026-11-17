@@ -4010,3 +4010,59 @@ Logo soll aber bleiben, aber dann auch terrakotta werden.“
   (Gegenprobe: das blaue Icon aus E93 ist rot); `ProduktMarke.test.tsx`
   bindet weiter das Seitenverhältnis an `marke/logo.svg`. Die Prüfung gegen
   warme Linientöne aus E93 entfällt mit den warmen Linien.
+
+**E95 — Zurück zu Petrol, Schalter statt Kästchen, gleitende Auswahl am Handy (17.11.2026).**
+Auftrag: „Die App soll zurück zum Petrol-Farbschema … stelle sicher, dass am
+Ende wirklich alle Elemente der App die korrekten Farben haben“; dazu der
+mitfliegende Knopf am Handy weicher und auch in der Einsatzplanung, der
+Abstand im leeren Wartungsblatt, Schalter statt Kästchen überall, wo es Sinn
+macht, ein rundes Namenskürzel und — nachgereicht — „in der mobilen Navbar
+sollte der Fokus des aktiven Menüpunktes beim Switchen der Seite auch mit
+einer smoothen Animation wechseln, in etwa so wie in der aktuellen
+Instagram-iOS-App“.
+
+- **Farben Petrol, Gestalt V10:** alle Tokens beider Sätze auf die
+  Petrolwelt der Linie „Lot“ — weißer Grund, Petrol `#0F4552` für Marke,
+  Hauptaktion, Auswahl und Fokus, Navigation `#0F3C47`, Auswahl `#E4EEF0`,
+  kühle Linien `#DFE7E9`; dunkel `#0C1C20` mit Akzent `#7CC4D2` und
+  gefüllten Flächen `#236C7B`. Radien, Schatten, Schriften, Inseln und Regeln
+  aus E92 bleiben. Startbildschirm, Statusleiste, Reiterfarbe und Manifest
+  in `#FFFFFF` / `#0C1C20`; das Zeichen aus E93/E94 in Petrol (dunkel
+  `#7CC4D2`), Icons, Favicons und Push-Abzeichen neu gerastert. Tabelle der
+  Werte: `docs/design/v10/style.md`. Wächter `petrolFarben.test.ts`: kein
+  V10- oder E93-Farbwert mehr in Stilen, Code, `index.html`, Manifest und
+  Marke (Gegenprobe: der Stand davor ist rot).
+- **Gefahrfarbe (E4) erledigt:** neben Petrol steht Fehler `#B42318` /
+  `#F07A6E` deutlich abgesetzt; der Vorschlag auf der Musterseite entfällt.
+- **Mitfliegender Knopf:** zieht sich weicher zusammen (Zuschnitt 280 ms,
+  Schrift blendet zuerst aus, das Plus kommt aus der Verkleinerung) und geht
+  erst nach 16 px Gegenrichtung wieder auf (iOS federt am Ende eines
+  Schwungs zurück). Auch „… planen“, „… anlegen“, „… erfassen“ und „Antrag
+  stellen“ ziehen sich zum Plus zusammen. Die Einsatzplanung leitet beim
+  Öffnen auf die gemerkte Ansicht um; das war ein zweites Hereingleiten der
+  Seite samt Knopf (520 ms später sichtbar) — eine ersetzende Weiterleitung
+  in eine Unteradresse gleitet nicht mehr (`seitenRichtung`, „weiter“).
+- **Leersätze unter einer Leiste** (Wartungen „In den nächsten 30 Tagen
+  …“) halten den Blattrand ein (`.karte-buendig`).
+- **Ein Muster für Ein/Aus:** jede Einstellung, die etwas ein- oder
+  ausschaltet, ist ein `Schalter` (`role="switch"`) mit Beschriftung links
+  — in Einstellungen, Formularen, Fenstern und auf der Anmeldung. Kästchen
+  bleiben, wo sie fachlich richtig sind: Auswahl aus einer Liste (Personen,
+  Wochentage, Zeilen), Abhaken (Rüstliste) und Bestätigen („geprüft“,
+  Kenntnisnahme). Die Liste der begründeten Kästchen steht in
+  `schalterRegel.test.ts`; ein neues Kästchen außerhalb fällt dort auf
+  (Gegenprobe). Dieselbe Beschriftung, derselbe Wert, dieselbe Speicherung —
+  nur die Bedienform wechselt (`v10-entfernt.json`, Grund E95).
+- **Namenskürzel ganz rund** (`Avatar`, `rounded-full`).
+- **Untere Leiste am Handy:** beim Seitenwechsel gleitet die Auswahlfläche
+  samt Lot von der alten zur neuen Stelle, schießt bis zu 4 px über das Ziel
+  und federt zurück (280–420 ms je nach Strecke); die Schriftfarbe wechselt
+  weich mit. Wie die Unterlinie (B5) als stummes Abbild für die Dauer der
+  Fahrt — der Endzustand gehört weiter dem aktiven Punkt, es gibt immer
+  genau eine Fläche. Wird mitten in der Fahrt neu getippt, fährt sie von
+  ihrer aktuellen Stelle weiter. Bei „Bewegung reduzieren“ wechselt sie
+  sofort. Gilt auch für die Leiste der Plattform (`lib/untenGleiten.ts`).
+- **Gefunden beim Prüfen:** das inaktive Wort der unteren Leiste steht auf
+  ihrer Insel (`--surface-2`), nicht auf dem Blatt; dort hatte `#66787d` nur
+  4,2 : 1. `--inaktiv-symbol` ist `#5f7176` (4,7 : 1), geprüft gegen die Insel
+  in `lotGrundwerte.test.ts`.

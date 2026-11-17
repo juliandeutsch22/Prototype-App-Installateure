@@ -923,10 +923,10 @@ Ende unter „Mit Welle 3 entfallen“.
 
 ## Durchsicht vom 15.11.2026, Paket 10 (Oberfläche und Bewegung) — begründete Grenzen
 
-- **Gefahrfarbe (U5, E4)** (liegt beim Auftraggeber): Warn- und Fehlertext
-  tragen jetzt immer ein Zeichen. Die eigene, deutlich vom Terrakotta
-  abgesetzte Gefahrfarbe steht als gemessener Vorschlag auf `/_muster`
-  (hell `#9e1c3a`, dunkel `#f28aa0`) und wird erst nach Zustimmung eingebaut.
+- **Gefahrfarbe (U5, E4)** — erledigt mit E95 (17.11.2026): neben Petrol
+  steht die Fehlerfarbe `#b42318` / `#f07a6e` deutlich abgesetzt; der
+  Vorschlag auf `/_muster` ist entfernt. Warn- und Fehlertext tragen weiter
+  immer ein Zeichen.
 - **Datums- und Zeitfelder (U10, E5)** (Gerät): das Rad und die Form des
   Felds zeichnet der Browser in der Sprache des Geräts; sie lässt sich nicht
   ändern. Auf einem nicht deutsch eingestellten Gerät steht der Wert deshalb
@@ -1007,3 +1007,20 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
   (gemessen 30 ms lokal, bis 200 ms in der CI). Code und CSS der Bewegungen
   sind in beiden Maschinen dieselben; WebKit prüft Endbild und reduzierte
   Bewegung.
+
+## E95 — Petrol, Schalter, gleitende Auswahl (17.11.2026) — begründete Grenzen
+
+- **Kästchen bleiben, wo sie fachlich richtig sind** (fachlich): Auswahl aus
+  einer Liste (Personen, Wochentage, Zeilen eines Kontoauszugs), Abhaken
+  (Rüstliste) und Bestätigen („geprüft“, Kenntnisnahme). Ein Schalter sagt
+  „ein/aus“, nicht „gewählt“ oder „gesehen“. Die Liste steht begründet in
+  `tests/unit/schalterRegel.test.ts`.
+- **Der Weg der gleitenden Auswahl der unteren Leiste wird Bild für Bild nur
+  in Chromium geprüft** (Gerät): WebKit setzt den Start einer Animation beim
+  Anlegen; dort prüft die CI die reduzierte Bewegung (sofort, ohne Abbild).
+  Code und CSS sind in beiden Maschinen dieselben.
+- **Installierte App-Zeichen in Petrol erneuert das Gerät selbst** (Gerät):
+  iOS behält das Bild des Startbildschirms, bis die Verknüpfung neu
+  hinzugefügt wird.
+- **Belege und Exporte unverändert** (rechtlich): sie waren immer Petrol
+  (`belegReferenz`), daran ändert E95 nichts.

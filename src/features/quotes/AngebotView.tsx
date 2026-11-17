@@ -50,6 +50,7 @@ import { datumAT, datumAusMs } from '@/lib/datum';
 import { verworfenText } from '@/features/papierkorb/papierkorbText';
 import { euro } from '@/lib/betrag';
 import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
+import Schalter from '@/components/Schalter';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -880,10 +881,12 @@ export default function AngebotView() {
             }}
             pdfLaden={() => void pdf(gilt)}
             zusatz={!mail.nachLink && q.status === 'Entwurf' && q.quoteDate && datumAufHeute(q, todayStr()) ? (
-              <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
-                <input type="checkbox" className="checkbox" checked={mailDatumHeute} onChange={(e) => setMailDatumHeute(e.target.checked)} />
-                Angebotsdatum auf heute setzen (statt {datumAT(q.quoteDate)}) — die Bindefrist rückt mit
-              </label>
+              <Schalter
+                id="angebot-mail-datum-heute"
+                label={<>Angebotsdatum auf heute setzen (statt {datumAT(q.quoteDate)}) — die Bindefrist rückt mit</>}
+                an={mailDatumHeute}
+                onChange={setMailDatumHeute}
+              />
             ) : undefined}
             onClose={(gesendet) => {
               setMail(null);
@@ -941,10 +944,12 @@ export default function AngebotView() {
       >
         {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
           && datumAufHeute(wechselFrage.q, todayStr()) && (
-          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
-            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
-            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
-          </label>
+          <Schalter
+            id="angebot-datum-heute"
+            label={<>Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit</>}
+            an={datumHeute}
+            onChange={setDatumHeute}
+          />
         )}
       </ConfirmDialog>
 

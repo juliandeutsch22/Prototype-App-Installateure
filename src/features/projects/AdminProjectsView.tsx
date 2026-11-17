@@ -52,7 +52,7 @@ import { praefixeVon } from '@/lib/praefixe';
 import { useBaustellenVorschlag } from './useBaustellenVorschlag';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, TextareaField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, TextareaField, FormGrid, Pflichthinweis } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -67,6 +67,7 @@ import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import LiegenschaftVorschlaege from '@/features/liegenschaften/LiegenschaftVorschlaege';
 import type { Customer, Liegenschaft } from '@/types';
 import { akteVorbereiten } from '@/lib/akteVorbereiten';
+import Schalter from '@/components/Schalter';
 
 const empty = {
   projectNumber: '',
@@ -993,11 +994,11 @@ export default function AdminProjectsView() {
             /* NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
                Projektleitung die, in deren Leitung oder Team sie steht. */
             zusatz={istProjektleitung ? (
-              <CheckboxField
+              <Schalter
                 id="pmeine"
                 label="Nur meine Baustellen"
-                checked={nurMeine}
-                onChange={(e) => setNurMeine(e.target.checked)}
+                an={nurMeine}
+                onChange={(wert) => setNurMeine(wert)}
               />
             ) : undefined}
           />

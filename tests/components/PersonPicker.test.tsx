@@ -58,7 +58,7 @@ describe('PersonPicker — wer ist frei', () => {
 
   it('blendet die Belegten auf Wunsch aus', async () => {
     zeige(LEUTE);
-    await userEvent.click(screen.getByRole('checkbox', { name: /Nur freie/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Nur freie/ }));
 
     expect(screen.getByRole('checkbox', { name: /Bert Frei/ })).toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: /Anna Belegt/ })).toBeNull();
@@ -71,7 +71,7 @@ describe('PersonPicker — wer ist frei', () => {
      * auch mal jemanden aus dem Urlaub — verboten wird hier nichts.
      */
     zeige(LEUTE, ['u1']);
-    await userEvent.click(screen.getByRole('checkbox', { name: /Nur freie/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Nur freie/ }));
 
     expect(screen.getByRole('checkbox', { name: /Anna Belegt/ })).toBeChecked();
   });
@@ -80,7 +80,7 @@ describe('PersonPicker — wer ist frei', () => {
     // Sonst sieht ein gesetzter Filter aus wie „niemand vorhanden" — und
     // wer das glaubt, plant den Tag gar nicht.
     zeige([LEUTE[0], LEUTE[2]]);
-    await userEvent.click(screen.getByRole('checkbox', { name: /Nur freie/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Nur freie/ }));
 
     expect(screen.getByText(/Der Filter blendet die Belegten aus/)).toBeInTheDocument();
   });
@@ -92,7 +92,7 @@ describe('PersonPicker — ohne Verfuegbarkeit unveraendert', () => {
     // gibt es keine Verfuegbarkeit, und ein Schalter ohne Wirkung waere
     // schlimmer als keiner.
     zeige([{ uid: 'a', name: 'Anna' }, { uid: 'b', name: 'Bert' }]);
-    expect(screen.queryByRole('checkbox', { name: /Nur freie/ })).toBeNull();
+    expect(screen.queryByRole('switch', { name: /Nur freie/ })).toBeNull();
   });
 
   it('laesst die Reihenfolge der Aufrufstelle unangetastet', () => {
@@ -142,13 +142,14 @@ describe('PersonPicker — die Zeile behält beim Anhaken ihre Höhe (G6, E72)',
 });
 
 describe('PersonPicker — „Nur freie anzeigen“ bleibt neben seinem Kästchen (E72)', () => {
-  it('bricht den Text in sich um, statt ihn unter das Kästchen zu schieben', () => {
+  it('bricht den Text in sich um, statt ihn unter den Schalter zu schieben', () => {
     const leute: PickablePerson[] = [{ uid: 'a', name: 'Anton' }, { uid: 'b', name: 'Berta', nichtFrei: true }];
     render(<PersonPicker legend="Mitarbeiter" people={leute} selected={[]} onChange={() => {}} idPrefix="t" />);
-    const kaestchen = screen.getByRole('checkbox', { name: /Nur freie anzeigen/ });
-    const zeile = kaestchen.closest('label')!;
+    // Seit E95 ein Schalter: der Satz steht links (`.schalter-text`, schrumpft und bricht), der Schalter rechts in derselben Zeile.
+    const schalter = screen.getByRole('switch', { name: /Nur freie anzeigen/ });
+    const zeile = schalter.closest('.schalter-zeile')!;
     expect(zeile).not.toHaveClass('flex-wrap');
-    expect(kaestchen.nextElementSibling).toHaveClass('flex-1');
+    expect(zeile.querySelector('.schalter-text')).toHaveTextContent('1 ist an diesem Tag belegt');
   });
 });
 

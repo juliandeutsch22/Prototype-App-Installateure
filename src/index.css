@@ -54,24 +54,24 @@
   --zeichen-warnung: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4 2.5 20h19L12 4ZM12 10v4.5M12 17.5h.01'/%3E%3C/svg%3E");
   color-scheme: light;
 
-  --brand: #a85439;
-  --brand-fg: #fff8ee;
-  --accent: #a85439;
-  --accent-fg: #fff8ee;
+  --brand: #0f4552;
+  --brand-fg: #ffffff;
+  --accent: #0f4552;
+  --accent-fg: #ffffff;
 
   /* Die Farbe des Produkts, nicht die des Betriebs: Statusbalken, Manifest,
    * Markierungen. Unverändert seit der Marke Senklot. */
-  --brand-fixed: #a85439;
-  --ink-deep: #25231f;
+  --brand-fixed: #0f4552;
+  --ink-deep: #13262c;
   /* Links und Häkchen: Petrol wie im Entwurf. */
-  --accent-deep: #9b4c33;
+  --accent-deep: #0f4552;
   /* Der helle Ton auf der dunklen Navigation (Avatar, Zähler). */
-  --accent-bright: #f3e4d8;
+  --accent-bright: #c6dce0;
 
-  --bg: #f4f0e8;
-  --surface: #fffdf8;
-  --surface-2: #faf7f1;
-  --surface-3: #eee6db;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f6f6;
+  --surface-3: #e9eeef;
   --gewicht-zahl: 500;
   /*
     SCHRIFTEN V10 (13.11.2026): DM Sans für Bedienung und Text, Source Serif 4
@@ -83,34 +83,34 @@
   --gewicht-titel: 500;
   /* Alles Gemessene — Nummern, Beträge, Stunden, Mengen — in IBM Plex Mono (Planlinie, E30). */
   --schrift-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --text: #25231f;
+  --text: #13262c;
   /* Der Pfeil im Auswahlfeld, in der Farbe des Texts (eine Hintergrundgrafik kennt kein currentColor). */
-  --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2325231f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2313262c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
   /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
-  --text-muted: #6b645b;
+  --text-muted: #5a6d72;
   /* Sichtbar heller als Eingegebenes, aber noch 4,6:1 auf Weiss. */
-  --text-placeholder: #776e63;
-  --border: #e2d8cb;
-  --border-strong: #ded4c7;
+  --text-placeholder: #66787d;
+  --border: #dfe7e9;
+  --border-strong: #c2d2d5;
   /* Deckend statt halbtransparent (Protokoll 0.2). */
-  --focus-ring: #b97b5e;
+  --focus-ring: #2d7383;
 
-  --success: #25231f;
-  --success-bg: #fffdf8;
-  --warning: #8f5d20;
-  --warning-bg: #fffdf8;
-  --danger: #a5483b;
-  --danger-bg: #fffdf8;
-  --info: #25231f;
-  --info-bg: #fffdf8;
+  --success: #0f4552;
+  --success-bg: #ffffff;
+  --warning: #94570a;
+  --warning-bg: #ffffff;
+  --danger: #b42318;
+  --danger-bg: #ffffff;
+  --info: #0f4552;
+  --info-bg: #ffffff;
 
   /* Navigation: eigener, etwas tieferer Ton als Petrol, damit der aktive
    * Eintrag (navi-tief) und die Hauptknöpfe (Petrol) nicht verschwimmen. */
-  --navi: #292722;
-  --navi-tief: #473b32;
-  --navi-text: #e9e1d6;
-  --navi-gruppe: #a89d8f;
-  --navi-linie: #3d3832;
+  --navi: #0f3c47;
+  --navi-tief: #0a2f38;
+  --navi-text: #c6dce0;
+  --navi-gruppe: #8eafb5;
+  --navi-linie: #1e4c57;
 
   /* Radien 8/12. Karten tragen keinen Schatten mehr — Linien statt Karten
    * (Regel 1); nur was über der Seite schwebt, wirft einen. */
@@ -120,7 +120,7 @@
   --radius-pill: 999px;
   --shadow-sm: none;
   --shadow: none;
-  --shadow-lg: 0 7px 20px -6px #25231f2e;
+  --shadow-lg: 0 7px 20px -6px #0f45522e;
 
   /* Lot-Namen für die Bausteine. */
   --papier: var(--bg);
@@ -129,55 +129,53 @@
   --grau: var(--text-muted);
   --linie: var(--border);
   --linie-stark: var(--border-strong);
-  --petrol: #a85439;
-  --petrol-tief: #8e4630;
-  --petrol-hell: #f3e4d8;
+  --petrol: #0f4552;
+  --petrol-tief: #0a3540;
+  --petrol-hell: #e4eef0;
   /* Schrift auf voller Petrol-Fläche (Einsätze, E33) — in beiden Sätzen, weil Petrol in beiden dunkel genug ist. */
-  --auf-petrol: #fff8ee;
-  --auf-petrol-leise: #fff8ee;
+  --auf-petrol: #ffffff;
+  --auf-petrol-leise: #e4eef0;
   /* Die Spalte „heute“ in Rastern (Runde 4): ein Hauch Petrol, leiser als
      --petrol-hell, damit ein Block darin noch hervortritt. */
-  --heute: #efe6da;
+  --heute: #f4f8f9;
   --achtung: var(--warning);
   --achtung-hell: var(--warning-bg);
   --fehler: var(--danger);
   --abwesend: var(--surface-3);
   --schatten: var(--shadow-lg);
   /*
-    ROLLEN DER DESIGNLINIE V10 „WARMES PAPIER“ (13.11.2026, style.md). Die
-    alten Namen oben tragen jetzt die V10-Werte (Terrakotta statt Petrol,
-    Papier statt Weiß); diese hier kommen dazu.
-  */
-  /*
-    GEMESSEN STATT ÜBERNOMMEN: die Zielwerte der Mappe lagen an vier Stellen
-    knapp unter 4,5:1 (Terrakotta-Text auf der Auswahl 4,2, Nebentext auf
-    `--surface-3` 4,4, Platzhalter 4,4, leiser Text auf Terrakotta 4,2). Text
-    in Terrakotta ist deshalb einen Ton tiefer (`--accent-deep` #9b4c33),
-    Flächen bleiben #a85439; Nebentext, Platzhalter und leiser Text auf
-    Terrakotta sind entsprechend nachgezogen (`lotGrundwerte.test.ts`).
+    ROLLEN DER DESIGNLINIE V10 (13.11.2026, style.md), seit E95 (17.11.2026)
+    wieder im Petrol der Linie „Lot“: die Werte oben sind die Lot-Werte von
+    vor V10, diese Rollen kamen mit V10 dazu und sind aus Petrol abgeleitet.
+    Formen, Radien, Schatten und Schriften bleiben V10. Kontraste gemessen
+    (`lotGrundwerte.test.ts`).
   */
   --radius-xl: 1.5rem;
-  --auswahl: #f3e4d8;
-  --auswahl-kontur: #d5b39e;
-  --fokus: #b97b5e;
-  --dunkel-flaeche: #322e29;
-  --auf-dunkel: #fff8ee;
-  /* Zeigen ist nicht Wählen: der Hover-Ton liegt neutral zwischen Blatt und
-     Papier, die warme Auswahlfläche bleibt der Auswahl vorbehalten. */
-  --hover-flaeche: #f5f0e8;
-  /* Terrakotta auf der dunklen Fläche (Meldung, laufender Arbeitstag): aufgehellt,
-     weil #a85439 dort nur 2,6:1 hätte. */
-  --auf-dunkel-akzent: #d08a68;
-  --auf-dunkel-leise: #cfc6ba;
-  --pause-flaeche: #eee6db;
-  --insel-kontur: #e4dace;
-  --inaktiv-symbol: #776e63;
-  --chat-eigen: #e8dacc;
-  --chat-eigen-text: #2d2924;
-  --chat-eigen-kontur: #dcc9b8;
-  --raster-neben: #f1ece4;
-  --raster-haupt: #e7ded2;
-  --shadow-insel: 0 4px 12px -4px #25231f24;
+  --auswahl: #e4eef0;
+  --auswahl-kontur: #a9c8ce;
+  --fokus: #0f4552;
+  --dunkel-flaeche: #0f3c47;
+  --auf-dunkel: #ffffff;
+  /* Zeigen ist nicht Wählen: der Hover-Ton ist ein Hauch über dem Blatt,
+     die Petrol-Auswahlfläche bleibt der Auswahl vorbehalten. */
+  --hover-flaeche: #f4f8f9;
+  /* Petrol auf der dunklen Fläche (Meldung, laufender Arbeitstag): aufgehellt,
+     weil #0f4552 dort kaum sichtbar wäre. */
+  --auf-dunkel-akzent: #7cc4d2;
+  --auf-dunkel-leise: #c6dce0;
+  --pause-flaeche: #e9eeef;
+  --insel-kontur: #dfe7e9;
+  /* Auf der Insel der unteren Leiste (`--surface-2`), nicht auf dem Blatt:
+     #66787d hatte dort nur 4,2 : 1 (E95, axe in `premium.spec.ts`). */
+  --inaktiv-symbol: #5f7176;
+  --chat-eigen: #e4eef0;
+  --chat-eigen-text: #13262c;
+  --chat-eigen-kontur: #c6dce0;
+  --raster-neben: #f3f6f6;
+  --raster-haupt: #e6edee;
+  --shadow-insel: 0 4px 12px -4px #0f455224;
+  /* Schatten der schwebenden Hauptaktion als Filter (B9): er folgt der sichtbaren Form beim Zusammenziehen. */
+  --schatten-daumen: #0f455233;
 }
 
 /*
@@ -195,66 +193,67 @@
 @media screen {
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --brand: #a85439 !important;
-    --brand-fg: #fff8ee !important;
-    --accent: #a85439 !important;
-    --accent-fg: #fff8ee !important;
-    --brand-fixed: #d08a68;
-    --ink-deep: #f3eee6;
-    --accent-deep: #d08a68;
-    --accent-bright: #3b312b;
-    --bg: #211f1c;
-    --surface: #25221f;
-    --surface-2: #211f1c;
-    --surface-3: #302c27;
-    --text: #f3eee6;
-    --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23f3eee6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
-    --text-muted: #b7aea3;
-    --text-placeholder: #a0978c;
-    --border: #4b443c;
-    --border-strong: #4b443c;
-    --focus-ring: #d08a68;
-    --success: #f3eee6;
-    --success-bg: #25221f;
-    --warning: #d9a45f;
-    --warning-bg: #25221f;
-    --danger: #e08a7c;
-    --danger-bg: #25221f;
-    --info: #f3eee6;
-    --info-bg: #25221f;
-    --navi: #1f1d1a;
-    --navi-tief: #3b312b;
-    --navi-text: #e9e1d6;
-    --navi-gruppe: #a89d8f;
-    --navi-linie: #36312b;
-    --shadow-lg: 0 7px 20px -6px #00000059;
+    --brand: #236c7b !important;
+    --brand-fg: #ffffff !important;
+    --accent: #236c7b !important;
+    --accent-fg: #ffffff !important;
+    --brand-fixed: #7cc4d2;
+    --ink-deep: #e5eff0;
+    --accent-deep: #7cc4d2;
+    --accent-bright: #17343b;
+    --bg: #0c1c20;
+    --surface: #12262b;
+    --surface-2: #0f2226;
+    --surface-3: #1a3036;
+    --text: #e5eff0;
+    --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23e5eff0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    --text-muted: #9fb5ba;
+    --text-placeholder: #84999e;
+    --border: #22393f;
+    --border-strong: #33515a;
+    --focus-ring: #7cc4d2;
+    --success: #7cc4d2;
+    --success-bg: #12262b;
+    --warning: #e2a54a;
+    --warning-bg: #12262b;
+    --danger: #f07a6e;
+    --danger-bg: #12262b;
+    --info: #7cc4d2;
+    --info-bg: #12262b;
+    --navi: #091619;
+    --navi-tief: #0f2328;
+    --navi-text: #9fb9be;
+    --navi-gruppe: #7f9ca2;
+    --navi-linie: #1b3238;
+    --shadow-lg: 0 7px 20px -6px #00000080;
     /* Weiss auf Petrol (gewähltes Segment, Einsatzblock, Sammelleiste) braucht
        4,5:1 — der Ton des Entwurfs (#2d8597) hatte nur 4,3:1. */
-    --petrol: #a85439;
-    --petrol-tief: #8e4630;
-    --petrol-hell: #3b312b;
-    --auf-petrol: #fff8ee;
-    --auf-petrol-leise: #fff8ee;
-    --heute: #2b2723;
-    --auswahl: #3b312b;
-    --auswahl-kontur: #654c3e;
-    --fokus: #d08a68;
-    --dunkel-flaeche: #302c27;
-    --auf-dunkel: #fff8ee;
-    --hover-flaeche: #2d2925;
-    --auf-dunkel-akzent: #d08a68;
-    --auf-dunkel-leise: #b7aea3;
+    --petrol: #236c7b;
+    --petrol-tief: #1b5763;
+    --petrol-hell: #17343b;
+    --auf-petrol: #ffffff;
+    --auf-petrol-leise: #e4eef0;
+    --heute: #132c32;
+    --auswahl: #17343b;
+    --auswahl-kontur: #2f5a64;
+    --fokus: #7cc4d2;
+    --dunkel-flaeche: #0a2f38;
+    --auf-dunkel: #ffffff;
+    --hover-flaeche: #15292e;
+    --auf-dunkel-akzent: #7cc4d2;
+    --auf-dunkel-leise: #9fb9be;
     /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
        Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
-    --pause-flaeche: #3a332c;
-    --insel-kontur: #4b443c;
-    --inaktiv-symbol: #a0978c;
-    --chat-eigen: #43362f;
-    --chat-eigen-text: #f3eee6;
-    --chat-eigen-kontur: #654c3e;
-    --raster-neben: #302c27;
-    --raster-haupt: #3a342e;
-    --shadow-insel: 0 4px 12px -4px #00000066;
+    --pause-flaeche: #1f3a41;
+    --insel-kontur: #22393f;
+    --inaktiv-symbol: #84999e;
+    --chat-eigen: #17343b;
+    --chat-eigen-text: #e5eff0;
+    --chat-eigen-kontur: #2f5a64;
+    --raster-neben: #0f2226;
+    --raster-haupt: #152c31;
+    --shadow-insel: 0 4px 12px -4px #00000080;
+    --schatten-daumen: #00000080;
   }
 }
 
@@ -987,7 +986,14 @@ textarea {
     Papierkorb, Fahrzeuge, Zeitfelder). Hier bekommt er den Rand des Blatts,
     an einer Stelle für alle bündigen Karten.
   */
-  .karte-buendig > :is(.leer-satz, .lade-liste, .hinweiszeile) { padding-inline: var(--blatt-rand); }
+  /*
+    Auch unter der Listenleiste (E95, 17.11.2026): Wartungen, Baustellen und
+    Angebote setzen den Leerzustand in einen Rahmen mit Trennlinie zur Leiste.
+    Als Enkel der Karte fiel er durch die Regel — „In den nächsten 30 Tagen
+    steht keine Wartung an.“ klebte am Rand.
+  */
+  .karte-buendig > :is(.leer-satz, .lade-liste, .hinweiszeile),
+  .karte-buendig > .border-t > :is(.leer-satz, .lade-liste, .hinweiszeile) { padding-inline: var(--blatt-rand); }
   /*
     KARTE, ZEILE UND UMSCHALTER LASSEN DAS RASTER DURCH (E32, 31.10.2026).
     Als deckende Fläche legten sie Kästen auf das Zeichenblatt, deren Kanten

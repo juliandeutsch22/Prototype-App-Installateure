@@ -312,5 +312,390 @@
     "art": "blatt",
     "text": "Betriebsurlaub anlegen",
     "grund": "U2 (Durchsicht 15.11.2026): dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Betriebsurlaub anlegen“ im Seitenkopf), ab dem Tablet wie bisher neben der Liste."
+  },
+  {
+    "datei": "src/features/assignments/EinsatzFormular.tsx",
+    "art": "beschriftung",
+    "text": "als Helfer",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/assignments/EinsatzFormular.tsx)"
+  },
+  {
+    "datei": "src/features/assignments/EinsatzFormular.tsx",
+    "art": "beschriftung",
+    "text": "Auch an den folgenden Tagen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/assignments/EinsatzFormular.tsx)"
+  },
+  {
+    "datei": "src/features/assignments/EinsatzFormular.tsx",
+    "art": "beschriftung",
+    "text": "nur Werktage",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/assignments/EinsatzFormular.tsx)"
+  },
+  {
+    "datei": "src/features/assignments/VerschiebenFenster.tsx",
+    "art": "beschriftung",
+    "text": "Kopieren statt verschieben",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/assignments/VerschiebenFenster.tsx)"
+  },
+  {
+    "datei": "src/features/customers/KundenakteView.tsx",
+    "art": "beschriftung",
+    "text": "Aktiv — erscheint in den Auswahlfeldern",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/customers/KundenakteView.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/EbInterfaceDialog.tsx",
+    "art": "beschriftung",
+    "text": "Lieferantennummer beim Kunden merken",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/EbInterfaceDialog.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/InvoicesView.tsx",
+    "art": "beschriftung",
+    "text": "{…} einbehalten",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/InvoicesView.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/InvoicesView.tsx",
+    "art": "beschriftung",
+    "text": "Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/InvoicesView.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/InvoicesView.tsx",
+    "art": "beschriftung",
+    "text": "Den Rest von {…} als Skonto ausgleichen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/InvoicesView.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/InvoicesView.tsx",
+    "art": "beschriftung",
+    "text": "Leistungsnachweis anhängen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/InvoicesView.tsx)"
+  },
+  {
+    "datei": "src/features/invoices/InvoicesView.tsx",
+    "art": "beschriftung",
+    "text": "UID auch beim Kunden speichern? (dort steht {…})|UID auch beim Kunden speichern?",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/invoices/InvoicesView.tsx)"
+  },
+  {
+    "datei": "src/features/liegenschaften/LiegenschaftFormular.tsx",
+    "art": "beschriftung",
+    "text": "Aktiv (inaktive stehen nicht mehr zur Wahl)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/liegenschaften/LiegenschaftFormular.tsx)"
+  },
+  {
+    "datei": "src/features/maintenance/WartungenView.tsx",
+    "art": "beschriftung",
+    "text": "Der {…} war falsch — berichtigen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/maintenance/WartungenView.tsx)"
+  },
+  {
+    "datei": "src/features/maintenance/WartungenView.tsx",
+    "art": "beschriftung",
+    "text": "Vereinbarung läuft",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/maintenance/WartungenView.tsx)"
+  },
+  {
+    "datei": "src/features/orders/LagerorteFenster.tsx",
+    "art": "beschriftung",
+    "text": "In Betrieb",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/orders/LagerorteFenster.tsx)"
+  },
+  {
+    "datei": "src/features/orders/MaterialCatalog.tsx",
+    "art": "beschriftung",
+    "text": "Im Lager führen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/orders/MaterialCatalog.tsx)"
+  },
+  {
+    "datei": "src/features/orders/OrderView.tsx",
+    "art": "beschriftung",
+    "text": "Eilzustellung",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/orders/OrderView.tsx)"
+  },
+  {
+    "datei": "src/features/plattform/PlattformView.tsx",
+    "art": "beschriftung",
+    "text": "Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/plattform/PlattformView.tsx)"
+  },
+  {
+    "datei": "src/features/plattform/Rechtstexte.tsx",
+    "art": "beschriftung",
+    "text": "Alle, die die App benutzen, auf die Änderung hinweisen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/plattform/Rechtstexte.tsx)"
+  },
+  {
+    "datei": "src/features/projects/AdminProjectsView.tsx",
+    "art": "beschriftung",
+    "text": "Nur meine Baustellen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/projects/AdminProjectsView.tsx)"
+  },
+  {
+    "datei": "src/features/projects/BaustellenPlaene.tsx",
+    "art": "beschriftung",
+    "text": "Nur fürs Büro",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/projects/BaustellenPlaene.tsx)"
+  },
+  {
+    "datei": "src/features/settings/FahrzeugeView.tsx",
+    "art": "beschriftung",
+    "text": "Der Standardfahrer lagert aus seinem Fahrzeug selbst ins Hauptlager zurück",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/FahrzeugeView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/FirmendatenView.tsx",
+    "art": "beschriftung",
+    "text": "Im Firmenbuch eingetragen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/FirmendatenView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/LohnregelnKarte.tsx",
+    "art": "beschriftung",
+    "text": "Arbeit an Sonn- und Feiertagen als Überstunden mit 100 % — für Angestellte|Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/LohnregelnKarte.tsx)"
+  },
+  {
+    "datei": "src/features/settings/LohnregelnKarte.tsx",
+    "art": "beschriftung",
+    "text": "Kollektivvertrag lässt für Jugendliche eine andere Verteilung der Arbeitszeit zu (§ 11 Abs 3 KJBG)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/LohnregelnKarte.tsx)"
+  },
+  {
+    "datei": "src/features/settings/LohnregelnKarte.tsx",
+    "art": "beschriftung",
+    "text": "Vollzeit ungleich auf die Tage verteilt",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/LohnregelnKarte.tsx)"
+  },
+  {
+    "datei": "src/features/settings/LohnregelnKarte.tsx",
+    "art": "beschriftung",
+    "text": "Zuschläge nach dem KV Metallgewerbe (Arbeiter und Lehrlinge)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/LohnregelnKarte.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "Alle Mitarbeiter sehen den Wochenplan (nur lesen)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "beschriftung",
+    "text": "Wir stellen Anzahlungs-, Teil- und Schlussrechnungen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SettingsView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/SonderurlaubKarte.tsx",
+    "art": "beschriftung",
+    "text": "Für Arztbesuche eine Bestätigung verlangen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/SonderurlaubKarte.tsx)"
+  },
+  {
+    "datei": "src/features/settings/ZeitfelderView.tsx",
+    "art": "beschriftung",
+    "text": "In Gebrauch (aus = beendet, die Werte bleiben)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/ZeitfelderView.tsx)"
+  },
+  {
+    "datei": "src/features/settings/ZeitfelderView.tsx",
+    "art": "beschriftung",
+    "text": "wählbar",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/settings/ZeitfelderView.tsx)"
+  },
+  {
+    "datei": "src/features/time/TimeForm.tsx",
+    "art": "beschriftung",
+    "text": "Einsatz als Helfer (zählt nicht zum Projekt-Budget)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/TimeForm.tsx)"
+  },
+  {
+    "datei": "src/features/time/TimeForm.tsx",
+    "art": "beschriftung",
+    "text": "Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/TimeForm.tsx)"
+  },
+  {
+    "datei": "src/features/time/TimeForm.tsx",
+    "art": "beschriftung",
+    "text": "Nicht als Nachtarbeit zählen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/TimeForm.tsx)"
+  },
+  {
+    "datei": "src/features/time/TimeForm.tsx",
+    "art": "beschriftung",
+    "text": "Notdienst / Störungseinsatz",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/TimeForm.tsx)"
+  },
+  {
+    "datei": "src/features/time/TimeForm.tsx",
+    "art": "beschriftung",
+    "text": "Nur einige Stunden",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/TimeForm.tsx)"
+  },
+  {
+    "datei": "src/features/time/Zeitkorrekturen.tsx",
+    "art": "beschriftung",
+    "text": "Auch entschiedene Anträge zeigen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/time/Zeitkorrekturen.tsx)"
+  },
+  {
+    "datei": "src/features/users/BenutzerakteView.tsx",
+    "art": "beschriftung",
+    "text": "Darf den Katalog einspielen (DATANORM, mit Einkaufspreisen)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/BenutzerakteView.tsx)"
+  },
+  {
+    "datei": "src/features/users/BenutzerakteView.tsx",
+    "art": "beschriftung",
+    "text": "Darf die Rechnungen seiner Baustellen lesen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/BenutzerakteView.tsx)"
+  },
+  {
+    "datei": "src/features/users/BenutzerakteView.tsx",
+    "art": "beschriftung",
+    "text": "Darf Einkaufspreise sehen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/BenutzerakteView.tsx)"
+  },
+  {
+    "datei": "src/features/users/BenutzerakteView.tsx",
+    "art": "beschriftung",
+    "text": "Darf Kunden anlegen und ändern",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/BenutzerakteView.tsx)"
+  },
+  {
+    "datei": "src/features/users/BenutzerakteView.tsx",
+    "art": "beschriftung",
+    "text": "Führt ein Zeitkonto",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/BenutzerakteView.tsx)"
+  },
+  {
+    "datei": "src/features/users/EinstufungFelder.tsx",
+    "art": "beschriftung",
+    "text": "Stunden zählen ins Projekt-Budget",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/EinstufungFelder.tsx)"
+  },
+  {
+    "datei": "src/features/users/TagessollFelder.tsx",
+    "art": "beschriftung",
+    "text": "Tagessoll je Wochentag festlegen (etwa ein kürzerer Freitag)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/users/TagessollFelder.tsx)"
+  },
+  {
+    "datei": "src/features/vacations/BetriebsurlaubReiter.tsx",
+    "art": "beschriftung",
+    "text": "Urlaubskonto aller aktiven Mitarbeiter belasten",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/vacations/BetriebsurlaubReiter.tsx)"
+  },
+  {
+    "datei": "src/features/vacations/FreistellungenBestaetigen.tsx",
+    "art": "beschriftung",
+    "text": "Urlaubsjahr {…} kürzen",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/vacations/FreistellungenBestaetigen.tsx)"
+  },
+  {
+    "datei": "src/features/vacations/FreistellungFormular.tsx",
+    "art": "beschriftung",
+    "text": "Für ein erkranktes Kind unter 12 Jahren",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/vacations/FreistellungFormular.tsx)"
+  },
+  {
+    "datei": "src/features/vacations/FreistellungFormular.tsx",
+    "art": "beschriftung",
+    "text": "Nur einige Stunden (an einem Tag)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/vacations/FreistellungFormular.tsx)"
+  },
+  {
+    "datei": "src/features/vacations/FreistellungFormular.tsx",
+    "art": "beschriftung",
+    "text": "Zweite Woche (die erste ist in diesem Arbeitsjahr verbraucht)",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/vacations/FreistellungFormular.tsx)"
+  },
+  {
+    "datei": "src/features/worksheets/LeistungszeitErfassen.tsx",
+    "art": "beschriftung",
+    "text": "Als Helfer gearbeitet",
+    "ziel": "CheckboxField",
+    "grund": "E95 (17.11.2026): dasselbe Ein/Aus mit derselben Beschriftung, jetzt als Schalter statt Kästchen (src/features/worksheets/LeistungszeitErfassen.tsx)"
   }
 ]

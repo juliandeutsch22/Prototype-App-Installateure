@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 
 /**
- * DER SCHALTER (U6, Entscheidung E3 vom 15.11.2026): für alles, was SOFORT
- * wirkt — Module, Meldungen, eine Pflicht für den ganzen Betrieb, die
- * Startseite. Das Kästchen (`CheckboxField`) bleibt für die Auswahl in einem
- * Formular, das erst mit „Speichern“ gilt.
+ * DER SCHALTER (U6, Entscheidung E3 vom 15.11.2026; seit E95 vom 17.11.2026
+ * für die ganze App): für jedes Ein/Aus einer Einstellung oder Eigenschaft —
+ * Module, Meldungen, „Aktiv“, „Darf …“, ein Filter der Ansicht —, ob es
+ * sofort wirkt oder erst mit „Speichern“. Das Kästchen (`CheckboxField`)
+ * bleibt für Auswahl aus einer Liste, Abhaken und eine Bestätigung; der
+ * Wächter `schalterRegel.test.ts` kennt jedes.
  *
  * Vorher stand beides als Kästchen da, bei den Modulen mit „ein“/„aus“
  * daneben. Ob ein Haken schon gilt oder erst mit dem Speichern, sah man ihm
@@ -22,7 +24,7 @@ import type { ReactNode } from 'react';
  * nie vor dem Ergebnis um. Während gespeichert wird, ist er gesperrt
  * (`laeuft`), damit kein zweiter Wechsel den ersten überholt.
  */
-export default function Schalter({ id, label, beschreibung, an, onChange, gesperrt = false, laeuft = false, labelVerborgen = false, zusatz }: {
+export default function Schalter({ id, label, beschreibung, an, onChange, gesperrt = false, laeuft = false, labelVerborgen = false, zusatz, 'aria-describedby': beschriebenVon }: {
   id: string;
   label: ReactNode;
   /** Ein Satz darunter: was der Schalter bewirkt. */
@@ -39,6 +41,8 @@ export default function Schalter({ id, label, beschreibung, an, onChange, gesper
   labelVerborgen?: boolean;
   /** Ein „i“ (`InfoHint`) neben dem Etikett — außerhalb davon, damit es nicht in den Namen des Schalters rutscht. */
   zusatz?: ReactNode;
+  /** Ein Satz außerhalb des Schalters, der ihn erklärt (etwa warum er gesperrt ist) — die Vorlesehilfe liest ihn mit. */
+  'aria-describedby'?: string;
 }) {
   const aus = gesperrt || laeuft;
   return (
@@ -54,6 +58,7 @@ export default function Schalter({ id, label, beschreibung, an, onChange, gesper
         role="switch"
         aria-checked={an}
         aria-busy={laeuft || undefined}
+        aria-describedby={beschriebenVon}
         disabled={aus}
         className="schalter"
         onClick={() => onChange(!an)}

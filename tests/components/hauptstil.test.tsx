@@ -46,13 +46,13 @@ describe('Das Stylesheet einschalten', () => {
 });
 
 describe('Der Grund am <html> folgt der Darstellung', () => {
-  it('hell: Papier; dunkel: der dunkle Grund', () => {
+  it('hell: der weiße Grund; dunkel: der dunkle Grund', () => {
     localStorage.removeItem('senklot.darstellung');
     darstellungAnwenden();
-    expect(document.documentElement.style.backgroundColor).toBe('rgb(244, 240, 232)');
+    expect(document.documentElement.style.backgroundColor).toBe('rgb(255, 255, 255)');
     localStorage.setItem('senklot.darstellung', 'dunkel');
     darstellungAnwenden();
-    expect(document.documentElement.style.backgroundColor).toBe('rgb(33, 31, 28)');
+    expect(document.documentElement.style.backgroundColor).toBe('rgb(12, 28, 32)');
     localStorage.removeItem('senklot.darstellung');
     darstellungAnwenden();
   });

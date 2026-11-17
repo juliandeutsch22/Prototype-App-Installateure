@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 /*
   HEUTE (Geschichte): das Lot der Planlinie B4 (30.10.2026), im Monat seit
-  E77 als Spalte, seit V10 in Woche und Monat dunkler Kopf über warmer
+  E77 als Spalte, seit V10 in Woche und Monat dunkler Kopf über getönter
   Spalte (siehe unten); am Handy hängt das Lot weiter über dem Tag. Bis dahin trug die Spalte
   von heute einen leisen Ton (`--heute`) und der Kopf eine getönte Fläche
   mit Strich unten (Entscheidung vom 20.10.2026: keine Linien, weil zwei
@@ -54,7 +54,7 @@ describe('Monatsplan: heute als Spalte (E77, V10)', () => {
     const r = regel(monat, '.mo-kopf-heute');
     expect(r).toMatch(/background: var\(--dunkel-flaeche\)/);
     expect(r).toMatch(/color: var\(--auf-dunkel\)/);
-    // Nur die Terrakotta-Linie oben, kein Rahmen rundum.
+    // Nur die Akzentlinie oben, kein Rahmen rundum.
     expect(r).toMatch(/box-shadow: inset 0 2px 0 var\(--petrol\);/);
     expect(r).not.toMatch(/inset 0 0 0/);
     const ansicht = readFileSync('src/features/assignments/MonatsAnsicht.tsx', 'utf8');

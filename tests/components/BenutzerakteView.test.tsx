@@ -384,7 +384,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
     });
     zeige();
     await bearbeite();
-    const schalter = await screen.findByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' });
+    const schalter = await screen.findByRole('switch', { name: 'Stunden zählen ins Projekt-Budget' });
     expect(schalter).toBeChecked(); // ab Werk wie bisher
     await userEvent.click(schalter);
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -400,7 +400,7 @@ describe('Die Einstufung (Testbericht 4.1)', () => {
     zeige();
     await bearbeite();
     await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
-    expect(screen.queryByRole('checkbox', { name: 'Stunden zählen ins Projekt-Budget' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Stunden zählen ins Projekt-Budget' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());
     expect(profilAendern.mock.calls[0][1]).toEqual(expect.objectContaining({ stundenInsBudget: true }));
@@ -713,9 +713,9 @@ describe('Kunden pflegen und Zeitkonto', () => {
     gefunden = person({ uid: 'u2', name: 'Vera Büro', role: 'Verwaltung' });
     zeige();
     await bearbeite();
-    const haken = await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
+    const haken = await screen.findByRole('switch', { name: 'Darf Kunden anlegen und ändern' });
     expect(haken).not.toBeChecked();
-    expect(screen.queryByRole('checkbox', { name: 'Führt ein Zeitkonto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Führt ein Zeitkonto' })).not.toBeInTheDocument();
 
     await userEvent.click(haken);
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
@@ -728,14 +728,14 @@ describe('Kunden pflegen und Zeitkonto', () => {
     zeige();
     await bearbeite();
     await screen.findByRole('textbox', { name: /^Name/ });
-    expect(screen.queryByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Darf Kunden anlegen und ändern' })).not.toBeInTheDocument();
   });
 
   it('lässt die Geschäftsführung ihr Zeitkonto wählen', async () => {
     gefunden = person({ uid: 'u2', name: 'Gabi Chef', role: 'Geschäftsführung' });
     zeige();
     await bearbeite();
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Führt ein Zeitkonto' }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'Führt ein Zeitkonto' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());
     expect(profilAendern.mock.calls[0][1]).toMatchObject({ fuehrtZeitkonto: true, kundenPflegen: false });
@@ -745,7 +745,7 @@ describe('Kunden pflegen und Zeitkonto', () => {
     gefunden = person({ uid: 'u2', role: 'Verwaltung', kundenPflegen: true });
     zeige();
     await bearbeite();
-    await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
+    await screen.findByRole('switch', { name: 'Darf Kunden anlegen und ändern' });
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Rolle/ }), 'Mitarbeiter');
     await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(profilAendern).toHaveBeenCalled());

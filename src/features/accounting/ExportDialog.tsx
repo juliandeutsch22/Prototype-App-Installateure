@@ -130,7 +130,7 @@ export default function ExportDialog({
           </Button>
           {/*
             EINE HAUPTAKTION (V10, 14.11.2026): ohne `variant` war auch die
-            CSV gefüllt — zwei Terrakotta-Knöpfe untereinander, keiner war
+            CSV gefüllt — zwei Akzentknöpfe untereinander, keiner war
             erkennbar der nächste Schritt. Der Stundennachweis ist es.
           */}
           <Button

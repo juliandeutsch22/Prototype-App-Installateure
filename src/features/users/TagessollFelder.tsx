@@ -1,7 +1,8 @@
-import { CheckboxField, InputField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import { WEEKDAYS, zahlOderVorgabe, type BenutzerEntwurf } from './benutzerEntwurf';
 import { zahlOder } from '@/lib/zahl';
 import { DEFAULT_WEEKLY_HOURS } from '@/lib/db/benutzerVorgaben';
+import Schalter from '@/components/Schalter';
 
 /**
  * EIN EIGENES TAGESSOLL JE WOCHENTAG (Testbericht 30.09.2026, M5).
@@ -32,14 +33,14 @@ export default function TagessollFelder({
 
   return (
     <div className="mt-3">
-      <CheckboxField
+      <Schalter
         id="tagessoll-an"
         label="Tagessoll je Wochentag festlegen (etwa ein kürzerer Freitag)"
-        checked={an}
-        onChange={(e) =>
+        an={an}
+        onChange={(wert) =>
           setForm({
             ...form,
-            tagessoll: e.target.checked
+            tagessoll: wert
               ? Object.fromEntries(tage.map((d) => [String(d.value), gleichmaessig()]))
               : {},
           })

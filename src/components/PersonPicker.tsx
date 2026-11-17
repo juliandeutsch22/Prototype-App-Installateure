@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { Marke } from './Badge';
 import Button from './Button';
+import Schalter from '@/components/Schalter';
 
 export interface PickablePerson {
   uid: string;
@@ -124,31 +125,20 @@ export default function PersonPicker({
             frei ist.
           */}
           {belegte > 0 && (
-            <label
-              htmlFor={filterId}
-              /*
-                Der Text bricht IN SICH um, nicht als Ganzes unter das
-                Kästchen: „(2 sind an diesem Tag belegt)" lief auf 390 px
-                rechts aus dem Bild; mit `flex-wrap` rutschte danach der
-                ganze Satz in die zweite Zeile, und das Kästchen stand allein
-                darüber (E72). `flex-1 min-w-0` lässt ihn neben dem Kästchen.
-              */
-              className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-sm text-ink"
-            >
-              <input
+            <div className="mt-2">
+              {/*
+                Ein Filter der Ansicht ist ein Schalter (E95): der Satz steht
+                links und bricht in sich um, der Schalter rechts bleibt an
+                seinem Platz — auch auf 390 px (vorher E72 beim Kästchen).
+              */}
+              <Schalter
                 id={filterId}
-                type="checkbox"
-                checked={nurFreie}
-                onChange={(e) => setNurFreie(e.target.checked)}
-                className="checkbox"
+                label="Nur freie anzeigen"
+                beschreibung={`${belegte} ${belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt`}
+                an={nurFreie}
+                onChange={setNurFreie}
               />
-              <span className="min-w-0 flex-1">
-                Nur freie anzeigen{' '}
-                <span className="text-ink-muted">
-                  ({belegte} {belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt)
-                </span>
-              </span>
-            </label>
+            </div>
           )}
 
           {people.length >= searchFrom && (

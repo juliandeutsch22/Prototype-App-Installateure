@@ -131,7 +131,7 @@ describe('Auslieferung (firebase.json)', () => {
   });
 
   it('Gegenprobe: ein geändertes Skript ohne neuen Hash fällt auf', () => {
-    const html = readFileSync(join(wurzel, 'index.html'), 'utf8').replace("'#211f1c'", "'#222222'");
+    const html = readFileSync(join(wurzel, 'index.html'), 'utf8').replace("'#0c1c20'", "'#222222'");
     expect(vite.skripteOhneHash(html, konfig)).toHaveLength(1);
   });
 

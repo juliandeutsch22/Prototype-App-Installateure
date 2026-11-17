@@ -19,7 +19,7 @@ import Card from '@/components/Card';
 import BottomSheet from '@/components/BottomSheet';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
-import { CheckboxField, InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
@@ -32,6 +32,7 @@ import BetriebVerwalten from './BetriebVerwalten';
 import BasiszinsZentral from './BasiszinsZentral';
 import Rechtstexte from './Rechtstexte';
 import PlattformHuelle, { type PlattformBereich } from './PlattformHuelle';
+import Schalter from '@/components/Schalter';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -406,11 +407,11 @@ export default function PlattformView() {
               required
               pflicht
             />
-          <CheckboxField
+          <Schalter
             id="b-testbetrieb"
             label="Testbetrieb (lässt sich später ohne Übergabe und ohne Frist löschen)"
-            checked={form.testbetrieb === true}
-            onChange={(e) => setForm({ ...form, testbetrieb: e.target.checked })}
+            an={form.testbetrieb === true}
+            onChange={(wert) => setForm({ ...form, testbetrieb: wert })}
           />
 <h3 className="plattform-formulartitel">Erster Zugang</h3>
             <InputField

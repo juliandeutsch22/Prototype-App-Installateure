@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { InputField, CheckboxField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
 import LotZeichnung from '@/components/LotZeichnung';
 import RechtLinks from '@/components/RechtLinks';
@@ -9,6 +9,7 @@ import Button from '@/components/Button';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { ablehnungsText } from './anmeldeAblehnung';
+import Schalter from '@/components/Schalter';
 
 /**
  * Anmeldung. Die Produktmarke über dem Formular auf hellem Papier (V10) —
@@ -224,11 +225,11 @@ export default function LoginPage() {
                     required
                     pflicht
                   />
-                  <CheckboxField
+                  <Schalter
                     id="remember"
                     label="Angemeldet bleiben"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
+                    an={remember}
+                    onChange={(wert) => setRemember(wert)}
                   />
                 </>
               )}

@@ -646,7 +646,7 @@ describe('Einsatzformular — Abweichungen je Person (P7)', () => {
   it('angleichen nur auf Wunsch: dann alle dieselbe Aufgabe und Uhrzeit', async () => {
     zeige(ZWEI);
     await screen.findByText(/verschiedene Aufgaben oder Uhrzeiten/);
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Allen dieselbe Aufgabe und Uhrzeit geben' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Allen dieselbe Aufgabe und Uhrzeit geben' }));
     const feld = screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' });
     await userEvent.clear(feld);
     await userEvent.type(feld, 'Bad fertig');

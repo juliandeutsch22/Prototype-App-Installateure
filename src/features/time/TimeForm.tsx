@@ -27,7 +27,7 @@ import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { nachtMinutenIn, nachtzeitText, nachtzeitVon } from '@/lib/lohnregeln';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -61,6 +61,7 @@ import {
 } from '@/lib/zeitfelder';
 import { useFeldsatz } from './useZeitfelder';
 import ZeitfeldEingaben from './ZeitfeldEingaben';
+import Schalter from '@/components/Schalter';
 
 
 interface Props {
@@ -1205,11 +1206,11 @@ export default function TimeForm({
       {canHaveProject && standardAn('isEmergency') && <fieldset className="border-t border-line pt-2">
         <legend className="pr-2 section-label">Zuschläge</legend>
         <div className="flex flex-wrap items-center gap-2">
-          <CheckboxField
+          <Schalter
             id="isEmergency"
             label="Notdienst / Störungseinsatz"
-            checked={isEmergency}
-            onChange={(e) => setIsEmergency(e.target.checked)}
+            an={isEmergency}
+            onChange={(wert) => setIsEmergency(wert)}
           />
           <InfoHint about="Notdienst">
             Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
@@ -1502,11 +1503,11 @@ export default function TimeForm({
               freie Zeit, bei einem ganzen Tag um das Tagessoll.
             </InfoHint>
           </p>
-          <CheckboxField
+          <Schalter
             id="zaStundenweise"
             label="Nur einige Stunden"
-            checked={zaStundenweise}
-            onChange={(e) => setZaStundenweise(e.target.checked)}
+            an={zaStundenweise}
+            onChange={(wert) => setZaStundenweise(wert)}
           />
           {zaStundenweise && (
             <FormGrid>
@@ -1645,11 +1646,11 @@ export default function TimeForm({
                   ? `${fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit (${nachtzeitText(nacht)}) — abgewählt, sie zählen nicht als Nachtarbeit.`
                   : `${fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit (${nachtzeitText(nacht)}) und zählen als Nachtarbeit.`}
               </p>
-              <CheckboxField
+              <Schalter
                 id="nachtAbwahl"
                 label="Nicht als Nachtarbeit zählen"
-                checked={nachtAbwahl}
-                onChange={(e) => setNachtAbwahl(e.target.checked)}
+                an={nachtAbwahl}
+                onChange={(wert) => setNachtAbwahl(wert)}
               />
               {nachtAbwahl && (
                 <InputField
@@ -1687,11 +1688,11 @@ export default function TimeForm({
                   Flex-Element ihre volle Breite beanspruchte.
                 */}
                 <div className="min-w-0 flex-1">
-                  <CheckboxField
+                  <Schalter
                     id="erweitert"
                     label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
-                    checked={erweitert}
-                    onChange={(e) => setErweitert(e.target.checked)}
+                    an={erweitert}
+                    onChange={(wert) => setErweitert(wert)}
                   />
                 </div>
                 <InfoHint about="erweiterte Erfassung">
@@ -1804,11 +1805,11 @@ export default function TimeForm({
       {(aussendienst || (darfErweitern && erweitert)) && showWorkFields && (
         <>
           {canHaveProject && standardAn('isHelper') && helferFest === null && (
-            <CheckboxField
+            <Schalter
               id="isHelper"
               label="Einsatz als Helfer (zählt nicht zum Projekt-Budget)"
-              checked={isHelper}
-              onChange={(e) => setIsHelper(e.target.checked)}
+              an={isHelper}
+              onChange={(wert) => setIsHelper(wert)}
             />
           )}
           {aussendienst ? (

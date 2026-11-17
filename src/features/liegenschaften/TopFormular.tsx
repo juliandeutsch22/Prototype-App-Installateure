@@ -2,10 +2,11 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { topAendern, topAnlegen } from '@/lib/db/liegenschaften';
 import type { LiegenschaftTop } from '@/types';
 import Button from '@/components/Button';
-import { CheckboxField, FormGrid, InputField, TextareaField } from '@/components/Field';
+import { FormGrid, InputField, TextareaField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import Schalter from '@/components/Schalter';
 
 /**
  * EIN TOP ANLEGEN ODER ÄNDERN (M02c): Bezeichnung (Pflicht, eindeutig je
@@ -81,8 +82,8 @@ export default function TopFormular({
       <TextareaField id="top-notiz" label="Notiz" rows={2} maxLength={2000}
         value={f.notiz} onChange={(e) => setF({ ...f, notiz: e.target.value })} />
       {top && (
-        <CheckboxField id="top-aktiv" label="Aktiv (inaktive stehen nicht mehr zur Wahl)"
-          checked={f.aktiv} onChange={(e) => setF({ ...f, aktiv: e.target.checked })} />
+        <Schalter id="top-aktiv" label="Aktiv (inaktive stehen nicht mehr zur Wahl)"
+          an={f.aktiv} onChange={(wert) => setF({ ...f, aktiv: wert })} />
       )}
       {fehler && <ErrorState message={fehler} />}
       {zusatz}

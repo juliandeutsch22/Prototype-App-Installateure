@@ -81,7 +81,7 @@ test('Zwei Baustellen eines Kunden: die Kurzbezeichnung steht im Treffer und in 
   // Dieselbe Unterscheidung in der Auswahl der Zeiterfassung — dort mit der Nummer vorn (Runde 6, G3).
   await page.goto('/time');
   // Im Büro steht die Baustelle hinter „Erweiterte Erfassung“ — so ist es gewollt.
-  await page.getByRole('checkbox', { name: /Erweiterte Erfassung/ }).check();
+  await page.getByRole('switch', { name: /Erweiterte Erfassung/ }).check();
   // Das Formular der Zeiterfassung (`#project`), nicht die Auswahl des Timers.
   const auswahl = page.locator('select#project');
   await expect(auswahl.locator('option', { hasText: 'B-2026-0091 · Familie Suchtest · Bad' })).toHaveCount(1);

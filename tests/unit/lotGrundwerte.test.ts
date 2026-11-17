@@ -258,6 +258,30 @@ describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', 
   });
 });
 
+/*
+  DIE UNTERE LEISTE STEHT AUF IHRER INSEL, NICHT AUF DEM BLATT (E95). Die
+  Prüfung oben misst eine Schrift ohne eigene Fläche gegen `--surface`; die
+  Punkte der unteren Leiste stehen aber auf `.unten` (`--surface-2`). Mit
+  Petrol hatte das inaktive Wort dort nur 4,2 : 1 — gefunden von axe in
+  `premium.spec.ts`, nicht von dieser Datei. Gegenprobe: #66787d ist rot.
+*/
+describe('Untere Leiste: inaktive Punkte auf ihrer Insel', () => {
+  const insel = /\.unten \{[^}]*background: var\((--[a-z0-9-]+)\)/.exec(lot)![1];
+  const schrift = /\.unten-punkt \{ color: var\((--[a-z-]+)\); \}/.exec(lot)![1];
+
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('%s: mindestens 4,5 : 1', (_n, satz) => {
+    expect(insel).toBe('--surface-2');
+    expect(kontrast(wert(satz, schrift), wert(satz, insel))!).toBeGreaterThanOrEqual(AA_NORMAL);
+  });
+
+  it('Gegenprobe: der Wert davor fiele durch', () => {
+    expect(kontrast('#66787d', wert(HELL, insel))!).toBeLessThan(AA_NORMAL);
+  });
+});
+
 describe('Weiss auf Petrol', () => {
   it.each([
     ['hell', HELL],

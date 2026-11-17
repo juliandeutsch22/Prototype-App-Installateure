@@ -35,7 +35,7 @@ import AktenKopf from '@/components/AktenKopf';
 import { neuFuerMenue } from './neuFuer';
 import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { InputField, FormGrid, CheckboxField } from '@/components/Field';
+import { InputField, FormGrid } from '@/components/Field';
 import Button from '@/components/Button';
 import { Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -62,6 +62,7 @@ import useUidVies from './useUidVies';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import KundenLiegenschaften from '@/features/liegenschaften/KundenLiegenschaften';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
+import Schalter from '@/components/Schalter';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -1028,11 +1029,11 @@ function StammdatenFormular({
           DER ZUSTAND IST EIN KÄSTCHEN UND KEIN LÖSCHEN. Ein Kunde mit
           Baustellen und Rechnungen verschwindet nicht; er wird stillgelegt.
         */}
-        <CheckboxField
+        <Schalter
           id="k-aktiv"
           label="Aktiv — erscheint in den Auswahlfeldern"
-          checked={entwurf.active !== false}
-          onChange={(e) => setze('active', e.target.checked)}
+          an={entwurf.active !== false}
+          onChange={(wert) => setze('active', wert)}
         />
 
       </div>

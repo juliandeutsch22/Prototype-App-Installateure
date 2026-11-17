@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { CheckboxField, InputField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
@@ -9,6 +9,7 @@ import { belegFirma } from '@/lib/db/aussteller';
 import type { WithId } from '@/lib/db/core';
 import type { Company, Customer, Invoice } from '@/types';
 import { ebiDateiname, ebInterfaceXml, ebiPruefen, type EbiEmpfaengerArt } from './ebinterface';
+import Schalter from '@/components/Schalter';
 
 /**
  * DIE E-RECHNUNG ZU EINER RECHNUNG (ebInterface 6.1, 19.10.2026).
@@ -186,7 +187,7 @@ export default function EbInterfaceDialog({
         />
         {kunde && neueNummer && lieferant.trim() !== '' && (
           darfKundenPflegen
-            ? <CheckboxField id="ebi-merken" label="Lieferantennummer beim Kunden merken" checked={merken} onChange={(e) => setMerken(e.target.checked)} />
+            ? <Schalter id="ebi-merken" label="Lieferantennummer beim Kunden merken" an={merken} onChange={(wert) => setMerken(wert)} />
             : <p className="text-sm text-ink-muted">Gilt nur für diese Datei. Beim Kunden hinterlegen kann sie, wer Kunden pflegt.</p>
         )}
         {pruefung.fehler.map((f) => (

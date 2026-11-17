@@ -29,7 +29,6 @@ import MusterZeitfelder from './MusterZeitfelder';
 import MusterV10 from './MusterV10';
 import MusterBedienung from './MusterBedienung';
 import MusterSchalter from './MusterSchalter';
-import MusterGefahr from './MusterGefahr';
 import MusterHinweise from './MusterHinweise';
 import MusterDatum from './MusterDatum';
 
@@ -45,14 +44,14 @@ import MusterDatum from './MusterDatum';
 
 /* Die Rollen der Designlinie V10 (style.md, „Farb- und Rollentokens“) — nach Aufgabe benannt, nicht nach Ton. */
 const FARBEN: [string, string][] = [
-  ['Papier', '--bg'],
+  ['Grund', '--bg'],
   ['Blatt', '--surface'],
   ['App-Fläche', '--surface-2'],
   ['Tinte', '--text'],
   ['Gedämpft', '--text-muted'],
   ['Linie', '--border'],
-  ['Terrakotta', '--brand'],
-  ['Terrakotta als Text', '--accent-deep'],
+  ['Petrol', '--brand'],
+  ['Petrol als Text', '--accent-deep'],
   ['Auswahl', '--auswahl'],
   ['Auswahlkontur', '--auswahl-kontur'],
   ['Fokus', '--fokus'],
@@ -65,7 +64,7 @@ const FARBEN: [string, string][] = [
 
 const DARSTELLUNGEN = [
   { wert: 'hell', label: 'Hell', zusatz: 'Standard' },
-  { wert: 'dunkel', label: 'Dunkel', zusatz: 'Eigene warme Tonwelt' },
+  { wert: 'dunkel', label: 'Dunkel', zusatz: 'Eigene dunkle Petrol-Welt' },
   { wert: 'system', label: 'System', zusatz: 'Folgt dem Gerät' },
 ] as const;
 
@@ -252,8 +251,6 @@ export default function MusterView() {
       <MusterBedienung />
       {/* U6, E3: Schalter für Sofortiges, Kästchen für die Auswahl im Formular. */}
       <MusterSchalter />
-      {/* E4: nur ein Vorschlag zum Ansehen — die Gefahrfarbe ist nicht umgestellt. */}
-      <MusterGefahr />
       {/* U5/U9: Warnung mit Zeichen, ein Satz plus „Anzeigen“. */}
       <MusterHinweise />
       {/* U10, E5: Datum und Uhrzeit deutsch neben dem Feld des Geräts. */}

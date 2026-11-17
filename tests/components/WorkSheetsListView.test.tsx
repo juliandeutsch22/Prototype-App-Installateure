@@ -390,7 +390,7 @@ describe('Der Entwurf eines Kollegen', () => {
   it('und den verworfenen eines Kollegen holt der Monteur nicht zurück', async () => {
     geladen = [fremderVerworfen];
     zeichne();
-    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('switch'));
     expect(await screen.findByText('Familie Gruber')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Wieder aufnehmen' })).not.toBeInTheDocument();
   });
@@ -493,7 +493,7 @@ describe('Einen Entwurf löschen', () => {
   it('auch einen verworfenen Entwurf', async () => {
     geladen = [verworfener];
     zeichne();
-    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('switch'));
     await userEvent.click(handlung({ name: 'Löschen' }, await oeffne(/Familie Gruber/)));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Verworfenen Entwurf löschen');
@@ -629,7 +629,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
     */
     geladen = [...scheine, verworfener];
     zeichne();
-    const schalter = await screen.findByRole('checkbox', {
+    const schalter = await screen.findByRole('switch', {
       name: /1 verworfener Entwurf anzeigen/,
     });
     await userEvent.click(schalter);
@@ -646,7 +646,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
   it('nennt den, der ihn aufgegeben hat', async () => {
     geladen = [verworfener];
     zeichne();
-    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('switch'));
     expect(await screen.findByText(/Verworfen von Max Mustermann/)).toBeInTheDocument();
   });
 
@@ -658,7 +658,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
     */
     geladen = [verworfener];
     zeichne();
-    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('switch'));
     await userEvent.click(await waitFor(() => handlung({ name: 'Wieder aufnehmen' })));
     await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('v1'));
   });
@@ -668,7 +668,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
     // eine Weg zurueck in den Entwurf, und der aendert den Inhalt nicht.
     geladen = [verworfener];
     zeichne();
-    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('switch'));
     expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
   });
 });

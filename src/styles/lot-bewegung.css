@@ -54,6 +54,19 @@
   [data-unterlinie-weg] { border-bottom-color: transparent !important; transition: none !important; }
 
   /*
+    E95 — DIE AUSWAHLFLÄCHE DER UNTEREN LEISTE GLEITET (`lib/untenGleiten.ts`).
+    Das Abbild trägt dieselbe Fläche wie `.unten-punkt-aktiv::before` (lot.css)
+    und dasselbe Lot (lot-planlinie.css) und liegt genau über dem neuen Punkt;
+    solange es fährt, zeigt der neue Punkt seine eigene Fläche nicht. Die
+    Schriftfarbe wechselt weich mit, statt neben der fahrenden Fläche zu
+    springen.
+  */
+  .unten-gleiter { position: absolute; pointer-events: none; }
+  .unten-gleiter::before { content: ''; position: absolute; inset: 0.3125rem 0.0625rem; border-radius: 18px; background: var(--auswahl); }
+  .unten-punkt-aktiv[data-gleitet]::before, .unten-punkt-aktiv[data-gleitet] .unten-lot { visibility: hidden; }
+  .unten-punkt, .unten-punkt-aktiv { transition: color var(--motion-state) var(--ease-response); }
+
+  /*
     B6 — ZAHLEN ROLLEN (`components/RollZahl.tsx`). Inline-Block, weil
     `transform` an reinem Text nicht greift; `clip-path` statt `overflow`,
     damit die Grundlinie bleibt, wo sie war. Seitlich darf der Wert über den
@@ -81,28 +94,44 @@
     bleibt sie unberührt. Sichtbar bleibt dann ein 48-px-Kreis rechts mit
     dem Symbol; die Schaltfläche und ihr Name bleiben dieselben, getippt
     wird nur noch im Kreis (`clip-path` schneidet auch die Trefferfläche).
-    Der Ausschnitt reicht im Ruhezustand über den Knopf hinaus, damit der
-    Schatten der Insel nicht abgeschnitten wird; eingezogen liegt das
-    Symbol als eigener Kreis mit Fläche und Schatten der Insel darüber
-    (stumm, ohne Klickfläche — getippt wird der Knopf darunter).
+
+    WEICHER SEIT E95 (17.11.2026, „die Animation muss noch smoother sein“).
+    Vorher liefen drei Dinge gleichzeitig und gegeneinander: der Ausschnitt
+    sprang von „größer als der Knopf“ (für den Schatten) auf „genau der
+    Kreis“, die Beschriftung wurde dabei sichtbar abgeschnitten, und ein
+    zweiter Kreis mit eigenem Schatten wuchs darüber. Jetzt in einer Folge:
+    die Beschriftung blendet aus, der Knopf zieht sich von links zum Kreis
+    zusammen, das Plus blendet erst danach ein — und beim Aufgehen
+    umgekehrt. Der Schatten hängt an der Form, die zu sehen ist (Filter an
+    `.daumen`), statt am Knopf, den der Ausschnitt mitschneidet; das Plus
+    ist nur noch das Zeichen auf dem Knopf, kein eigener Kreis.
   */
   .daumen-symbol { display: none; }
   @media (max-width: 759px) {
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen { filter: drop-shadow(0 3px 6px var(--schatten-daumen)); }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen-symbol {
       display: grid; place-items: center; position: absolute; right: 1rem; bottom: 0.5rem; width: 3rem; height: 3rem;
-      border-radius: 999px; background: var(--brand); color: var(--brand-fg); box-shadow: var(--shadow-insel);
-      pointer-events: none; opacity: 0; transform: scale(0.6);
-      transition: opacity var(--motion-state) var(--ease-response), transform var(--motion-state) var(--ease-response);
+      /* Dieselbe Fläche wie der Knopf darunter: das Plus steht auf ihm, die Kante verschwindet in seiner. */
+      border-radius: 999px; background: var(--brand); color: var(--brand-fg); pointer-events: none; opacity: 0; transform: scale(0.7);
+      transition: opacity var(--motion-exit) var(--ease-response), transform var(--motion-exit) var(--ease-response);
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen > :not(.daumen-symbol) {
-      clip-path: inset(-1.5rem round 2rem);
-      transition: clip-path var(--motion-state) var(--ease-response), opacity var(--motion-state) var(--ease-response);
+      box-shadow: none;
+      clip-path: inset(0 round 1.5rem);
+      /* Aufgehen: erst die Fläche, die Beschriftung kommt, wenn Platz ist. */
+      transition: clip-path var(--motion-einziehen) var(--ease-response), color var(--motion-state) var(--ease-response) 120ms, opacity var(--motion-state) var(--ease-response);
     }
     /* Sichtbar bleibt der Kreis rechts: links fällt ab, was über 48 px hinausgeht (`--daumen-einzug`, aus `useEinziehen`). */
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] > :not(.daumen-symbol) {
       clip-path: inset(0 0 0 var(--daumen-einzug, 0) round 1.5rem);
+      color: transparent;
+      /* Einziehen: die Beschriftung ist weg, bevor der Rand sie erreicht. */
+      transition: clip-path var(--motion-einziehen) var(--ease-response), color var(--motion-press) linear, opacity var(--motion-state) var(--ease-response);
     }
-    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol { opacity: 1; transform: none; }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol {
+      opacity: 1; transform: none;
+      transition: opacity var(--motion-state) var(--ease-response) 140ms, transform var(--motion-einziehen) var(--ease-response) 140ms;
+    }
   }
 
   /*

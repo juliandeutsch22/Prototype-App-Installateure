@@ -175,6 +175,7 @@ import { firmaSperrtRechnung } from './firmaSperre';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import Schalter from '@/components/Schalter';
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
@@ -5026,8 +5027,8 @@ export default function InvoicesView() {
               der Haken stand trotzdem gesetzt da.
             */}
             {art !== 'anzahlung' && (
-              <CheckboxField id="invdetail" label="Leistungsnachweis anhängen"
-                checked={appendDetail} onChange={(e) => setAppendDetail(e.target.checked)} />
+              <Schalter id="invdetail" label="Leistungsnachweis anhängen"
+                an={appendDetail} onChange={(wert) => setAppendDetail(wert)} />
             )}
             {/* Die ZAHL bleibt stehen — sie gehört zu dem, was der Knopf gleich
                 tut. Der allgemeine Teil („Material wird nicht verrechnet")
@@ -5048,11 +5049,11 @@ export default function InvoicesView() {
             */}
             {/* Linien statt Kästen (Regel 1): Haken und UID sind Felder des Formulars wie die anderen. */}
             <div>
-              <CheckboxField
+              <Schalter
                 id="rc"
                 label="Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
-                checked={reverseCharge}
-                onChange={(e) => setReverseCharge(e.target.checked)}
+                an={reverseCharge}
+                onChange={(wert) => setReverseCharge(wert)}
               />
               <p className="rechnungen-hinweis">
                 Nur bei Bauleistungen an einen anderen Bauunternehmer — also als Subunternehmer.
@@ -5099,15 +5100,15 @@ export default function InvoicesView() {
                 </p>
               )}
               {uidWeichtAb && kundeDerVorschau && (
-                <CheckboxField
+                <Schalter
                   id="uid-in-kunden"
                   label={
                     kundeDerVorschau.vatId?.trim()
                       ? `UID auch beim Kunden speichern? (dort steht ${kundeDerVorschau.vatId.trim()})`
                       : 'UID auch beim Kunden speichern?'
                   }
-                  checked={uidInKunden}
-                  onChange={(e) => setUidInKunden(e.target.checked)}
+                  an={uidInKunden}
+                  onChange={(wert) => setUidInKunden(wert)}
                 />
               )}
               {uidPruefung.text && (
@@ -5193,13 +5194,13 @@ export default function InvoicesView() {
               />              {ruecklassArt && (
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <CheckboxField
+                    <Schalter
                       id="ruecklass-an"
                       label={`${RUECKLASS_NAME[ruecklassArt]} einbehalten`}
-                      checked={ruecklassAn}
-                      onChange={(e) => {
-                        setRuecklassAn(e.target.checked);
-                        if (e.target.checked && !ruecklassBis && ruecklassArt === 'haft') {
+                      an={ruecklassAn}
+                      onChange={(wert) => {
+                        setRuecklassAn(wert);
+                        if (wert && !ruecklassBis && ruecklassArt === 'haft') {
                           setRuecklassBis(haftruecklassBisVorschlag(todayStr()));
                         }
                       }}
@@ -6196,11 +6197,11 @@ export default function InvoicesView() {
         )}
         {skontoAngebot != null && (
           <div className="mt-2">
-            <CheckboxField
+            <Schalter
               id="z-skonto"
               label={`Den Rest von ${euro(skontoAngebot)} als Skonto ausgleichen`}
-              checked={zSkonto}
-              onChange={(e) => setZSkonto(e.target.checked)}
+              an={zSkonto}
+              onChange={(wert) => setZSkonto(wert)}
             />
           </div>
         )}

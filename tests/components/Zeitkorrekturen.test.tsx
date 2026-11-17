@@ -36,9 +36,9 @@ it('eine verspätete Antwort überschreibt die zuletzt gewählte Filteransicht n
   listeLaden.mockResolvedValueOnce([]).mockReturnValueOnce(alle.antwort).mockReturnValueOnce(offen.antwort);
   zeichnen();
   await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(1));
-  fireEvent.click(screen.getByRole('checkbox', { name: /Auch entschiedene Anträge/ }));
+  fireEvent.click(screen.getByRole('switch', { name: /Auch entschiedene Anträge/ }));
   await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(2));
-  fireEvent.click(screen.getByRole('checkbox', { name: /Auch entschiedene Anträge/ }));
+  fireEvent.click(screen.getByRole('switch', { name: /Auch entschiedene Anträge/ }));
   await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(3));
   await act(async () => offen.liefern([antrag('neu', 'Neuer offener Antrag', 'offen')]));
   expect(screen.getByText(/Neuer offener Antrag/)).toBeInTheDocument();

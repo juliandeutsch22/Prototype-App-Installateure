@@ -2,7 +2,7 @@
 
 ## Stil und Leitidee
 
-Die zehnte Entwurfsstufe gibt Senklot eine warme, redaktionelle und ruhige Arbeitsatmosphäre, inspiriert vom Look und Vibe von Anthropic/Claude, ohne fremde Markenassets zu kopieren. Warmes Papier, dunkle warme Tintenfarben, Terrakotta als Arbeitsakzent und serifige Überschriften ersetzen die bisherige kühle Petrolwelt. Der Senklot, das Bauplanraster und die sachlichen Modulicons bewahren die eigene Produktherkunft.
+Die zehnte Entwurfsstufe gibt Senklot eine warme, redaktionelle und ruhige Arbeitsatmosphäre, inspiriert vom Look und Vibe von Anthropic/Claude, ohne fremde Markenassets zu kopieren. Serifige Überschriften, ruhige Blätter und präzise Konturen prägen sie. Die Farben waren in V10 warmes Papier und Terrakotta; seit E95 (17.11.2026) ist es wieder die Petrolwelt auf weißem Grund (siehe „Farb- und Rollentokens“). Der Senklot, das Bauplanraster und die sachlichen Modulicons bewahren die eigene Produktherkunft.
 
 Premiumwirkung entsteht aus Typografie, Abstand, präzisen Konturen und verlässlicher Reaktion. Helle Arbeitsblätter liegen auf einem warmen Grund; Tiefe entsteht nur dort, wo ein Element tatsächlich schwebt, gezogen oder ausgewählt wird. Keine dekorativen Verläufe, Glasflächen, Bounce-Effekte, schweren Kachelwände oder beliebigen Schatten.
 
@@ -24,54 +24,61 @@ Acht Pixel bilden den Grundrhythmus; vier Pixel dienen nur der feinen inneren Au
 
 ## Farb- und Rollentokens
 
-| Rolle | Zielwert | Verwendung |
-|---|---:|---|
-| Primärakzent / Terrakotta | `#A85439` | Primäraktionen, aktive Auswahl, Senklotzeichen und wenige Arbeitsmarkierungen |
-| Haupttext | `#25231F` | Titel und primäre Information |
-| Dunkle Arbeitsfläche | `#322E29` | laufender Arbeitstag, dunkle Schwerpunktkarten |
-| Navigation | `#292722` | Desktop-/Tablet-Navigation |
-| Aktive Navigation | `#473B32` | aktiver Menüpunkt |
-| Seitenhintergrund / Papier | `#F4F0E8` | Mappe und Arbeitsgrund |
-| Karten / Arbeitsblätter | `#FFFDF8` | fachliche Arbeitsflächen |
-| App- und Geräteflächen | `#FAF7F1` | eingelassene mobile und Systemflächen |
-| Gedämpfter Text | `#6F685F` | Metadaten und sekundäre Erklärungen |
-| Inaktive mobile Icons | `#7F766B` | passive Docksteuerung |
-| Auswahl | `#F3E4D8` | ausgewählte Zeilen, Optionen und aktive mobile Navigation |
-| Auswahlkontur | `#D5B39E` | feine Auswahl, etwa 0,75 px auf der Referenzebene |
-| Fokus | `#B97B5E` | sichtbarer, ruhiger Fokus |
-| App-Konturen | `#E2D8CB` | Arbeitsblätter und Felder |
-| Kopf-/Dockkonturen | `#E4DACE` | mobile Kopf- und Navigationsinseln |
-| Funktionale Linien | `#DED4C7` | sinnvolle Trennung |
-| Pausierter Arbeitstag | `#EEE6DB` | warmer, neutraler Pausenzustand |
-| Warnung | `#8F5D20` | Statustext und sparsames Symbol |
-| Fehler | `#A5483B` | Statustext und sparsames Symbol |
-| Text auf dunklen Flächen | `#FFF8EE` | Arbeitstag und dunkle Primärflächen |
-| Eigene Chatblasen | `#E8DACC` | eigene Nachrichten mit dunklem Text |
+**Seit E95 (17.11.2026) in Petrol.** Gestalt, Radien, Schatten, Schriften und
+Regeln von V10 gelten weiter; die Farben sind wieder die Petrolwelt der Linie
+„Lot“ auf weißem Grund (Entscheidung E95 in `docs/ui-umbau/entscheidungen.md`).
+Maßgeblich sind die Tokens in `src/index.css`; die Tabellen nennen sie.
+Die terrakottafarbenen V10-Zielwerte gelten nicht mehr.
 
-Terrakotta auf hellem Grund und helle Schrift auf Terrakotta erreichen auf der Referenzebene ausreichenden Textkontrast; reale Kombinationen, Zustände und Themes sind dennoch erneut zu messen. Farbe ist niemals der einzige Informationsträger.
+| Rolle | Wert hell | Verwendung |
+|---|---:|---|
+| Primärakzent / Petrol (`--brand`) | `#0F4552` | Primäraktionen, aktive Auswahl, Senklotzeichen und wenige Arbeitsmarkierungen |
+| Haupttext (`--text`) | `#13262C` | Titel und primäre Information |
+| Dunkle Arbeitsfläche (`--dunkel-flaeche`) | `#0F3C47` | laufender Arbeitstag, dunkle Schwerpunktkarten |
+| Navigation (`--navi`) | `#0F3C47` | Desktop-/Tablet-Navigation, Text `#C6DCE0` |
+| Seitengrund und Blatt (`--bg`, `--surface`) | `#FFFFFF` | Arbeitsgrund und fachliche Arbeitsflächen |
+| App- und Geräteflächen (`--surface-2`) | `#F3F6F6` | eingelassene mobile und Systemflächen |
+| Gedämpfter Text (`--text-muted`) | `#5A6D72` | Metadaten und sekundäre Erklärungen |
+| Inaktive mobile Icons (`--inaktiv-symbol`) | `#5F7176` | passive Docksteuerung (4,7 : 1 auf der Insel) |
+| Auswahl (`--auswahl`) | `#E4EEF0` | ausgewählte Zeilen, Optionen und aktive mobile Navigation |
+| Auswahlkontur (`--auswahl-kontur`) | `#A9C8CE` | feine Auswahl |
+| Fokusring (`--focus-ring`) | `#2D7383` | sichtbarer, ruhiger Fokus |
+| Konturen (`--border`, `--insel-kontur`) | `#DFE7E9` | Arbeitsblätter, Felder, mobile Inseln |
+| Kräftige Linie (`--border-strong`) | `#C2D2D5` | Feldränder, sinnvolle Trennung |
+| Pausierter Arbeitstag (`--pause-flaeche`) | `#E9EEEF` | neutraler Pausenzustand |
+| Warnung (`--warning`) | `#94570A` | Statustext und sparsames Symbol |
+| Fehler (`--danger`) | `#B42318` | Statustext und sparsames Symbol |
+| Text auf dunklen Flächen (`--auf-dunkel`) | `#FFFFFF` | Arbeitstag und dunkle Primärflächen; Akzent darauf `#7CC4D2` |
+| Eigene Chatblasen (`--chat-eigen`) | `#E4EEF0` | eigene Nachrichten mit dunklem Text, Kontur `#C6DCE0` |
+| Raster neben / Haupt | `#F3F6F6` / `#E6EDEE` | sehr leise im Arbeitsgrund |
+
+Petrol auf weißem Grund und Weiß auf Petrol liegen weit über AA (über
+11 : 1); gemessen werden alle Paare beider Sätze in `lotGrundwerte.test.ts`.
+Farbe ist niemals der einzige Informationsträger.
 
 Die Trennung zwischen Produktfarbe und Mandantenbranding bleibt erhalten. Eine betriebliche Hausfarbe darf Navigation, Statussemantik oder Fehlerfarben nicht verfälschen. Druck- und PDF-Ausgaben folgen weiterhin ihren bestehenden Fachregeln.
 
-### Dark Mode · eigene warme Tokenwelt
+### Dark Mode · eigene dunkle Petrolwelt
 
 Der Dark Mode ist eine vollständige zweite Oberflächenwelt, keine mechanische Inversion. Er wird unter „Einstellungen → Mein Konto → Darstellung und Bewegung“ mit „Hell“, „Dunkel“ und „System“ gewählt; „System“ folgt der Geräteeinstellung. Die Auswahl gilt auf allen Seiten, Tabs, Akten, Dialogen, Sheets und Zuständen.
 
-| Rolle | Dunkler Zielwert | Verwendung |
+| Rolle | Wert dunkel | Verwendung |
 |---|---:|---|
-| Seitengrund | `#211F1C` | warmer Arbeitsgrund |
-| Arbeitsfläche | `#25221F` | Thread, Listen und große Arbeitsbereiche |
-| Karten / Eingaben | `#302C27` | Composer, Anhänge und erhöhte Felder |
-| Navigation | `#1F1D1A` | Desktop-/Tablet-Navigation |
-| Auswahl | `#3B312B` | aktive Zeile oder Navigation |
-| Haupttext | `#F3EEE6` | primäre Information |
-| Gedämpfter Text | `#B7AEA3` | Metadaten und sekundäre Erklärung |
-| Linien / Konturen | `#4B443C` | funktionale Trennung |
-| Akzent auf Dunkel | `#D08A68` | Textakzent, Fokus und aktive Symbole |
-| Primäraktion | `#A85439` mit `#FFF8EE` | unverändert kontraststarke Aktionsfläche |
-| Eigene Chatnachricht | `#43362F` mit `#F3EEE6` | eigene Beiträge, feine Kontur `#654C3E` |
-| Raster neben / Haupt | `#302C27` / `#3A342E` | sehr leise im Arbeitsgrund |
+| Seitengrund (`--bg`) | `#0C1C20` | Arbeitsgrund |
+| Arbeitsfläche (`--surface`) | `#12262B` | Listen, Blätter und große Arbeitsbereiche |
+| Eingelassene Flächen (`--surface-2`) | `#0F2226` | mobile Inseln, Systemflächen |
+| Navigation (`--navi`) | `#091619` | Desktop-/Tablet-Navigation |
+| Auswahl (`--auswahl`) | `#17343B` | aktive Zeile oder Navigation |
+| Haupttext (`--text`) | `#E5EFF0` | primäre Information |
+| Gedämpfter Text (`--text-muted`) | `#9FB5BA` | Metadaten und sekundäre Erklärung |
+| Linien / Konturen (`--border`) | `#22393F` | funktionale Trennung, kräftig `#33515A` |
+| Akzent auf Dunkel (`--accent-deep`) | `#7CC4D2` | Textakzent, Fokus und aktive Symbole |
+| Primäraktion (`--brand`) | `#236C7B` mit `#FFFFFF` | kontraststarke Aktionsfläche |
+| Warnung / Fehler | `#E2A54A` / `#F07A6E` | Statustext und sparsames Symbol |
+| Eigene Chatnachricht | `#17343B` mit `#E5EFF0` | eigene Beiträge, feine Kontur `#2F5A64` |
+| Raster neben / Haupt | `#0F2226` / `#152C31` | sehr leise im Arbeitsgrund |
 
-Reale Kontraste sind für jede Komponente und jeden Zustand zu messen. Helle Schrift auf Terrakotta und aufgehellter Terrakotta-Text auf dunklem Grund haben unterschiedliche Rollen und werden nicht vertauscht. Dunkle Flächen erhalten keine schweren schwarzen Schatten; Konturen und begrenzte Tonabstufungen tragen die Hierarchie. Systemwechsel dürfen keinen ungespeicherten Formular-, Timer-, Chat- oder Offline-Zustand zurücksetzen.
+Reale Kontraste sind für jede Komponente und jeden Zustand zu messen. Helle Schrift auf Petrol und aufgehelltes Petrol als Text auf dunklem Grund haben unterschiedliche Rollen und werden nicht vertauscht. Dunkle Flächen erhalten keine schweren schwarzen Schatten; Konturen und begrenzte Tonabstufungen tragen die Hierarchie. Systemwechsel dürfen keinen ungespeicherten Formular-, Timer-, Chat- oder Offline-Zustand zurücksetzen.
 
 ## Flächen, Auswahl und Tiefe
 
@@ -79,7 +86,7 @@ Auswahl und passive Information sind nicht dieselbe helle Fläche. Ausgewählte 
 
 Warnung und Fehler färben keine vollständigen Listenzeilen, Arbeitskarten, Hinweisbalken oder Fehlerpaneele. Eindeutiger Statustext, sparsame Symbole und die nächste Aktion tragen die Bedeutung. Bestehende farbige Vertikalkanten werden nicht wieder als Statussystem eingeführt.
 
-Der laufende Arbeitstag bleibt bewusst dunkel und ruhig. Terrakotta wird dort nur als kleiner Status- oder Arbeitsakzent eingesetzt, nicht als große orangefarbene Karte. Bereit und pausiert bleiben helle, klar unterscheidbare Zustände.
+Der laufende Arbeitstag bleibt bewusst dunkel und ruhig. Der Akzent (`--auf-dunkel-akzent`) wird dort nur als kleiner Status- oder Arbeitsakzent eingesetzt, nicht als große orangefarbene Karte. Bereit und pausiert bleiben helle, klar unterscheidbare Zustände.
 
 App- und Geräteflächen verwenden einen weichen Schatten mit etwa 20 px Unschärfe und 7 px Versatz. Mobile Kopf- und Navigationsinseln verwenden dasselbe Radiussystem sowie etwa 12 px Unschärfe und 4 px Versatz. Aktive Tagesköpfe und ausgewählte Einsätze dürfen eine geringe zusätzliche Tiefe erhalten. Kompakte Bedienzeilen, normale Plankarten, Felder und kleine Steuerungen bleiben ohne Schatten.
 
@@ -105,13 +112,13 @@ Das Raster bleibt ein erkennbares Herkunftsmerkmal, wird aber nicht zum dekorati
 - Rasterlinien nur im Arbeitsgrund, niemals über Text, Karten, Formularen oder Bedienzeilen.
 - Wenige Registrierungsmarken nur an sinnvollen Fixpunkten.
 
-Technische Illustrationen erscheinen nur in echten Leerzuständen oder bei erster Orientierung. Pro Ansicht höchstens ein monochromes Motiv mit ruhiger Terrakotta-/Ton-Strichführung und etwa 1,25 px Strichstärke. Keine Cartoons, Stockbilder oder wiederkehrenden Dekorationen.
+Technische Illustrationen erscheinen nur in echten Leerzuständen oder bei erster Orientierung. Pro Ansicht höchstens ein monochromes Motiv mit ruhiger Strichführung im Akzent und etwa 1,25 px Strichstärke. Keine Cartoons, Stockbilder oder wiederkehrenden Dekorationen.
 
 Einsatzplanung, dichte Listen, Formulare, Finanzansichten, Fehler-, Offline- und Konfliktzustände bleiben ohne Illustration. Ein Ladezustand ist kein Leerzustand; ein Ladefehler ist kein Leerzustand; eine Filterleere benötigt eine andere Erklärung und Aktion als ein tatsächlich leerer Datenbestand.
 
 ## Markenzeichen und Navigation
 
-Der Senklot bleibt als vertikale Lotlinie mit spitzem Körper und Fußlinie erhalten. Auf Desktopseiten wandert er mit dem aktiven Menüpunkt und erscheint zusätzlich dezent am unteren Navigationsrand. Tablet nutzt dieselbe Markierung in der schmalen Navigation. Mobil führt das terrakottafarbene Zeichen in einer hellen Kopfinsel (seit E93/E94 als weicher Tropfen mit rundem Kragen und Faden, Wortmarke in Source Serif 4; dieselbe Form trägt das Senkblei der Navigation); der aktive Bereich der unteren Navigation erhält eine warme, hinter Icon und Text liegende Auswahlfläche.
+Der Senklot bleibt als vertikale Lotlinie mit spitzem Körper und Fußlinie erhalten. Auf Desktopseiten wandert er mit dem aktiven Menüpunkt und erscheint zusätzlich dezent am unteren Navigationsrand. Tablet nutzt dieselbe Markierung in der schmalen Navigation. Mobil führt das Zeichen (seit E95 in Petrol) in einer hellen Kopfinsel (seit E93/E94 als weicher Tropfen mit rundem Kragen und Faden, Wortmarke in Source Serif 4; dieselbe Form trägt das Senkblei der Navigation); der aktive Bereich der unteren Navigation erhält eine hinter Icon und Text liegende Auswahlfläche, die beim Wechsel samt Lot zum neuen Punkt gleitet (E95, `lib/untenGleiten.ts`).
 
 Die Desktopnavigation ist schmal, dunkel und ruhig. Modulicons bleiben als Navigationshilfe erhalten. Personennamen in der Einsatzplanung erscheinen ohne Kürzel-Kreise oder andere Begleitsymbole. Die mobile „Mehr“-Navigation verwendet zwei kompakte, gruppierte Listen für „Planung & Arbeit“ sowie „Vertrieb & Verwaltung“. Rollen- und Modulabhängigkeit bleibt sichtbar und vollständig bedienbar.
 
@@ -143,7 +150,7 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 ## Warnung, lange Hinweise und Datumsfelder · Durchsicht 15.11.2026 (U5, U9, U10)
 
-**Warn- und Fehlertext nie ohne Zeichen (U5).** Jeder Text in Warn- oder Fehlerfarbe trägt das Dreieck davor — als Regel an einer Stelle in `src/index.css` (`:is(.text-warning, .text-danger)` samt den eigenen Meldungsklassen), nicht an jeder Fundstelle. Wer ein eigenes Zeichen mitbringt (`svg` im Element), behält seins. Ausgenommen sind Knöpfe und Verweise, Abzüge in Summentabellen (ein Betrag mit Minus) und das Sternchen der Pflichtfelder. Wächter: `tests/unit/warnzeichen.test.ts`. Ein Vorschlag, die Gefahr vom Terrakotta abzusetzen (E4), steht nur zum Ansehen auf der Musterseite; eingebaut wird er erst nach der Freigabe.
+**Warn- und Fehlertext nie ohne Zeichen (U5).** Jeder Text in Warn- oder Fehlerfarbe trägt das Dreieck davor — als Regel an einer Stelle in `src/index.css` (`:is(.text-warning, .text-danger)` samt den eigenen Meldungsklassen), nicht an jeder Fundstelle. Wer ein eigenes Zeichen mitbringt (`svg` im Element), behält seins. Ausgenommen sind Knöpfe und Verweise, Abzüge in Summentabellen (ein Betrag mit Minus) und das Sternchen der Pflichtfelder. Wächter: `tests/unit/warnzeichen.test.ts`. Mit Petrol als Akzent steht die Fehlerfarbe `#B42318` / `#F07A6E` deutlich abgesetzt; der Vorschlag einer eigenen Gefahrfarbe (E4) ist damit erledigt und von der Musterseite entfernt (E95).
 
 **Lange Warntexte: ein Satz plus „Anzeigen“ (U9).** Auf einer Seite steht von einer Warnung der eine Satz, der sagt, was los ist; was ihn erklärt oder aufzählt, steht in `Hinweiszeile.einzelheiten` und kommt auf „Anzeigen“. In einem Fenster und an einer Warnung mit Knopf bleibt der Text offen — dort ist er die Grundlage der Entscheidung, wie in einer Rückfrage. Wo die Zahlen der Warnung die Auskunft selbst sind, sagt `offenWeil`, warum. Wächter: `tests/unit/warntextKurz.test.ts` (über 160 Zeichen gilt als lang).
 
@@ -157,7 +164,7 @@ In der Baustellenliste stehen die Zustände untereinander links und das Budget i
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.
 
-Normale Einsätze bleiben helle Arbeitsblätter mit feiner Kontur und sachlicher Terrakotta-Markierung. Der heutige Tag erhält einen dunklen Tageskopf und eine vertiefte warme Spalte. Nur der ausgewählte Einsatz wird vollflächig terrakotta; Auswahl verändert nicht den normalen Kartenradius.
+Normale Einsätze bleiben helle Arbeitsblätter mit feiner Kontur und sachlicher Petrol-Markierung. Der heutige Tag erhält einen dunklen Tageskopf und eine leicht getönte Spalte. Nur der ausgewählte Einsatz wird ganz in Petrol; Auswahl verändert nicht den normalen Kartenradius.
 
 Verschieben per Ziehen, Kopieren mit Alt, langes Drücken auf Touch-Tablets und die mobile Umplanung über die Einsatzaktionen bleiben erhalten. Am ausgewählten Einsatz erscheinen Bearbeiten, Verschieben, auf den nächsten Werktag kopieren und Entfernen; Rückgängig bleibt nach Verschieben oder Kopieren verfügbar. Entfernen bleibt dort bestätigungspflichtig, wo kein sicheres Rückgängig existiert. Konflikt- und Rechteprüfungen werden visuell nicht abgeschwächt. Ladefehler bei Abwesenheiten dürfen niemals wie freie Kapazität aussehen.
 

@@ -204,7 +204,7 @@ describe('Im Firmenbuch eingetragen', () => {
   it('ein Einzelunternehmen ohne Zusatz setzt den Haken — gespeichert als eigene Angabe', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    expect(haken().checked).toBe(false);
+    expect(haken()).not.toBeChecked();
     await nutzer.click(haken());
     await nutzer.click(speichern());
     expect(updateCompany.mock.calls[0][1]).toMatchObject({ imFirmenbuch: true });
@@ -214,7 +214,7 @@ describe('Im Firmenbuch eingetragen', () => {
     firma = { ...firma, name: 'Perl Installationen GmbH' };
     const nutzer = userEvent.setup();
     zeige();
-    expect(haken().checked).toBe(true);
+    expect(haken()).toBeChecked();
     // Gespeichert wird erst nach einer Änderung (Speicherleiste, U1) — hier an einem anderen Feld.
     await nutzer.type(feld('Firmenname'), ' Wien');
     await nutzer.click(speichern());
@@ -224,14 +224,14 @@ describe('Im Firmenbuch eingetragen', () => {
   it('zeigt die gespeicherte Angabe', () => {
     firma = { ...firma, imFirmenbuch: true };
     zeige();
-    expect(haken().checked).toBe(true);
+    expect(haken()).toBeChecked();
   });
 
   /* Runde 7, 6.1: bei GmbH, AG, KG … fest, mit dem Satz daneben. */
   it('bei einer GmbH gesetzt und gesperrt — mit dem Satz, warum', () => {
     firma = { ...firma, name: 'Perl Installationen GmbH' };
     zeige();
-    expect(haken().checked).toBe(true);
+    expect(haken()).toBeChecked();
     expect(haken().disabled).toBe(true);
     expect(screen.getByText(
       'Eine GmbH ist immer im Firmenbuch eingetragen. Firmenbuchnummer und -gericht gehören auf jede Rechnung.',
@@ -241,7 +241,7 @@ describe('Im Firmenbuch eingetragen', () => {
   it('der Satz nennt die Rechtsform — und ein abgewählter Altwert zählt nicht', () => {
     firma = { ...firma, name: 'Maier OG', imFirmenbuch: false };
     zeige();
-    expect(haken().checked).toBe(true);
+    expect(haken()).toBeChecked();
     expect(haken().disabled).toBe(true);
     expect(screen.getByText(/^Eine OG ist immer im Firmenbuch eingetragen\./)).toBeInTheDocument();
   });
@@ -252,7 +252,7 @@ describe('Im Firmenbuch eingetragen', () => {
     expect(haken().disabled).toBe(false);
     await nutzer.type(feld('Firmenname'), ' GmbH');
     expect(haken().disabled).toBe(true);
-    expect(haken().checked).toBe(true);
+    expect(haken()).toBeChecked();
     await nutzer.click(speichern());
     expect(updateCompany.mock.calls[0][1]).toMatchObject({ name: 'Perl Installationen GmbH', imFirmenbuch: null });
   });

@@ -834,7 +834,7 @@ describe('Den Tag der letzten Wartung berichtigen', () => {
     await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
     await nutzer.click(handlung({ name: 'Bearbeiten' }, await screen.findByRole('dialog', { name: 'Wartung' })));
   }
-  const haken = () => screen.queryByRole('checkbox', { name: 'Der 10.04.2025 war falsch — berichtigen' });
+  const haken = () => screen.queryByRole('switch', { name: 'Der 10.04.2025 war falsch — berichtigen' });
 
   it('mit Haken: erst berichtigen, dann speichern', async () => {
     const nutzer = userEvent.setup();

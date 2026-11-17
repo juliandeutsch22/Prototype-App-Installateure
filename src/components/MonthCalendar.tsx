@@ -161,7 +161,7 @@ export default function MonthCalendar({
               */
               className={`relative flex h-[4.5rem] flex-col items-center gap-0.5 border-line pb-2 pt-3 transition-colors ${i % 7 === 6 ? '' : 'border-r'} ${i >= cells.length - 7 ? '' : 'border-b'} ${
                 isSelected
-                  ? // Gewählt: warme Auswahlfläche mit feiner Kontur (V10).
+                  ? // Gewählt: Auswahlfläche mit feiner Kontur (V10).
                     'bg-[var(--auswahl)] ring-1 ring-inset ring-[var(--auswahl-kontur)]'
                   : holiday
                     ? // Feiertag ist kein Warnzustand (V10): eine eigene
@@ -183,7 +183,7 @@ export default function MonthCalendar({
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs ${
                   isSelected
-                    ? // Auf der Auswahlfläche die Zahl in Terrakotta, ohne
+                    ? // Auf der Auswahlfläche die Zahl im Akzent, ohne
                       // gefüllten Kreis — die Fläche sagt schon „gewählt“.
                       'font-semibold text-accent-deep'
                     : isToday

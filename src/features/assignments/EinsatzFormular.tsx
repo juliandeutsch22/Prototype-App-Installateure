@@ -25,7 +25,7 @@ import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
-import { InputField, CheckboxField } from '@/components/Field';
+import { InputField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
 import { List, ListRow } from '@/components/ListRow';
@@ -38,6 +38,7 @@ import RuestlistePlanen from './RuestlistePlanen';
 import { formularDeckung } from './materialDeckung';
 import { abwesendAm, fmtDay, useMaterialstamm } from './einsatzDaten';
 import { alsHelferEingestuft, istLehrling, stufeImEinsatz } from './stufeImEinsatz';
+import Schalter from '@/components/Schalter';
 
 /** Auswahlzustand je Mitarbeiter: eingeteilt und in welcher Rolle. */
 interface Pick {
@@ -1151,13 +1152,13 @@ export default function EinsatzFormular({
                 return <span className="text-sm text-ink-muted">{stufeImEinsatz(false, person)}</span>;
               }
               return (
-                <CheckboxField
+                <Schalter
                   id={`helper-${uid}`}
                   label="als Helfer"
-                  checked={!!picks[uid]?.asHelper}
-                  onChange={(e) => {
+                  an={!!picks[uid]?.asHelper}
+                  onChange={(wert) => {
                     einteilungGetippt();
-                    setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }));
+                    setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: wert } }));
                   }}
                 />
               );
@@ -1181,8 +1182,8 @@ export default function EinsatzFormular({
               <li key={a.userId}>{a.name}: {a.text}</li>
             ))}
           </ul>
-          <CheckboxField id="aangleichen" label="Allen dieselbe Aufgabe und Uhrzeit geben" checked={angleichen}
-            onChange={(e) => { einteilungGetippt(); setAngleichen(e.target.checked); }} />
+          <Schalter id="aangleichen" label="Allen dieselbe Aufgabe und Uhrzeit geben" an={angleichen}
+            onChange={(wert) => { einteilungGetippt(); setAngleichen(wert); }} />
         </div>
       )}
       <div className="mt-4">
@@ -1230,8 +1231,8 @@ export default function EinsatzFormular({
       */}
       {!einblick && (
         <div className="mt-4 space-y-3">
-          <CheckboxField id="amehrere" label="Auch an den folgenden Tagen" checked={mehrereTage}
-            onChange={(e) => { setMehrereTage(e.target.checked); setFolgeZeilen(null); }} />
+          <Schalter id="amehrere" label="Auch an den folgenden Tagen" an={mehrereTage}
+            onChange={(wert) => { setMehrereTage(wert); setFolgeZeilen(null); }} />
           {mehrereTage && existingForProject.length > 0 && (
             // V13: am geplanten Paar ist das ein Ändern der Folgetage, kein Ergänzen.
             <p className="text-sm text-ink-muted">
@@ -1243,8 +1244,8 @@ export default function EinsatzFormular({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
               <InputField id="abis" label="bis einschließlich" type="date" value={bisTag} min={tagDanach(date)}
                 max={tagDanach(date, FOLGETAGE_HOECHSTENS - 1)} onChange={(e) => setBisTag(e.target.value)} />
-              <CheckboxField id="awerktage" label="nur Werktage" checked={nurWerktage}
-                onChange={(e) => setNurWerktage(e.target.checked)} />
+              <Schalter id="awerktage" label="nur Werktage" an={nurWerktage}
+                onChange={(wert) => setNurWerktage(wert)} />
             </div>
           )}
         </div>

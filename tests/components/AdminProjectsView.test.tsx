@@ -1073,7 +1073,7 @@ describe('Nur meine Baustellen (M38)', () => {
     // Gezählt werden die Zeilen; bis „Lot“ stand die Zahl im Kartentitel „Alle Baustellen (n)“.
     await screen.findByText('2026-101');
     expect(zeilen()).toHaveLength(3);
-    const haken = screen.getByRole('checkbox', { name: 'Nur meine Baustellen' });
+    const haken = screen.getByRole('switch', { name: 'Nur meine Baustellen' });
     // Ab Werk aus: die Projektleitung sieht zuerst alle Baustellen.
     expect(haken).not.toBeChecked();
 
@@ -1093,7 +1093,7 @@ describe('Nur meine Baustellen (M38)', () => {
     zeige();
     await screen.findByText('2026-101');
     expect(zeilen()).toHaveLength(3);
-    expect(screen.queryByRole('checkbox', { name: 'Nur meine Baustellen' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Nur meine Baustellen' })).toBeNull();
   });
 });
 
