@@ -22,7 +22,7 @@ describe('die Rechenregeln', () => {
     expect(ausgleichOben(250, 24)).toBe(14);
     expect(ausgleichOben(47, 24)).toBe(1);
     expect(ausgleichOben(25, 24)).toBe(23);
-    // Bruchteile eines Pixels zählen nicht.
+    // Ein Rest unter einem halben Pixel zählt nicht — dafür wüchse der Abstand um eine ganze Zelle.
     expect(ausgleichOben(48.4, 24)).toBe(0);
   });
 
@@ -30,6 +30,27 @@ describe('die Rechenregeln', () => {
     expect(ausgleichHoehe(72)).toBe(0);
     expect(ausgleichHoehe(97)).toBe(23);
     expect(ausgleichHoehe(100)).toBe(20);
+  });
+
+  /*
+    E97: Seit die Grundschrift 15 px misst, erben Sätze 22,5 px Zeilenhöhe;
+    ein Blatt war 143,5 px hoch. Ganz gerundet (144) bekam es keinen
+    Ausgleich, und die Unterkante lag einen halben Pixel über der Linie.
+    Gegenprobe: mit dem Runden auf ganze Pixel sind beide Fälle 0.
+  */
+  it('ein halber Pixel bis zur Linie wird aufgefüllt — oben wie unten', () => {
+    expect(ausgleichHoehe(143.5)).toBe(0.5);
+    expect(ausgleichHoehe(47.25)).toBe(0.75);
+    expect(ausgleichOben(47.5, 24)).toBe(0.5);
+    expect(ausgleichOben(1775.5, 1752)).toBe(0.5);
+  });
+
+  it('gleich geblieben: ganze Pixel wie bisher, ein Rest unter einem halben Pixel bleibt stehen', () => {
+    expect(ausgleichHoehe(48.4)).toBe(0);
+    expect(ausgleichHoehe(48)).toBe(0);
+    expect(ausgleichOben(24.25, 0)).toBe(0);
+    // Genau gerechnet, aber auf 1/64 px: was sich nur in der Rechenungenauigkeit unterscheidet, ist gleich.
+    expect(ausgleichHoehe(143.5 + 1e-9)).toBe(ausgleichHoehe(143.5));
   });
 
   it('die Spalte schrumpft auf ganze Zellen, mindestens eine', () => {

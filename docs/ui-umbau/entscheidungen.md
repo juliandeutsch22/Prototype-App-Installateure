@@ -4189,3 +4189,14 @@ rund 60 freie Zwischenwerte.
   Leiste ruht. Gegenprobe: mit 1,3 s Verzug vor der Zählung ist die alte
   Fassung rot wie in der CI, die neue grün; eine Leiste mit Weg (300 ms)
   macht die neue rot. An der App ändert sich nichts.
+- **Folge der 15-px-Grundschrift: Taktgeber auf Bruchteile genau.** Was
+  keine eigene Zeilenhöhe hat, erbt das 1,5-Fache der Schrift — vorher
+  24 px, jetzt 22,5 px. Blätter wurden dadurch 143,5 px hoch; der
+  Taktgeber (`lib/takt.ts`) rundete auf 144, gab keinen Ausgleich, und die
+  Unterkante lag einen halben Pixel über der Linie (`raster.spec.ts` in der
+  CI: fünf Seiten, drei Breiten; auf `main` lag schon ein Blatt so). Jetzt
+  füllt er bis zur Linie auf, auf ein Vierundsechzigstel Pixel genau; ein
+  Rest unter einem halben Pixel zählt wie bisher nicht. Gemessen auf 46
+  Seiten in drei Breiten (138 Ansichten): auf `main` lag in einer Ansicht
+  ein Blatt daneben, mit E97 ohne diesen Schritt in 15, jetzt in keiner. Die Zeilenhöhen selbst bleiben: sie auf ganze
+  Pixel zu zwingen hieße, jede Regel ohne eigene Zeilenhöhe anzufassen.
