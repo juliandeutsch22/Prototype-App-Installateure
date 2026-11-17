@@ -937,7 +937,16 @@ test.describe('E95 Untere Leiste: die Auswahlfläche gleitet', () => {
     const spur = await lesen(page);
     expect(spur.every(([, n]) => n === 1)).toBe(true);
     expect(spur.some(([x]) => Math.abs(x - nach) > 1 && Math.abs(x - nach) < 100)).toBe(false);
-    expect(spur[spur.length - 1][0]).toBeCloseTo(nach, 0);
+    /*
+      DIE ENDLAGE NACH DEM WECHSEL, NICHT AM ENDE DER AUFNAHME (E97). Unter
+      Last kam der Code der Rechnungsseite erst nach den 900 ms der Aufnahme;
+      die Fläche stand dann im ganzen Fenster noch auf „Start“ (49 statt 268 px)
+      — ohne dass etwas geglitten wäre. Geprüft wird, was die Regel sagt: kein
+      Abbild, keine Zwischenstellung, und am Ende steht sie auf dem Ziel.
+    */
+    await expect(punkt(page, 'Rechnungen')).toHaveClass(/unten-punkt-aktiv/, { timeout: 15_000 });
+    expect(await mitteVon(page, 'Rechnungen')).toBeCloseTo(nach, 0);
+    await expect(page.locator('.unten [data-unten-gleiter]')).toHaveCount(0);
   });
 });
 

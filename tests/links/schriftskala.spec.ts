@@ -83,7 +83,7 @@ test.describe('E97 Schriftskala auf jeder Seite', () => {
         const anzahl = Math.max(1, await reiter.count());
         for (let i = 0; i < anzahl; i++) {
           if (await reiter.count()) await reiter.nth(i).click();
-          await page.evaluate(() => document.querySelectorAll('main details').forEach((d) => { d.open = true; }));
+          await page.evaluate(() => document.querySelectorAll<HTMLDetailsElement>('main details').forEach((d) => { d.open = true; }));
           await page.waitForTimeout(300);
           for (const f of await befunde(page)) fehler.push(`${breite} px${anzahl > 1 ? ` Reiter ${i + 1}` : ''}: ${f}`);
         }
@@ -100,7 +100,8 @@ test.describe('E97 dieselbe Rolle in derselben Größe — in den Akten', () => 
         await page.setViewportSize({ width: breite, height: 1000 });
         await page.goto(pfad(route, A));
         await page.waitForLoadState('networkidle');
-        await expect(page.locator('main')).toBeVisible();
+        // Gemessen wird die geladene Akte, nicht der Platzhalter davor.
+        await expect(page.locator('main dl dt').locator('visible=true').first()).toBeVisible({ timeout: 30_000 });
         const groessen = await page.evaluate(() => {
           const px = (sel: string) => [...new Set([...document.querySelectorAll<HTMLElement>(`main ${sel}`)]
             .filter((e) => e.getBoundingClientRect().width > 0 && e.textContent?.trim())

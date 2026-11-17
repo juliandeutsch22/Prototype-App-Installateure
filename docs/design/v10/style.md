@@ -16,6 +16,19 @@ Funktionsumfang, Reihenfolge der Abläufe, Rollen, Rechte und fachliche Zuständ
 
 Die Schriften sind in der Produktionsanwendung lokal beziehungsweise zuverlässig selbst gehostet bereitzustellen. Metriken und Fallbacks sind so zu wählen, dass Schrift laden keinen Layoutsprung erzeugt. Serifen bleiben eine Titelentscheidung: kleine Bedienung, Tabellen, Formulare, Zeitwerte und kompakte Metadaten bleiben sachlich und schnell lesbar.
 
+### Schriftskala nach Rollen (E97, 17.11.2026)
+
+Vier Stufen, je eine Rolle, gleich am Handy und am Schreibtisch (`--groesse-*` in `src/index.css`, Tailwind `text-xs`, `text-meta`, `text-fliess`, `text-base`). Eine 14-px-Stufe gibt es nicht.
+
+| Stufe | Rolle |
+|---|---|
+| 12 px (`--groesse-klein`, `text-xs`) | Dachzeile über einer Gruppe, versale Köpfe, Zähler, Einheit, Nummernstempel, Köpfe der Raster, Zeitmarken im Chat |
+| 13 px (`--groesse-begleit`, `text-meta`) | Beschriftung über Wert und Feld, Meta-Zeile, Hinweis und Fehler am Feld, Zustand, Verweis, Filter, kleine Knöpfe; Einträge und Namen in den dichten Rastern |
+| 15 px (`--groesse-inhalt`, `text-fliess`) | Inhalt: Text, Werte, Namen, Leer- und Ladesätze, Knöpfe, Menüs, Reiter, Tabellen — die Grundschrift |
+| 16 px (`--groesse-feld`, `text-base`) | Eingabefelder (iOS zoomt darunter) und der Text einer Nachricht |
+
+Eigene Größen nur für Titel, große Kennwerte und Uhr, Zeichen, Namenskürzel und die Navigation. Gemessenes in Plex Mono nimmt dieselben Stufen (Wert 15, Begleitwert 13, Nummer 12). Wächter: `tests/unit/schriftskala.test.ts`, im Browser `tests/links/schriftskala.spec.ts`; messen: `node tools/vorschau/schriften.mjs`.
+
 Namen und aktuelle Arbeitsinhalte erhalten mehr Gewicht als Metadaten. Lange Kunden-, Baustellen- und Personennamen bleiben lesbar; bestehende Umbruch-, Trenn- und `min-width: 0`-Regeln werden nicht geschwächt. Zahlen bleiben tabellarisch ausgerichtet und springen bei Aktualisierungen nicht seitlich.
 
 Die Mappe verwendet skalierte Artboards. Ihre Schrift-, Linien- und Abstandswerte sind keine direkt zu kopierenden CSS-Vorgaben. In der Produktionsanwendung gelten die bestehende barrierearme Typografie-Skala und mindestens 44–48 px große zentrale Touchziele; übertragen werden Hierarchie, Proportion und visuelles Gewicht.

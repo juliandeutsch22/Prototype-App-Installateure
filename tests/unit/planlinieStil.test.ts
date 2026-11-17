@@ -624,7 +624,7 @@ describe('E72 Aufträge und Planung', () => {
 
   it('Positionen am Handy: Betrag unter der Bezeichnung (D3)', () => {
     expect(quelle('src/features/quotes/PositionenTabelle.tsx')).toContain('<table className="tabelle stueckliste positionen-tabelle">');
-    expect(AKTEN).toContain('.positionen-tabelle tbody tr { grid-template-columns: 2.5rem minmax(0, 1fr); }');
+    expect(AKTEN).toContain('.positionen-tabelle tbody tr { grid-template-columns: 2.75rem minmax(0, 1fr); }');
     expect(AKTEN).toContain('.positionen-tabelle tbody td.r { grid-column: 1 / -1;');
   });
 
