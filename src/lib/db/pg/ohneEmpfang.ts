@@ -45,6 +45,7 @@ import { nachsenden, FACH_GELEERT, beiVormerkungGesichert, zurueckholen } from '
 import { zeitEntwurfAus, zeitEntwurfMerken } from '@/lib/zeitEntwuerfe';
 import { derClient } from './kern';
 import { objektAlsZeile } from './felder';
+import { eigeneAenderung } from '../eigeneAenderung';
 
 /**
  * Das Lager wird EINMAL geöffnet und gemerkt.
@@ -169,6 +170,7 @@ export async function anlegenOhneEmpfang(
       const c = derClient(client);
       const { error } = await c.from(tabelle).upsert({ ...zeile, id }, { onConflict: 'id' });
       if (error) throw new Error(error.message);
+      eigeneAenderung(tabelle);
     });
     return { id, stand: 'confirmed' };
   }
@@ -195,6 +197,7 @@ export async function aendernOhneEmpfang(
       const { error, count } = await c.from(tabelle).update(zeile, { count: 'exact' }).eq('id', id);
       if (error) throw new Error(error.message);
       if (count === 0) throw new Error('Kein Datensatz geändert — er fehlt oder darf nicht geändert werden.');
+      eigeneAenderung(tabelle);
     });
     return 'confirmed';
   }

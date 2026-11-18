@@ -4380,6 +4380,23 @@ und Benutzerakte.
   (`.huelle::before`, Höhe `--sicher-oben` = `env(safe-area-inset-top)`),
   unter der Insel des Kopfs; ohne Zone ist die Fläche 0 hoch.
 
+**Eigenes Schreiben zeigt sich auch ohne Live-Meldung** (gefunden in der CI
+dieses PR, `runde4.spec.ts`). Die Live-Listen (`abonnieren`) übernahmen eine
+Änderung nur über den Kanal: die Buchung war gespeichert (201), die Meldung
+kam in 20 s nicht, und die Mitarbeiterübersicht zeigte den Tag weiter „ohne
+Buchung“. Draußen dasselbe, wo ein Netz Websockets sperrt — dort stand die
+eigene Buchung erst nach dem Neuladen da. Jetzt meldet jeder geglückte eigene
+Schreibvorgang seine Tabelle (`src/lib/db/eigeneAenderung.ts`: `anlegen`,
+`anlegenMitKennung`, `aendern`, `loeschen`, das Ausgangsfach und der Weg ohne
+Fach), und jede Live-Liste dieser Tabelle gleicht gleich ab — Kennung und
+Änderungszeit wie beim Nachfassen, mehrere Schreibvorgänge kurz
+hintereinander einmal. Fremde Änderungen kommen weiter über den Kanal.
+**Benannte Grenze:** Schreibwege über eine Datenbankfunktion (etwa der Timer,
+`zeit_timer_befehl`) melden ihre Tabelle nicht — welche Zeilen eine Funktion
+ändert, weiß nur sie (Grund: fachlich, je Funktion verschieden); dort bleibt
+es beim Kanal und beim Nachfassen. Ebenso die drei Abonnements ohne
+`abonnieren` (Einstellungen, Rechnungen, Rüstliste).
+
 **Was weggelassen wurde — und warum** (Nachtrag zum Auftrag: „wichtig ist
 auch: welche Informationen/welcher text ist wirklich relevant und hat
 mehrwert und was könnte man weglassen“). Jeder Satz der Akte wurde gegen

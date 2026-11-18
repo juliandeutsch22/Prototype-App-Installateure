@@ -14,6 +14,7 @@ import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
 import { meldeVerbindung, vergissVerbindung } from '@/lib/liveVerbindung';
 import { liveGeneration, liveLesen, liveMerken, speicherNutzer } from '@/lib/liveSpeicher';
+import { beiEigenerAenderung, eigeneAenderung } from '../eigeneAenderung';
 
 /*
   DIESELBE KENNUNG WIE AUF DER ANDEREN SEITE. Sie hier ein zweites Mal zu
@@ -505,6 +506,7 @@ export async function anlegen(
   const zeile = { ...objektAlsZeile(tabelle, daten), company_id: companyId };
   const { data, error } = await c.from(tabelle).insert(zeile).select('id').single();
   if (error) throw new Error(error.message);
+  eigeneAenderung(tabelle);
   return String((data as { id: string }).id);
 }
 
@@ -526,6 +528,7 @@ export async function anlegenMitKennung(
   const zeile = { ...objektAlsZeile(tabelle, daten), company_id: companyId, id };
   const { error } = await c.from(tabelle).upsert(zeile, { onConflict: 'id' });
   if (error) throw new Error(error.message);
+  eigeneAenderung(tabelle);
   return id;
 }
 
@@ -581,6 +584,7 @@ export async function aendern(
     .eq('id', id);
   if (error) throw new Error(error.message);
   pruefeTreffer(tabelle, count);
+  eigeneAenderung(tabelle);
 }
 
 /** Löscht. Die Mandantenprüfung erzwingt der Zeilenschutz. */
@@ -593,6 +597,7 @@ export async function loeschen(
   const { error, count } = await c.from(tabelle).delete({ count: 'exact' }).eq('id', id);
   if (error) throw new Error(error.message);
   pruefeTreffer(tabelle, count);
+  eigeneAenderung(tabelle);
 }
 
 /**
@@ -1188,11 +1193,44 @@ export function abonnieren<T>(
     client: c,
   });
 
+  /*
+    NACH EIGENEM SCHREIBEN GLEICH ABGLEICHEN (E99, `eigeneAenderung.ts`):
+    ohne auf die Meldung des Kanals zu warten, die ausbleiben kann. Mehrere
+    Schreibvorgänge kurz hintereinander gleichen einmal ab; läuft schon ein
+    eigener Abgleich, folgt einer danach — sonst fehlte, was währenddessen
+    geschrieben wurde. Steht noch kein Bestand (das erste Bild ist
+    unterwegs), wird nach ihm abgeglichen: es könnte vor dem Schreiben
+    geholt sein.
+  */
+  let eigenGeplant: ReturnType<typeof setTimeout> | undefined;
+  let eigenLaeuft = false;
+  let eigenNochmal = false;
+  const eigenAbgleichen = () => {
+    if (abgemeldet) return;
+    if (!bestandGilt) {
+      void erstesBild.then(() => { if (!abgemeldet) eigenPlanen(); });
+      return;
+    }
+    if (eigenLaeuft) { eigenNochmal = true; return; }
+    eigenLaeuft = true;
+    void abgleichen().finally(() => {
+      eigenLaeuft = false;
+      if (eigenNochmal) { eigenNochmal = false; eigenPlanen(); }
+    });
+  };
+  const eigenPlanen = () => {
+    if (abgemeldet || eigenGeplant) return;
+    eigenGeplant = setTimeout(() => { eigenGeplant = undefined; eigenAbgleichen(); }, BUENDELN_MS);
+  };
+  const stoppEigen = beiEigenerAenderung(tabelle, eigenPlanen);
+
   return () => {
     abgemeldet = true;
     if (nachfassen) clearTimeout(nachfassen);
     if (meldenGeplant) clearTimeout(meldenGeplant);
     if (wiederholung) clearTimeout(wiederholung);
+    if (eigenGeplant) clearTimeout(eigenGeplant);
+    stoppEigen();
     stoppKanal();
   };
 }
