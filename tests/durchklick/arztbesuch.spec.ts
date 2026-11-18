@@ -1,6 +1,6 @@
 import { test, expect } from './grund';
 import { admin, BETRIEB, BUERO, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, keineFehlermeldung, werktageVoraus } from './helfer';
 
 /**
  * DER ARZTBESUCH VON ANFANG BIS ENDE (E35): der Monteur arbeitet vormittags,
@@ -10,7 +10,8 @@ import { anmelden, keineFehlermeldung } from './helfer';
  * danach gelöscht.
  */
 const EIMER = 'freistellungsnachweise';
-const TAG = '2026-11-25'; // ein Mittwoch
+// Ein Mittwoch einer kommenden Woche: der Monteur tritt bei jedem Lauf heute ein (`werktageVoraus`).
+const TAG = werktageVoraus(6).mi;
 
 async function monteurUid(): Promise<string> {
   const { data } = await admin.from('users').select('id').eq('company_id', BETRIEB).eq('email', MONTEUR.email).single();

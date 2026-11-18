@@ -4298,6 +4298,17 @@ als der header oben. die abstände sollten einheitlich sein“.
   jeder Löschfehler bricht den Aufbau mit dem Namen der Tabelle ab: eine
   künftig fehlende Tabelle fällt beim ersten Lauf auf, nicht vierzehn Läufe
   später. In der CI (frische Datenbank je Lauf) trat das nie auf.
+- **Browserwege ohne feste Tage, die ablaufen.** Sonderurlaub (16.–18.11.2026)
+  scheiterte im vollen Lauf, einzeln nie. Ursache, aus der Spur gelesen: die
+  Datenbank wies die Bestätigung ab („Vor dem Eintritt am 18.11.2026 lässt
+  sich nicht buchen“). Der Weg „Aktenprüfung“ (`akten.spec.ts`) ändert vorher
+  den Namen des Monteurs in seiner Akte, und das Formular füllt einen leeren
+  Eintritt mit heute. Sonderurlaub, Sonderurlaub mit Nachweis und
+  Arztbesuch rechnen ihre Tage jetzt als Werktage einer kommenden Woche
+  ohne Feiertag (`werktageVoraus` in `helfer.ts`) statt mit festen Daten,
+  die früher oder später vor dem Eintritt liegen. Der Sonderurlaub-Weg nennt
+  bei einem Fehlschlag die tatsächliche Meldung (sie steht nur 3,5 s).
+  Gegenprobe mit Eintritt heute: der alte Weg rot, der neue grün.
 - **Prüfungen:** `InvoicesView.test.tsx` (5, zugeklappt, Summenzeile,
   Entscheidung sichtbar, gemerkt je Person, Adresse öffnet), im Browser
   „zugeklappt, nebeneinander, untereinander“ (1.440/834/390 px) und
