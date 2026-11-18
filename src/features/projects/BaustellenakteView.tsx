@@ -47,7 +47,6 @@ import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTe
 import TermineKarte from '@/features/termine/TermineKarte';
 import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
-import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
 import { endeVorbei } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
@@ -513,7 +512,6 @@ export default function BaustellenakteView() {
     );
   }
 
-  const verlauf = verlaufPunkte(b, angebote, todayStr());
   const auftrag = (
     <Card title="Auftrag" id="b-ueberblick">
       <AktenAngaben>
@@ -534,10 +532,14 @@ export default function BaustellenakteView() {
       {user && <Suspense fallback={<p className="text-fliess text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
-      <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
-      {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
-        <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
-      </details>}
+      <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} laeuft={endeVorbei(b, todayStr())} />
+      {/*
+        KEIN „VERLAUF DER BAUSTELLE“ MEHR (E99, Auftrag: „welche Informationen
+        … haben wirklich Mehrwert und was könnte man weglassen“). Er zeigte
+        Angebot mit Datum und Stand, Beginn, heute mit dem Stand und das
+        geplante Ende samt „überschritten“ — alles steht schon im Schriftfeld,
+        in der Karte „Angebote“ und im Leistungszeitraum.
+      */}
       {/* Wer was wann an der Baustelle geändert hat (M01b) — neben ihrem Verlauf, ebenso auf Klick. */}
       {companyId && verlaufSichtbar(user?.role, 'baustelle', !!einblick) &&
         <ObjektVerlauf companyId={companyId} objektart="baustelle" objektId={b.id} stil="akte" name={(u) => namen.get(u)} />}
@@ -568,7 +570,8 @@ export default function BaustellenakteView() {
   const kundeOrt = <Card title="Kunde und Ort" id="b-daten">
     <AktenAngaben>
       <AktenAngabe wort="Kunde" breit>{b.customerId
-        ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName} · Zur Kundenakte</Link>
+        /* Der Name als Verweis wie in der Angebotsakte (E99); „· Zur Kundenakte“ dahinter sagte nur noch einmal, wohin er führt. */
+        ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName}</Link>
         : <span className="text-warning">Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".</span>}</AktenAngabe>
       <AktenAngabe wort="Ansprechpartner vor Ort">{b.contactName}</AktenAngabe>
       <AktenAngabe wort="Baustellenadresse" breit>{b.address?.trim() ? <AdresseLink adresse={b.address} /> : null}</AktenAngabe>
@@ -830,69 +833,38 @@ function tageZwischen(a: string, b: string): number {
 /**
  * DER LEISTUNGSZEITRAUM ALS MASSLINIE (Planlinie B2): Beginn bis geplantes
  * Ende, die Strecke bis heute. Liegt heute hinter dem Ende, läuft der
- * Überhang rot über die Marke — dieselbe Regel wie „Ende überschritten“.
+ * Überhang rot über die Marke — dieselbe Regel wie „Ende überschritten“
+ * (`laeuft` = `endeVorbei`): eine abgeschlossene oder pausierte Baustelle
+ * zählt nicht weiter, vorher wuchs ihr Überhang Tag für Tag.
  * Ohne beide Daten keine Linie.
+ *
+ * DIE DATEN STEHEN EINMAL (E99): Beginn und Ende stehen im Schriftfeld des
+ * Kopfs; die Linie sagt, wie weit es ist („Tag 16 von 29“) und wann sie
+ * endet. Vorher stand das Ende zweimal an derselben Linie
+ * („03.08. bis 31.08.2026 · 29 Tage“ und „geplantes Ende 31.08.“).
  */
-function Leistungszeitraum({ beginn, ende, heute }: { beginn?: string | null; ende?: string | null; heute: string }) {
+function Leistungszeitraum({ beginn, ende, heute, laeuft }: { beginn?: string | null; ende?: string | null; heute: string; laeuft: boolean }) {
   if (!beginn || !ende || ende < beginn) return null;
   const gesamt = tageZwischen(beginn, ende) + 1;
   const bisHeute = heute < beginn ? 0 : tageZwischen(beginn, heute) + 1;
-  const ueber = Math.max(0, tageZwischen(ende, heute));
+  const ueber = laeuft ? Math.max(0, tageZwischen(ende, heute)) : 0;
   const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  const tage = (n: number) => `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
+  const istText = heute < beginn ? `beginnt ${kurz(beginn)} · ${tage(gesamt)}`
+    : bisHeute <= gesamt ? `Tag ${bisHeute} von ${gesamt}`
+    : `${tage(gesamt)} geplant`;
   return (
     <MasslinieZeile name="Leistungszeitraum">
       <Masslinie
         ist={Math.min(bisHeute, gesamt + ueber)}
         soll={gesamt}
-        istText={`${kurz(beginn)} bis ${fmtDatum(ende)} · ${gesamt} ${gesamt === 1 ? 'Tag' : 'Tage'}`}
-        sollText={ende === heute ? 'geplantes Ende heute' : `geplantes Ende ${kurz(ende)}`}
-        ueberText={`+${ueber} ${ueber === 1 ? 'Tag' : 'Tage'}`}
+        istText={istText}
+        sollText={ende === heute ? 'Ende heute' : `Ende ${kurz(ende)}`}
+        ueberText={`+${tage(ueber)}`}
         name={`Leistungszeitraum ${fmtDatum(beginn)} bis ${fmtDatum(ende)}, ${gesamt} Tage${ueber > 0 ? `, Ende seit ${ueber} ${ueber === 1 ? 'Tag' : 'Tagen'} überschritten` : ''}`}
       />
     </MasslinieZeile>
   );
-}
-
-/**
- * DER VERLAUF DER BAUSTELLE als Lot — nur aus dem, was die Akte schon lädt:
- * die Angebote (sofern die Rolle sie lesen darf), Beginn, heute und das
- * geplante Ende. Kein Punkt wird erfunden: fehlt ein Datum, fehlt der Punkt.
- * „Heute“ ist der Ring, solange die Baustelle nicht abgeschlossen ist.
- */
-function verlaufPunkte(b: Project, angebote: Quote[], heute: string): LotPunkt[] {
-  const punkte: (LotPunkt & { datum: string })[] = [];
-  for (const q of angebote) {
-    punkte.push({
-      titel: `Angebot ${q.quoteNumber}`,
-      zeit: fmtDatum(q.quoteDate) || undefined,
-      text: q.status,
-      datum: q.quoteDate ?? '',
-    });
-  }
-  if (b.startDate) {
-    punkte.push({
-      titel: b.startDate > heute ? 'Beginn geplant' : 'Beginn',
-      zeit: fmtDatum(b.startDate),
-      datum: b.startDate,
-    });
-  }
-  if (b.status !== 'Abgeschlossen') {
-    punkte.push({ titel: `Heute · ${b.status}`, zeit: fmtDatum(heute), jetzt: true, datum: heute });
-  }
-  if (b.endDate) {
-    punkte.push({
-      titel: b.status === 'Abgeschlossen' ? 'Ende' : 'Ende geplant',
-      zeit: fmtDatum(b.endDate),
-      // Dieselbe Regel wie der Filter „Ende überschritten“ der Startseite.
-      text: endeVorbei(b, heute) ? <Zustand stand="achtung">überschritten</Zustand> : undefined,
-      datum: b.endDate,
-    });
-  }
-  // Am selben Tag bleibt die Reihenfolge oben stehen (Angebot, Beginn, heute, Ende).
-  return punkte
-    .map((p, i) => ({ p, i }))
-    .sort((x, y) => x.p.datum.localeCompare(y.p.datum) || x.i - y.i)
-    .map(({ p }) => ({ titel: p.titel, zeit: p.zeit, text: p.text, jetzt: p.jetzt }));
 }
 
 /**

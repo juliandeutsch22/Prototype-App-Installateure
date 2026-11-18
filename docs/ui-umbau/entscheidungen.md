@@ -4380,6 +4380,39 @@ und Benutzerakte.
   (`.huelle::before`, Höhe `--sicher-oben` = `env(safe-area-inset-top)`),
   unter der Insel des Kopfs; ohne Zone ist die Fläche 0 hoch.
 
+**Was weggelassen wurde — und warum** (Nachtrag zum Auftrag: „wichtig ist
+auch: welche Informationen/welcher text ist wirklich relevant und hat
+mehrwert und was könnte man weglassen“). Jeder Satz der Akte wurde gegen
+die Frage gelesen, ob er an anderer Stelle schon steht. Weggelassen wurde
+nur, was vollständig woanders steht:
+
+- **„Verlauf der Baustelle“** (aufklappbar im Auftrag): Angebot mit Datum und
+  Stand, Beginn, heute mit dem Stand, Ende geplant samt „überschritten“ —
+  alles steht im Schriftfeld des Kopfs, in der Karte „Angebote“ und im
+  Leistungszeitraum. Der „Änderungsverlauf“ (wer was wann geändert hat)
+  bleibt: den gibt es nirgends sonst.
+- **Die Daten am Leistungszeitraum**: „03.08. bis 31.08.2026 · 29 Tage“ und
+  „geplantes Ende 31.08.“ nannten das Ende zweimal, Beginn und Ende stehen
+  im Schriftfeld. Jetzt sagt die Linie, wie weit es ist — „Tag 16 von 29“,
+  vor dem Beginn „beginnt 03.08. · 29 Tage“, danach „29 Tage geplant“ — und
+  „Ende 31.08.“ an der Marke. Dabei behoben: eine abgeschlossene oder
+  pausierte Baustelle zählte nach dem Ende weiter rot über die Marke; jetzt
+  gilt dieselbe Regel wie „Ende überschritten“.
+- **„240,0 h verbleibend“ ohne Buchung**: das wäre nur das Budget noch
+  einmal; die Linie sagt „Budget 240 h“ und „0,0 h gebucht“.
+- **„· Zur Kundenakte“** hinter dem Namen des Kunden im Aktenkontext: der
+  Name ist der Verweis, wie in der Angebotsakte; die lange Zeile brach am
+  Tablet in drei.
+- **„Pläne, Fotos und Unterlagen dieser Baustelle“** unter „Pläne und
+  Dokumente“: wiederholte den Titel und den Leersatz darunter; die
+  Erklärung steht unter „Hilfe zu dieser Seite“.
+
+Bewusst geblieben: die Nummer der Rechnungen im Kopf der Karte („3
+Rechnungen“ — bei mehr als drei sonst nicht zu sehen), der Wochentag beim
+Beginn (für den kommenden Beginn die schnellste Orientierung), „geschrieben
+von“ bei den Scheinen (wer ihn verantwortet), die leeren Karten Nachrichten
+und Einsätze (sie tragen den nächsten Schritt).
+
 **Benannte Grenze:** ob die deckende Zone am Gerät so wirkt wie nachgestellt,
 zeigt erst der Blick auf ein iPhone nach der Auslieferung — Chromium und
 WebKit kennen die Sicherheitszone nicht (Grund: Gerät). Eine Ist-Beschriftung,

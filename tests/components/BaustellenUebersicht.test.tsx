@@ -106,7 +106,9 @@ describe('kompakt: das Budget genau einmal (E99)', () => {
     bestand = [];
     render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
     expect(await screen.findByRole('img', { name: '0,0 h gebucht von 40 h Budget (0 %), 40,0 h verbleibend' })).toHaveClass('masslinie');
-    expect(screen.getByText('Budget 40 h · 40,0 h verbleibend')).toBeInTheDocument();
+    // Ohne Buchung wäre „40,0 h verbleibend“ nur das Budget noch einmal.
+    expect(screen.getByText('Budget 40 h')).toBeInTheDocument();
+    expect(screen.queryByText(/verbleibend/)).toBeNull();
     expect(screen.queryByText('Stunden nach Person')).toBeNull();
   });
 

@@ -704,5 +704,12 @@
     "text": "Rechnung · {…} brutto",
     "ziel": "/invoices?oeffnen={…}",
     "grund": "E99 (18.11.2026): die Rechnung der Baustellenakte öffnet sich wie in der Kundenakte im Fenster der Akte (AkteRechnungFenster); dessen „In Rechnungen bearbeiten“ führt weiter auf /invoices?suche=…&oeffnen=…"
+  },
+  {
+    "datei": "src/features/projects/BaustellenakteView.tsx",
+    "art": "verweis",
+    "text": "{…} · Zur Kundenakte",
+    "ziel": "/customers/{…}",
+    "grund": "E99 (18.11.2026): derselbe Verweis zur Kundenakte, beschriftet nur mit dem Namen des Kunden wie in der Angebotsakte; „· Zur Kundenakte“ wiederholte, wohin er führt (src/features/projects/BaustellenakteView.tsx)"
   }
 ]

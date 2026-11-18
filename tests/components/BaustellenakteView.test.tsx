@@ -599,9 +599,11 @@ describe('Was die Akte sonst noch zeigt', () => {
     expect(await screen.findByText('Stundenauswertung')).toBeInTheDocument();
   });
 
-  it('verweist auf die Kundenakte', async () => {
+  it('verweist auf die Kundenakte: der Name als Verweis wie in der Angebotsakte (E99)', async () => {
     zeige();
-    expect(await screen.findByRole('link', { name: /Zur Kundenakte/ })).toHaveAttribute(
+    const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
+    expect(within(kontext).queryByText(/Zur Kundenakte/)).toBeNull();
+    expect(within(kontext).getByRole('link', { name: BAUSTELLE.customerName })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -610,7 +612,7 @@ describe('Was die Akte sonst noch zeigt', () => {
   it('gibt den Links unter „Weiter“ die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
     // Alleinstehende Links waren nur so hoch wie ihre Zeile (24 px).
     zeige();
-    expect((await screen.findByRole('link', { name: /Zur Kundenakte/ })).className)
+    expect((await screen.findByRole('link', { name: BAUSTELLE.customerName })).className)
       .toMatch(/\bmin-h-touch\b/);
     expect((await screen.findByRole('link', { name: 'Schein schreiben' })).className).toMatch(/\bmin-h-touch\b/);
   });
@@ -941,32 +943,30 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
     expect(document.getElementById('b-termine')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
   });
-  it('zeigt den Verlauf als Lot: Beginn, heute als Ring, das überschrittene Ende', async () => {
+  /*
+    E99 (Auftrag: „was könnte man weglassen“): der „Verlauf der Baustelle“
+    entfällt — jeder seiner Punkte steht schon woanders. Geprüft wird, dass
+    es dort steht: Beginn, Ende mit „überschritten“ und Stand im Schriftfeld,
+    das Angebot mit Datum und Stand in seiner Karte. Gegenprobe: vor E99 gab
+    es den aufklappbaren Verlauf (rot).
+  */
+  it('kein „Verlauf der Baustelle“ mehr — seine Punkte stehen im Schriftfeld und bei den Angeboten (E99)', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', quoteDate: '2026-02-20', status: 'Angenommen', totalNetto: 100 }];
     try {
       zeige();
-      await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
-    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
-      const punkte = within(lot).getAllByRole('listitem');
-      expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual([
-        'Beginn', 'Ende geplant', 'Heute · Aktiv',
-      ]);
-      expect(punkte[2]).toHaveAttribute('aria-current', 'step');
-      expect(within(punkte[1]).getByText('überschritten')).toBeInTheDocument();
+      await screen.findByText('2026-101', { selector: '.stempel' });
+      const feld = within(document.querySelector('.akten-kopf') as HTMLElement).getByRole('list', { name: 'Eckdaten der Baustelle' });
+      expect(feld).toHaveTextContent('Beginn 02.03.2026');
+      expect(feld).toHaveTextContent(/Ende geplant\s*30\.04\.2026\s*überschritten/);
+      expect(feld).toHaveTextContent('Aktiv');
+      expect(await screen.findByRole('link', { name: /^Angebot · 20\.02\.2026\s*AN-2026-0007\s*Angenommen/ })).toBeInTheDocument();
+      expect(screen.queryByText('Verlauf der Baustelle')).toBeNull();
+      expect(screen.queryByRole('list', { name: 'Verlauf der Baustelle' })).toBeNull();
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('Gegenprobe: eine abgeschlossene Baustelle hat keinen „heute“-Ring und nichts überschritten', async () => {
-    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
-    zeige();
-    await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
-    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
-    expect(within(lot).queryByText(/Heute/)).toBeNull();
-    expect(within(lot).queryByText('überschritten')).toBeNull();
-    expect(within(lot).getByText('Ende')).toBeInTheDocument();
   });
 
   it('zeigt die bisherigen Formularfelder im Bearbeitungsfenster offen', async () => {
@@ -1179,6 +1179,29 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
       const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage, Ende seit 15 Tagen überschritten$/ });
       expect(linie.querySelector('.masslinie-marke-rot')).not.toBeNull();
       expect(within(linie).getByText('+15 Tage')).toBeInTheDocument();
+      // E99: die Daten stehen im Schriftfeld; an der Linie Dauer und Ende, das Ende nur einmal.
+      expect(within(linie).getByText('60 Tage geplant')).toBeInTheDocument();
+      expect(within(linie).getByText('Ende 30.04.')).toBeInTheDocument();
+      expect(linie).not.toHaveTextContent('02.03.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+    E99: eine abgeschlossene Baustelle zählt nicht weiter — dieselbe Regel
+    wie „Ende überschritten“. Gegenprobe: vor E99 wuchs ihr roter Überhang
+    jeden Tag (hier +15 Tage).
+  */
+  it('abgeschlossen: kein Überhang, auch lange nach dem Ende (E99)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
+    try {
+      zeige();
+      const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage$/ });
+      expect(linie.querySelector('.masslinie-ueber')).toBeNull();
+      expect(linie).not.toHaveTextContent('+');
     } finally {
       vi.useRealTimers();
     }
@@ -1191,6 +1214,7 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
       const { unmount } = zeige();
       const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage$/ });
       expect(linie.querySelector('.masslinie-ueber')).toBeNull();
+      expect(within(linie).getByText('Tag 15 von 60')).toBeInTheDocument();
       unmount();
       baustellen = [{ ...BAUSTELLE, endDate: undefined }];
       zeige();
