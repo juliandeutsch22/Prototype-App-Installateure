@@ -384,14 +384,32 @@ test('Nicht verrechnet und Mahnlauf: zugeklappt, am Schreibtisch nebeneinander, 
     await page.setViewportSize({ width: breite, height: 1000 });
     await page.goto(`./?pfad=${encodeURIComponent('/invoices')}&rolle=Buchhaltung`);
     const knoepfe = page.locator('.rechnungen-arbeit .karte-klappe-knopf');
-    await expect(knoepfe).toHaveCount(2);
+    // Das erste Laden der Rechnungen dauert unter paralleler Last in WebKit länger als 10 s.
+    await expect(knoepfe).toHaveCount(2, { timeout: 20_000 });
     for (const k of await knoepfe.all()) await expect(k).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('button', { name: 'Mahnen' })).toHaveCount(0);
     const lage = async () => page.locator('.rechnungen-arbeit > .karte').evaluateAll((ks) => ks.map((k) => {
       const r = k.getBoundingClientRect();
       return { top: Math.round(r.top), left: Math.round(r.left), hoehe: Math.round(r.height), breite: Math.round(r.width) };
     }));
-    const [a, b] = await lage();
+    /*
+      ERST MESSEN, WENN DIE SEITE RUHT (CI 18.11.2026, WebKit): der Taktgeber
+      füllt die Blätter einen Moment nach dem Zeichnen auf das 24-px-Raster
+      auf (121 → 144 px). Gemessen wird, wenn beide Karten ausgerichtet sind
+      und ihre Lage zweimal hintereinander gleich ist.
+    */
+    const ruhig = async () => {
+      await expect(page.locator('.rechnungen-arbeit > .karte:not([data-takt-unten])')).toHaveCount(0);
+      let vorher = '';
+      await expect.poll(async () => {
+        const jetzt = JSON.stringify(await lage());
+        const gleich = jetzt === vorher;
+        vorher = jetzt;
+        return gleich;
+      }, { intervals: [150] }).toBe(true);
+      return JSON.parse(vorher) as Awaited<ReturnType<typeof lage>>;
+    };
+    const [a, b] = await ruhig();
     if (breite >= 1200) {
       expect(a.top, `${breite}: auf einer Linie`).toBe(b.top);
       expect(b.left, `${breite}: nebeneinander`).toBeGreaterThan(a.left + a.breite - 1);
@@ -405,7 +423,7 @@ test('Nicht verrechnet und Mahnlauf: zugeklappt, am Schreibtisch nebeneinander, 
     // Aufgeklappt: die Zeilen erscheinen, die andere Karte bleibt, wie sie war.
     await knoepfe.nth(1).click();
     await expect(page.getByRole('button', { name: 'Mahnen' }).first()).toBeVisible();
-    const [a2] = await lage();
+    const [a2] = await ruhig();
     expect(a2.hoehe, `${breite}: die andere wächst nicht mit`).toBe(a.hoehe);
     await knoepfe.nth(1).click();
   }
