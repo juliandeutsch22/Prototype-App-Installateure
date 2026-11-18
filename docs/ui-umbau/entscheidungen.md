@@ -4288,6 +4288,16 @@ als der header oben. die abstände sollten einheitlich sein“.
   `ZWISCHENSPEICHER_AUS=1` aus beiden Playwright-Konfigurationen); beim
   Entwickeln bleibt `no-cache`. Die acht Wege, die lokal so abbrachen, laufen
   durch. An der App ändert sich nichts.
+- **Testaufbau räumt vollständig ab — oder bricht ab.** Der Aufbau der
+  Browserwege (`tests/durchklick/aufbau.ts`) löschte die Daten des
+  Testbetriebs, ohne auf Fehler zu achten. Seit dem Lager je Ort (T-16)
+  hingen Lagerbewegungen und -bestände am Artikel; das Löschen scheiterte
+  still, und jeder Lauf legte „Kupferrohr 15mm“ ein weiteres Mal an — nach
+  vierzehn Läufen scheiterten 24 Wege an Dubletten. Jetzt stehen beide
+  Tabellen in der Liste, drei längst entfernte Tabellen nicht mehr, und
+  jeder Löschfehler bricht den Aufbau mit dem Namen der Tabelle ab: eine
+  künftig fehlende Tabelle fällt beim ersten Lauf auf, nicht vierzehn Läufe
+  später. In der CI (frische Datenbank je Lauf) trat das nie auf.
 - **Prüfungen:** `InvoicesView.test.tsx` (5, zugeklappt, Summenzeile,
   Entscheidung sichtbar, gemerkt je Person, Adresse öffnet), im Browser
   „zugeklappt, nebeneinander, untereinander“ (1.440/834/390 px) und
