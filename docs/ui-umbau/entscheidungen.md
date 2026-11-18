@@ -4275,12 +4275,26 @@ als der header oben. die abstände sollten einheitlich sein“.
   Home-Balken 8 px wie oben. Timer-Leiste, Aktionsleisten und der Platz am
   Seitenende messen die Insel und gehen mit. Quer gibt es die Insel nicht
   (jedes iPhone mit Home-Balken ist quer breiter als 760 px).
+- **Browserläufe ohne ERR_INSUFFICIENT_RESOURCES** (Auftrag: „die meldung
+  … kam jetzt jedes mal bei den letzten läufen, kannst du das nicht generell
+  einmal fixen?“). Ursache gemessen: der Entwicklungsserver liefert rund 750
+  Einzeldateien je Aufruf mit eingebetteter Quellkarte; der
+  HTTP-Zwischenspeicher eines Playwright-Kontexts liegt im Arbeitsspeicher
+  und ist nach rund 5.000 Antworten voll — danach verweigert Chromium jede
+  Anfrage (weiße Seite, „page crashed“). Ohne Zwischenspeicher: 40 Aufrufe,
+  30.703 Anfragen, kein Fehler; `--disable-http-cache` und ein
+  abgeschalteter Zurück-Speicher helfen nicht. Jetzt antwortet der Server im
+  Testlauf mit `Cache-Control: no-store` (`vite.testlauf.ts`, Schalter
+  `ZWISCHENSPEICHER_AUS=1` aus beiden Playwright-Konfigurationen); beim
+  Entwickeln bleibt `no-cache`. Die acht Wege, die lokal so abbrachen, laufen
+  durch. An der App ändert sich nichts.
 - **Prüfungen:** `InvoicesView.test.tsx` (5, zugeklappt, Summenzeile,
   Entscheidung sichtbar, gemerkt je Person, Adresse öffnet), im Browser
   „zugeklappt, nebeneinander, untereinander“ (1.440/834/390 px) und
   „Zustand im Rahmen auf der Flucht“ (`interaktionen.spec.ts`),
   `HeuteLeitung.test.tsx` (6) und `startEinsatz.spec.ts` (3, gegen den
   örtlichen Stapel), `inselLuft.spec.ts` (3, iPhone über `--sicher-unten`
-  nachgestellt), `flucht.spec.ts` (9). Gegenproben: ohne die Änderungen
+  nachgestellt), `flucht.spec.ts` (9), `testlaufZwischenspeicher.test.ts`
+  (2). Gegenproben: ohne die Änderungen
   5 (Rechnungen), 5 (Startseite), 2 (Insel), 5 (Flucht) rot; was gleich
   bleiben muss (Abwesende als Verweis, ohne Zone 8 px), grün.

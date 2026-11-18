@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { ohneZwischenspeicherImTestlauf } from './vite.testlauf';
 
 /**
  * Vorschau: echte Ansichten, gestubbte Datenschicht. Siehe
@@ -20,6 +21,8 @@ export default defineConfig({
   cacheDir: 'node_modules/.vite-vorschau',
   plugins: [
     react(),
+    // Dieselbe Grenze wie im Durchklick (`vite.testlauf.ts`): die Linkprüfung lädt die Vorschau hunderte Male.
+    ohneZwischenspeicherImTestlauf(),
     {
       /*
         Nur fuer `./AuthContext`: relative Bezeichner erfasst `resolve.alias`
