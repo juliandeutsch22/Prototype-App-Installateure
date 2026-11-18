@@ -46,7 +46,15 @@ test('Sonderurlaub: beantragen, bestätigen, im Zeitkonto', async ({ browser }) 
   const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub und Arztbesuche bestätigen/ }) });
   await expect(karte.getByText(/Eigene Eheschließung/)).toBeVisible({ timeout: 15_000 });
   await karte.getByRole('button', { name: 'Bestätigen', exact: true }).click();
-  await expect(buero.getByText(/Bestätigt — 3 Tage eingetragen/)).toBeVisible({ timeout: 15_000 });
+  /*
+    DIE ERSTE MELDUNG NACH DEM KLICK, NICHT NUR DIE ERWARTETE (18.11.2026):
+    im vollen Lauf scheiterte dieser Schritt mit „nicht gefunden“ — eine
+    Meldung steht 3,5 s, gewartet wurden 15. Was stattdessen dastand, war
+    danach nicht mehr zu sehen. Jetzt nennt der Fehlschlag den Text.
+  */
+  const meldung = buero.locator('.meldungen .meldung-text').first();
+  await expect(meldung).toBeVisible({ timeout: 15_000 });
+  await expect(meldung, 'die erste Meldung nach „Bestätigen“').toHaveText(/Bestätigt — 3 Tage eingetragen/);
   await keineFehlermeldung(buero);
 
   // 3. Im Zeitkonto: drei Tage Dienstverhinderung, kein Urlaub.
