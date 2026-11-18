@@ -50,7 +50,7 @@ export default function ZweiFaktorEinrichten({
   if (!faktor) {
     return (
       <div className="space-y-3">
-        <p className="flex flex-wrap items-center gap-2 text-sm text-ink">
+        <p className="flex flex-wrap items-center gap-2 text-fliess text-ink">
           Du brauchst eine Authenticator-App am Telefon.
           <InfoHint about="Authenticator-App">
             Etwa Google Authenticator, Microsoft Authenticator oder die Passwörter-App am iPhone. Die
@@ -68,15 +68,15 @@ export default function ZweiFaktorEinrichten({
 
   return (
     <form onSubmit={bestaetigen} className="space-y-3">
-      <p className="text-sm text-ink">1. Den Code mit der Authenticator-App scannen.</p>
+      <p className="text-fliess text-ink">1. Den Code mit der Authenticator-App scannen.</p>
       <div className="inline-flex rounded border border-line bg-white p-2">
         <img src={faktor.qrCode} alt="QR-Code für die Authenticator-App" className="h-44 w-44" />
       </div>
-      <p className="text-sm text-ink-muted">
+      <p className="text-meta text-ink-muted">
         Ohne Kamera: in der App „Schlüssel eingeben“ wählen und diesen eintippen:{' '}
         <span className="break-all font-mono text-ink">{faktor.geheimnis}</span>
       </p>
-      <p className="text-sm text-ink">2. Den sechsstelligen Code aus der App eingeben.</p>
+      <p className="text-fliess text-ink">2. Den sechsstelligen Code aus der App eingeben.</p>
       <InputField
         id="zf-einrichten-code"
         label="Code aus der App"
@@ -104,11 +104,11 @@ export function WiederherstellungsCodes({ codes, onWeiter }: { codes: string[]; 
   const [kopiert, setKopiert] = useState(false);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink">
+      <p className="text-fliess text-ink">
         Wiederherstellungscodes — nur jetzt zu sehen. Ohne Telefon meldest du dich mit einem davon an;
         jeder gilt einmal. Bitte ausdrucken oder sicher ablegen, nicht am Telefon.
       </p>
-      <ul className="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-base text-ink" aria-label="Wiederherstellungscodes">
+      <ul className="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-fliess text-ink" aria-label="Wiederherstellungscodes">
         {codes.map((c) => (
           <li key={c}>{c}</li>
         ))}

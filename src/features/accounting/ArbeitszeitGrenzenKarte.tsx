@@ -124,9 +124,9 @@ function KarteInhalt({
       {fehler ? (
         <ErrorState message={fehler} onRetry={() => void laden()} />
       ) : !stand ? (
-        <p className="text-sm text-ink-muted">Wird geprüft …</p>
+        <p className="text-meta text-ink-muted">Wird geprüft …</p>
       ) : stand.faelle.length === 0 ? (
-        <p className="text-sm text-ink-muted">Im {MONATE[monat]} {jahr} wurde keine Grenze überschritten.</p>
+        <p className="text-meta text-ink-muted">Im {MONATE[monat]} {jahr} wurde keine Grenze überschritten.</p>
       ) : (
         <GrenzListe companyId={companyId} daten={daten} onKorrigieren={onKorrigieren} />
       )}

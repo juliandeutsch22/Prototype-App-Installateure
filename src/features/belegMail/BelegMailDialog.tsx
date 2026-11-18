@@ -191,7 +191,7 @@ export default function BelegMailDialog({
             onChange={(e) => setAn(e.target.value)}
             aria-describedby="beleg-mail-an-hinweis"
           />
-          <p id="beleg-mail-an-hinweis" className="mt-1 text-sm text-ink-muted">
+          <p id="beleg-mail-an-hinweis" className="mt-1 text-meta text-ink-muted">
             {kundenEmail ? 'Aus dem Kunden vorbelegt. ' : 'Beim Kunden ist keine Adresse hinterlegt. '}
             Bis zu drei Adressen, durch Komma getrennt.
           </p>
@@ -201,7 +201,7 @@ export default function BelegMailDialog({
         )}
         <InputField id="beleg-mail-betreff" label="Betreff" pflicht value={betreff} onChange={(e) => setBetreff(e.target.value)} />
         <TextareaField id="beleg-mail-text" label="Text" pflicht rows={10} value={text} onChange={(e) => setText(e.target.value)} />
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Anhang: {anhangName(art, werte.nummer, mahnstufe)} — {art === 'mahnung' ? 'das gespeicherte Schreiben, wie beim „PDF“ der Mahnung' : 'wie beim „PDF laden“'}.
           {stand.art === 'bereit' && antwort && ` Gesendet über ${stand.absender} im Namen von ${firma}; Antworten gehen an ${antwort}.`}
         </p>
@@ -209,7 +209,7 @@ export default function BelegMailDialog({
         {frueher.length > 0 && (
           <div>
             <p className="section-label">Bisher per Mail</p>
-            <ul className="mt-1 space-y-1 text-sm text-ink-muted">
+            <ul className="mt-1 space-y-1 text-meta text-ink-muted">
               {frueher.slice(0, 5).map((v) => (
                 <li key={v.id}>
                   {new Date(v.angefragtAm).toLocaleString('de-AT', { timeZone: 'Europe/Vienna', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -226,8 +226,8 @@ export default function BelegMailDialog({
 
         {fehler && (
           <div className="space-y-2">
-            <p role="alert" className="text-sm text-danger">{fehler}</p>
-            <p className="text-sm text-ink-muted">Der bisherige Weg geht weiter:</p>
+            <p role="alert" className="text-meta text-danger">{fehler}</p>
+            <p className="text-meta text-ink-muted">Der bisherige Weg geht weiter:</p>
             {bisherigerWeg}
           </div>
         )}
@@ -238,7 +238,7 @@ export default function BelegMailDialog({
           </div>
         )}
         {eingabeFehler && an.trim() !== '' && stand.art === 'bereit' && (
-          <p className="text-sm text-ink-muted" aria-live="polite">{eingabeFehler}</p>
+          <p className="text-meta text-ink-muted" aria-live="polite">{eingabeFehler}</p>
         )}
       </form>
     </BottomSheet>

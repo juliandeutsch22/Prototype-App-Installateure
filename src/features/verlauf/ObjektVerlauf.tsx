@@ -78,16 +78,16 @@ function Verlauf({ companyId, objektart, objektId, name, top, kunde, stil = 'wei
     >
       <summary className="weiteres-kopf">{titel}</summary>
       <div className={stil === 'akte' ? undefined : 'weiteres-inhalt'}>
-        {stand === 'laedt' && <p className="text-sm text-ink-muted">Wird geladen …</p>}
+        {stand === 'laedt' && <p className="text-fliess text-ink-muted">Wird geladen …</p>}
         {stand === 'fehler' && (
-          <div className="text-sm">
+          <div className="text-fliess">
             <p className="text-danger">Der Verlauf ließ sich nicht laden.</p>
             {/* `type="button"`: in einem Formular schickte der Knopf sonst das Formular ab. */}
             <Button type="button" variant="ghost" onClick={erste}>Erneut versuchen</Button>
           </div>
         )}
         {stand === 'da' && zeilen.length === 0 && (
-          <p className="text-sm text-ink-muted">
+          <p className="text-fliess text-ink-muted">
             Keine Änderung aufgezeichnet. Aufgezeichnet wird seit {datumAT(JOURNAL_SEIT)}.
           </p>
         )}
@@ -114,13 +114,13 @@ function Verlauf({ companyId, objektart, objektId, name, top, kunde, stil = 'wei
               </Button>
             )}
             {mehr === 'fehler' && (
-              <div className="text-sm">
+              <div className="text-fliess">
                 <p className="text-danger">Die älteren Einträge ließen sich nicht laden.</p>
                 <Button type="button" variant="ghost" onClick={aeltere}>Erneut versuchen</Button>
               </div>
             )}
             {ohneAnfang && (
-              <p className="mt-2 text-xs text-ink-muted">
+              <p className="mt-2 text-meta text-ink-muted">
                 Aufgezeichnet wird seit {datumAT(JOURNAL_SEIT)}; was davor geändert wurde, ist nicht bekannt.
               </p>
             )}

@@ -20,7 +20,7 @@ export default function AdressteileFelder({
   const plz = plzFehler(wert.plz, wert.land);
   return (
     <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-6">
-      <legend className="mb-1 text-sm font-normal text-ink">{titel}</legend>
+      <legend className="mb-1 text-meta font-normal text-ink">{titel}</legend>
       <div className="sm:col-span-6">
         <InputField
           id={`${idPrefix}-strasse`}
@@ -40,7 +40,7 @@ export default function AdressteileFelder({
           aria-invalid={plz ? true : undefined}
           onChange={(e) => onChange({ ...wert, plz: e.target.value })}
         />
-        {plz && <p className="mt-1 text-sm text-danger">{plz}</p>}
+        {plz && <p className="mt-1 text-meta text-danger">{plz}</p>}
       </div>
       <div className="sm:col-span-2">
         <InputField

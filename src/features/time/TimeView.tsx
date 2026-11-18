@@ -734,7 +734,7 @@ export default function TimeView() {
               />
             )}
             {e.lastEditedBy && (
-              <span className="mt-1 block text-xs text-ink-muted">
+              <span className="mt-1 block text-meta text-ink-muted">
                 Bearbeitet von {e.lastEditedBy}
               </span>
             )}
@@ -1013,7 +1013,7 @@ export default function TimeView() {
             </InfoHint>
             <button
               type="button"
-              className="link text-sm"
+              className="link text-fliess"
               aria-expanded={nachtraegeOffen}
               aria-controls="offene-nachtraege"
               onClick={() => setNachtraegeOffen((o) => !o)}
@@ -1154,7 +1154,7 @@ export default function TimeView() {
           stehen gepolstert darin. */}
       {amHandy && !erfassungAn && (
         <Card>
-          <p className="text-sm text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>
+          <p className="text-meta text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>
         </Card>
       )}
       {amHandy && (
@@ -1219,7 +1219,7 @@ export default function TimeView() {
                 /* Die Zahl der Einträge im Achskreis (Planlinie B5) statt „· 5 Einträge“. */
                 anzahl={kommend.length}
                 link={
-                  <span className="whitespace-nowrap text-sm text-ink-muted">
+                  <span className="whitespace-nowrap text-meta text-ink-muted">
                     bis {datumAT(kommend[kommend.length - 1].date)}
                   </span>
                 }
@@ -1239,7 +1239,7 @@ export default function TimeView() {
                   <Abschnitt
                     titel={week}
                     anzahl={rows.length}
-                    link={<span className="text-sm font-normal text-ink-deep">{fmtMin(weekMin)}</span>}
+                    link={<span className="text-fliess font-normal text-ink-deep">{fmtMin(weekMin)}</span>}
                     offen={wocheOffen(week, rows, index)}
                     onUmschalten={() =>
                       setUmgeklappt((u) => ({ ...u, [week]: !wocheOffen(week, rows, index) }))

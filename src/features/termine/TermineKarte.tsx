@@ -176,7 +176,7 @@ export default function TermineKarte({
               onLoeschen={darf ? (t) => setWeg(t) : undefined}
             />
           ) : (
-            <p className="text-sm text-ink-muted">Nichts geplant.</p>
+            <p className="text-fliess text-ink-muted">Nichts geplant.</p>
           )}
           {vergangene.length > 0 && (
             <>

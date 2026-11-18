@@ -65,7 +65,7 @@ export default function TagessollFelder({
               />
             ))}
           </div>
-          <p className="mt-1 text-sm text-ink-muted">
+          <p className="mt-1 text-meta text-ink-muted">
             Wochenstunden aus der Summe: {String(Math.round(summe * 100) / 100).replace('.', ',')} Std.
           </p>
         </>

@@ -215,7 +215,7 @@ export default function BaustellenPlaene({
         if (neu.length > 0) dazu(neu);
       }}
     >
-      <p className="flex flex-wrap items-center text-sm text-ink-muted">
+      <p className="flex flex-wrap items-center text-meta text-ink-muted">
         Pläne, Fotos und Unterlagen dieser Baustelle
         <InfoHint about="Pläne und Dokumente">
           PDF, Bilder, Word, Excel und E-Mails bis 25 MB. Sichtbar für das Büro und für die
@@ -279,7 +279,7 @@ export default function BaustellenPlaene({
                 an={nurBuero}
                 onChange={(wert) => setNurBuero(wert)}
               />
-              <p className="text-xs text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {nurBuero
                   ? 'Was jetzt dazukommt, sehen die Monteure nicht.'
                   : 'Die Monteure dieser Baustelle sehen alles ohne „Nur Büro“.'}

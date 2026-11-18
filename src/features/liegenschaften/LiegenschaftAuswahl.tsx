@@ -107,7 +107,7 @@ export default function LiegenschaftAuswahl({
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <div className="min-w-[9rem]">
               <p>{gewaehlt?.bezeichnung ?? 'Wird geladen …'}</p>
-              {gewaehlt?.anschrift && <p className="text-sm text-ink-muted">{gewaehlt.anschrift}</p>}
+              {gewaehlt?.anschrift && <p className="text-meta text-ink-muted">{gewaehlt.anschrift}</p>}
             </div>
             <span className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" groesse="klein" disabled={disabled}
@@ -122,7 +122,7 @@ export default function LiegenschaftAuswahl({
           </div>
         </div>
         {topsFehler ? (
-          <p className="text-sm text-ink-deep">Die Tops konnten nicht geladen werden.</p>
+          <p className="text-fliess text-ink-deep">Die Tops konnten nicht geladen werden.</p>
         ) : (
           <SelectField
             id={`${idPrefix}-top`}
@@ -167,9 +167,9 @@ export default function LiegenschaftAuswahl({
       {q !== '' && (
         <div className="mt-2">
           {fehler === q ? (
-            <p className="text-sm text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
+            <p className="text-fliess text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
           ) : treffer.length === 0 ? (
-            <p className="text-sm text-ink-muted">{laeuft ? 'Sucht …' : 'Keine aktive Liegenschaft passt zur Suche.'}</p>
+            <p className="text-meta text-ink-muted">{laeuft ? 'Sucht …' : 'Keine aktive Liegenschaft passt zur Suche.'}</p>
           ) : (
             <List>
               {treffer.map((l) => (

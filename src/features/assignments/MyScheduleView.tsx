@@ -529,8 +529,8 @@ export default function MyScheduleView() {
                           <Marke>{stufeImEinsatz(a.asHelper, user)}</Marke>
                         </p>
                         {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
-                        {liegenschaftenAn && proj && liegenschaftZeile(proj) && <p className="mt-1 text-sm text-ink">{liegenschaftZeile(proj)}</p>}
-                        {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
+                        {liegenschaftenAn && proj && liegenschaftZeile(proj) && <p className="mt-1 text-fliess text-ink">{liegenschaftZeile(proj)}</p>}
+                        {a.comment && <p className="mt-1 text-meta text-ink-muted">{a.comment}</p>}
 
                         {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}
                         {(() => {
@@ -618,12 +618,12 @@ export default function MyScheduleView() {
                 </List>
               )}
               {anstehend.length > 15 && (
-                <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
+                <p className="blatt-einzug border-t border-line px-4 py-3 text-meta text-ink-muted">
                   und {anstehend.length - 15} weitere — im Kalender nachschlagen.
                 </p>
               )}
               {ausgeblendet > 0 && (
-                <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
+                <p className="blatt-einzug border-t border-line px-4 py-3 text-meta text-ink-muted">
                   {ausgeblendet === 1
                     ? 'Ein Einsatz liegt an einem Tag, an dem du abwesend bist — das Büro plant ihn neu.'
                     : `${ausgeblendet} Einsätze liegen an Tagen, an denen du abwesend bist — das Büro plant sie neu.`}
@@ -635,7 +635,7 @@ export default function MyScheduleView() {
               <Card title="Nächste Termine" className="mt-6">
                 <TerminListe termine={meineKommend.slice(0, 10)} personen={personen} mitDatum mitAdresse />
                 {meineKommend.length > 10 && (
-                  <p className="mt-2 text-sm text-ink-muted">
+                  <p className="mt-2 text-meta text-ink-muted">
                     und {meineKommend.length - 10} weitere — im Kalender nachschlagen.
                   </p>
                 )}
@@ -653,7 +653,7 @@ export default function MyScheduleView() {
               buendig
               className="mt-6"
               action={
-                <Link to="/vacations" className="link-weiter text-sm">
+                <Link to="/vacations" className="link-weiter text-meta">
                   Beantragen
                 </Link>
               }
@@ -667,7 +667,7 @@ export default function MyScheduleView() {
                       key={v.id}
                       title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
                       zustand={<Zustand stand={v.status === 'Genehmigt' ? 'erledigt' : 'achtung'}>{v.status}</Zustand>}
-                      wert={<span className="text-xs text-ink-muted">{tageWort(Number(v.tage))}</span>}
+                      wert={<span className="text-meta text-ink-muted">{tageWort(Number(v.tage))}</span>}
                     />
                   ))}
                 </List>

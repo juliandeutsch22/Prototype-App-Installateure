@@ -287,7 +287,7 @@ export default function ZeitfelderView() {
 
       {fassung && (
         <Card title="Geltende Fassung">
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             Fassung {fassung.nummer}
             {fassung.veroeffentlichtAm ? ` vom ${datumAusMs(fassung.veroeffentlichtAm)}` : ''}
             {fassung.anlass ? ` · ${fassung.anlass}` : ''}
@@ -354,7 +354,7 @@ export default function ZeitfelderView() {
               {ZEITFELD_TYPEN.map((t) => <option key={t.wert} value={t.wert}>{t.name}</option>)}
             </SelectField>
             {entwurf.id && entwurf.aktiv && !entwurf.typAendern && (
-              <button type="button" className="link -mt-2 self-start text-sm" onClick={() => setEntwurf({ ...entwurf, typAendern: true })}>
+              <button type="button" className="link -mt-2 self-start text-fliess" onClick={() => setEntwurf({ ...entwurf, typAendern: true })}>
                 Typ ändern …
               </button>
             )}

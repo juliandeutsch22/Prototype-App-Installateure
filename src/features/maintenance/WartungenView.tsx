@@ -771,7 +771,7 @@ export default function WartungenView() {
               Baustelle zweimal an.
             */}
             {w.offeneBaustelle ? (
-              <span className="mt-1 block text-xs text-ink-muted">
+              <span className="mt-1 block text-meta text-ink-muted">
                 Eingeplant auf Baustelle {baustelleVerweis(w.offeneBaustelle)}
               </span>
             ) : null}
@@ -1076,7 +1076,7 @@ export default function WartungenView() {
               onChange={(e) => setForm({ ...form, faelligAm: e.target.value })}
             />
             {form.zuletztAm && (
-              <p className="text-xs text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Aus „zuletzt gewartet“ plus Intervall berechnet — für einen vereinbarten Ausweichtag änderbar.
               </p>
             )}
@@ -1153,7 +1153,7 @@ export default function WartungenView() {
           onCancel={() => setErledigung(null)}
         >
           <div className="space-y-3">
-            <p className="text-sm">
+            <p className="text-fliess">
               {erledigung.wartung.customerName} · {erledigung.wartung.anlage}
             </p>
             <FormGrid cols={1}>
@@ -1189,7 +1189,7 @@ export default function WartungenView() {
               />
             </FormGrid>
             {/* Die Vorschau in einer Zeile, die Begründung hinter dem „i“ (Regel 9). */}
-            <p className="flex flex-wrap items-center text-sm text-ink-muted">
+            <p className="flex flex-wrap items-center text-meta text-ink-muted">
               {/* Ein geleertes Datumsfeld ist kein Tag — vorher riss `naechsterTermin` die Seite ab. */}
               Nächster Termin: {erledigung.datum ? fmtDatum(naechsterTermin(erledigung.datum, erledigung.intervall)) : '—'}
               <InfoHint about="nächster Termin">
@@ -1211,7 +1211,7 @@ export default function WartungenView() {
           onCancel={() => setEinplanung(null)}
         >
           <div className="space-y-3">
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {einplanung.wartung.customerName} · {einplanung.wartung.anlage}
             </p>
             <FormGrid cols={1}>
@@ -1228,7 +1228,7 @@ export default function WartungenView() {
               überschreibt die Zahl. Vergeben ist sie deshalb erst, wenn
               gespeichert wird, und dabei wird sie noch einmal geprüft.
             */}
-            <p className="flex flex-wrap items-center text-sm text-ink-muted">
+            <p className="flex flex-wrap items-center text-meta text-ink-muted">
               {!einplanung.beispiel || einplanung.nummer !== einplanung.vorschlag
                 ? 'Vorgeschlagen nach dem Schema des Betriebs — änderbar.'
                 : 'Beispiel nach dem Schema des Betriebs, ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Anlegen.'}
@@ -1263,8 +1263,8 @@ export default function WartungenView() {
 function Angabe({ wort, children }: { wort: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">{children}</dd>
+      <dt className="text-meta text-ink-muted">{wort}</dt>
+      <dd className="mt-0.5 text-fliess text-ink">{children}</dd>
     </div>
   );
 }

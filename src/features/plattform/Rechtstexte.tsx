@@ -364,7 +364,7 @@ function Editor({ art, verlauf, geaendert, zurueck }: {
                 disabled={!geprueftGeht}
                 onChange={(ev) => setGeprueft(ev.target.checked)}
               />
-              {!geprueftGeht && <p className="text-sm text-ink-muted">Erst ohne offene Angaben — die Seite trägt sonst ohnehin „Entwurf“.</p>}
+              {!geprueftGeht && <p className="text-meta text-ink-muted">Erst ohne offene Angaben — die Seite trägt sonst ohnehin „Entwurf“.</p>}
               {geprueftGeht && geprueft && (
                 <InputField id={`rt-${art}-geprueft-von`} label="Geprüft von" pflicht value={geprueftVon} placeholder="z. B. Kanzlei Muster" onChange={(ev) => setGeprueftVon(ev.target.value)} />
               )}
@@ -438,7 +438,7 @@ function Vorschau({ art, inhalt, verlauf }: { art: RechtstextArt; inhalt: Betrei
   return (
     <div className="space-y-8">
       {texte.map(([titel, text]) => (
-        <div key={titel} className="recht space-y-6 text-base leading-relaxed text-ink">
+        <div key={titel} className="recht space-y-6 text-fliess leading-relaxed text-ink">
           {art === 'betreiber' && <h2 className="text-lg text-ink">{titel}</h2>}
           {text ? <RechtInhalt inhalt={text} betreiber={betreiber} /> : <p className="leer">Noch keine Fassung.</p>}
         </div>

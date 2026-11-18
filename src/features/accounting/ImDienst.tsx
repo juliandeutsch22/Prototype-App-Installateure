@@ -102,7 +102,7 @@ export default function ImDienst({
                       {pause ? ` · Pause seit ${pause}` : ''}
                     </span>
                     {alt && (
-                      <span className="mt-1 block text-xs text-ink">Läuft seit einem früheren Tag — vermutlich „Stopp“ vergessen.</span>
+                      <span className="mt-1 block text-meta text-ink">Läuft seit einem früheren Tag — vermutlich „Stopp“ vergessen.</span>
                     )}
                   </>
                 }

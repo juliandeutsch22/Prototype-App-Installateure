@@ -901,7 +901,7 @@ export default function Gespraech({
                 ))}
               </div>
             )}
-            {dateiFehler && <p className="text-sm text-danger" role="alert">{dateiFehler}</p>}
+            {dateiFehler && <p className="text-meta text-danger" role="alert">{dateiFehler}</p>}
             <div className="eingabe-zeile">
               <input
                 ref={dateiWahl}

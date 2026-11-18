@@ -132,16 +132,16 @@ export default function FreistellungListe({
                     {f.notiz ? ` · ${f.notiz}` : ''}
                   </span>
                   {f.entschiedenVonName && (
-                    <span className="mt-1 block text-xs text-ink-muted">
+                    <span className="mt-1 block text-meta text-ink-muted">
                       {f.status} von {f.entschiedenVonName}
                       {f.grund ? ` — ${f.grund}` : ''}
                     </span>
                   )}
-                  {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
-                  {ueber && <span className="mt-1 block text-xs text-ink-muted">{ueber}</span>}
-                  {arzt && <span className="mt-1 block text-xs text-ink-muted">{arzt}</span>}
+                  {vermerk && <span className="mt-1 block text-meta text-ink-muted">{vermerk}</span>}
+                  {ueber && <span className="mt-1 block text-meta text-ink-muted">{ueber}</span>}
+                  {arzt && <span className="mt-1 block text-meta text-ink-muted">{arzt}</span>}
                   {f.status === 'Beantragt' && f.nachweisPfad && (
-                    <span className="mt-1 block text-xs text-ink-muted">Nachweis liegt bei — wird nach der Entscheidung gelöscht.</span>
+                    <span className="mt-1 block text-meta text-ink-muted">Nachweis liegt bei — wird nach der Entscheidung gelöscht.</span>
                   )}
                 </>
               }

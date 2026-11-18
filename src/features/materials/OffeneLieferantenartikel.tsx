@@ -192,7 +192,7 @@ export default function OffeneLieferantenartikel() {
       >
         {offen && (
           <div className="space-y-5">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-fliess">
               <dt className="text-ink-muted">Großhändler</dt>
               <dd>{offen.lieferant}</dd>
               <dt className="text-ink-muted">Nummer</dt>
@@ -220,7 +220,7 @@ export default function OffeneLieferantenartikel() {
             <section aria-label="Vorschläge" className="space-y-2">
               <h3 className="section-label">Vorschläge</h3>
               {offen.vorschlaege.length === 0 ? (
-                <p className="text-sm text-ink-muted">Kein Artikel mit gleicher Nummer, EAN oder ähnlicher Bezeichnung.</p>
+                <p className="text-fliess text-ink-muted">Kein Artikel mit gleicher Nummer, EAN oder ähnlicher Bezeichnung.</p>
               ) : (
                 <List>
                   {offen.vorschlaege.map((v) => (
@@ -255,9 +255,9 @@ export default function OffeneLieferantenartikel() {
               />
               {artikelSuche.trim() && (
                 suchtArtikel && treffer.length === 0 ? (
-                  <p className="text-sm text-ink-muted">Wird gesucht …</p>
+                  <p className="text-fliess text-ink-muted">Wird gesucht …</p>
                 ) : treffer.length === 0 ? (
-                  <p className="text-sm text-ink-muted">Kein Artikel passt.</p>
+                  <p className="text-fliess text-ink-muted">Kein Artikel passt.</p>
                 ) : (
                   <List>
                     {treffer.slice(0, 8).map((m) => (

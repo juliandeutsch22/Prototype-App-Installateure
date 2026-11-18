@@ -122,7 +122,7 @@ export default function ConfirmDialog({
         <h2 id={titleId} className="titel-karte">
           {title}
         </h2>
-        {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
+        {message && <p className="mt-2 text-meta text-ink-muted">{message}</p>}
         {children && <div className="mt-4"><ImFenster>{children}</ImFenster></div>}
         {error && (
           <div className="mt-3">

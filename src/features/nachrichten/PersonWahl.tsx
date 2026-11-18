@@ -59,7 +59,7 @@ export default function PersonWahl({
                     key={p.uid}
                     title={p.name}
                     subtitle={p.rolle}
-                    zustand={mehrere && an ? <span className="text-sm text-ink">gewählt</span> : undefined}
+                    zustand={mehrere && an ? <span className="text-fliess text-ink">gewählt</span> : undefined}
                     onOeffnen={() => {
                       if (!mehrere) { onWahl([p]); setSuche(''); return; }
                       setGewaehlt((alt) => {

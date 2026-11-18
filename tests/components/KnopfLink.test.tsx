@@ -23,7 +23,8 @@ import { knopfKlassen, type Groesse, type Variant } from '@/components/knopf';
 const VORHER_GRUND = 'lot-knopf inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50';
 const VORHER_GROESSE: Record<Groesse, string> = {
   normal: 'min-h-touch rounded px-4 py-2 text-fliess',
-  klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-sm',
+  // E97: die kleine Größe nimmt die Begleitstufe (13 px) — 14 px gibt es in der Skala nicht mehr.
+  klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-meta',
 };
 const VORHER_VARIANTE: Record<Variant, string> = {
   // Bewusst geändert am 14.11.2026: beim Zeigen deckend dunkler statt durchsichtig.

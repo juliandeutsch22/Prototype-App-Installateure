@@ -21,8 +21,8 @@ export default function TermineHeute({ termine, planVerweis }: { termine: Termin
           <li key={t.id} className="start-termin">
             <p className="font-semibold text-ink-deep">{terminKopf(t)}</p>
             <p className="text-meta text-ink-muted">{bezugText(t)}</p>
-            {t.ortAdresse && <AdresseLink adresse={t.ortAdresse} className="text-sm" />}
-            {t.notiz && <p className="mt-1 whitespace-pre-line text-sm text-ink">{t.notiz}</p>}
+            {t.ortAdresse && <AdresseLink adresse={t.ortAdresse} className="text-fliess" />}
+            {t.notiz && <p className="mt-1 whitespace-pre-line text-fliess text-ink">{t.notiz}</p>}
           </li>
         ))}
       </ul>

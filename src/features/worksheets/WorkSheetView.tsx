@@ -1353,14 +1353,14 @@ export default function WorkSheetView() {
                     ändern
                   </button>
                 </div>
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   <span className="nr">{projectNumber}</span> · {abrechnungText(projekt.billingMode)}
                 </p>
-                <span className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
+                <span className="mt-2 flex flex-wrap items-center gap-x-3 text-fliess">
                   <AdresseLink adresse={projekt.address} />
                   <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
                 </span>
-                {vorbelegt && <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
+                {vorbelegt && <p className="mt-1 text-meta text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
               </div>
             )}
             {/*
@@ -1414,7 +1414,7 @@ export default function WorkSheetView() {
             />
             )}
             {!baustelleKompakt && vorbelegt && projectNumber && (
-              <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
+              <p className="mt-1 text-meta text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
             )}
             <div className="mt-4">
               <InputField
@@ -1432,7 +1432,7 @@ export default function WorkSheetView() {
                   dem Haus oder sucht es noch — und braucht danach oft den Kunden
                   ans Telefon, weil unterschrieben werden soll.
                 */}
-                <span className="flex flex-wrap items-center gap-x-3 text-sm">
+                <span className="flex flex-wrap items-center gap-x-3 text-fliess">
                   <AdresseLink adresse={projekt.address} />
                   <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
                 </span>
@@ -1756,7 +1756,7 @@ export default function WorkSheetView() {
                       </>
                     }
                   >
-                    <p className="text-sm text-ink-muted">
+                    <p className="text-meta text-ink-muted">
                       Freiwillig. Höchstens {MAX_FOTOS} Stück, am Gerät verkleinert.
                     </p>
 
@@ -1804,12 +1804,12 @@ export default function WorkSheetView() {
                               </span>
                             </button>
                             {f.oben ? (
-                              <p className="mt-1 text-center text-xs text-ink-muted">
+                              <p className="mt-1 text-center text-meta text-ink-muted">
                                 {/* Im Schein verzeichnet, die Datei noch im Gerät (E49). */}
                                 {wartendeFotos.has(f.oben.pfad) ? 'Wartet auf Netz' : groesse(f.oben.bytes)}
                               </p>
                             ) : (
-                              <p className="mt-1 text-center text-xs text-warning">
+                              <p className="mt-1 text-center text-meta text-warning">
                                 {f.fehler ?? 'Wird hochgeladen …'}
                                 {f.fehler && (
                                   <button
@@ -2005,7 +2005,7 @@ export default function WorkSheetView() {
                     </Hinweiszeile>
                   </div>
                 )}
-                <p className="mt-4 text-sm text-ink-muted">
+                <p className="mt-4 text-meta text-ink-muted">
                   Nach dem Unterschreiben ist der Schein <strong>eingefroren</strong>. Korrigiert wird
                   über Storno und neuen Schein.
                 </p>
@@ -2059,7 +2059,7 @@ export default function WorkSheetView() {
                   </div>
                 )}
                 {!bereit && projectNumber && (
-                  <p className="mt-2 text-sm text-ink-muted">
+                  <p className="mt-2 text-meta text-ink-muted">
                     {!projekt
                       ? 'Die Stammdaten der Baustelle werden noch geladen.'
                       : `Zum Abschließen fehlen: ${[

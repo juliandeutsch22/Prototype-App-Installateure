@@ -77,17 +77,17 @@
     48 px hoch, dieselbe Schrift. Der Hinweis gehört zur Zeile darüber: eine
     Zelle Text, eine halbe Luft.
   */
-  .zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: 0.8125rem; line-height: 1.5rem; color: var(--text-muted); }
+  .zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: var(--groesse-begleit); line-height: 1.5rem; color: var(--text-muted); }
   .zeit-verlauf { padding: 0; }
   .zeit-verlauf > .weiteres { margin: 0; }
-  .zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem; font-size: 0.9375rem; line-height: 1.5rem; }
+  .zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem; font-size: var(--groesse-inhalt); line-height: 1.5rem; }
   .zeit-verlauf > .weiteres > .weiteres-kopf::after { right: 1rem; }
   .zeit-verlauf > .weiteres > .weiteres-inhalt { padding: 0 1rem 1rem; }
 
   /* Kopf des Antrags im Seitenfenster: Zeitraum, Umfang, Stand. */
   .antrag-kopf { display: flex; flex-direction: column; gap: 0.25rem; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
   .antrag-zeitraum { font-size: 1.0625rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
-  .antrag-umfang { font-size: 0.9375rem; color: var(--text-muted); }
+  .antrag-umfang { font-size: var(--groesse-inhalt); color: var(--text-muted); }
   .antrag-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; margin-top: 0.25rem; border-top: 1px solid var(--border); }
 }
 

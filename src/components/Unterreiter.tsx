@@ -122,7 +122,7 @@ export default function Unterreiter({
               state={ANSICHTSWECHSEL}
               className={({ isActive }) =>
                 [
-                  'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-sm',
+                  'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-fliess',
                   // Dieselbe Markierung wie bei den Reitern in Material,
                   // Lager, Anforderungen und Urlaub: Kante UNTEN im festen
                   // Petrol des Produkts, Text halbfett in Tinte (Designlinie

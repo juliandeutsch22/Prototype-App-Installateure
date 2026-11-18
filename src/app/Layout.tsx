@@ -745,8 +745,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Avatar name={user.name} size={48} />
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-ink">{user.name}</p>
-            <p className="truncate text-sm text-ink-muted">{rolleAnzeige(user.role, einblick)}</p>
-            <p className="truncate text-sm text-ink-muted">{kontoAnzeige(user.email)}</p>
+            <p className="truncate text-meta text-ink-muted">{rolleAnzeige(user.role, einblick)}</p>
+            <p className="truncate text-meta text-ink-muted">{kontoAnzeige(user.email)}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-0.5 border-t border-line pt-3">

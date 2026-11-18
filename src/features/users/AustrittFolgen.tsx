@@ -65,7 +65,7 @@ export default function AustrittFolgen({
   const nichts = folgen.buchungen.length === 0 && folgen.urlaub.length === 0 && folgen.krank.length === 0
     && folgen.freistellungen.length === 0 && folgen.korrekturen === 0 && folgen.einsaetze.anzahl === 0 && !folgen.sitzung;
 
-  if (nichts) return <p className="text-sm text-ink-muted">Nach dem {datumAT(tag)} hängt nichts mehr an dieser Person.</p>;
+  if (nichts) return <p className="text-meta text-ink-muted">Nach dem {datumAT(tag)} hängt nichts mehr an dieser Person.</p>;
 
   async function sitzungBeenden() {
     try {
@@ -80,7 +80,7 @@ export default function AustrittFolgen({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm text-ink-muted">
+      <p className="text-meta text-ink-muted">
         Nach dem {datumAT(tag)} ist noch offen. Soll und Saldo enden am Austrittstag — was danach gebucht ist, zählt nicht mehr.
       </p>
       <List>

@@ -77,7 +77,7 @@ export default function BankgarantieDialog({
         <InputField id="garantie-nr" label="Garantienummer" value={nummer} onChange={(e) => setNummer(e.target.value)} />
         <InputField id="garantie-bis" label="Garantie gültig bis" type="date" value={bis} onChange={(e) => setBis(e.target.value)} />
         {inv?.ruecklassGarantieAm && (
-          <p className="text-sm text-ink-muted">Ohne Datum „Abgelöst am“ wird die Ablöse zurückgenommen.</p>
+          <p className="text-meta text-ink-muted">Ohne Datum „Abgelöst am“ wird die Ablöse zurückgenommen.</p>
         )}
       </div>
     </ConfirmDialog>

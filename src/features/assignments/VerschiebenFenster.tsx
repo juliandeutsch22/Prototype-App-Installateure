@@ -60,7 +60,7 @@ export default function VerschiebenFenster({
           ))}
         </SelectField>
         <Schalter id="verschieben-kopieren" label="Kopieren statt verschieben" an={kopieren} onChange={(wert) => setKopieren(wert)} />
-        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
         <div className="fuss-aktionen">
           <Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>
           <Button type="submit" loading={laeuft} disabled={!tag || gleich}>{kopieren ? 'Kopieren' : 'Verschieben'}</Button>

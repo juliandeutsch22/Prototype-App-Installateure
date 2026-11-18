@@ -133,7 +133,7 @@ export default function UrlaubsanspruchKarte({
           onRetry={() => setVersuch((v) => v + 1)}
         />
       ) : liste.length === 0 ? (
-        <p className="text-sm text-ink-muted">Keine Anpassung — es gilt der Jahresanspruch aus den Stammdaten.</p>
+        <p className="text-fliess text-ink-muted">Keine Anpassung — es gilt der Jahresanspruch aus den Stammdaten.</p>
       ) : (
         <List>
           {liste.map((a) => (

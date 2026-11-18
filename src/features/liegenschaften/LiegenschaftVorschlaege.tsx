@@ -72,8 +72,8 @@ export default function LiegenschaftVorschlaege({
   );
 
   if (!liegenschaft) return null;
-  if (fehler) return <p className="text-sm text-ink-deep">Die Beteiligten der Liegenschaft konnten nicht geladen werden — Vorschläge gibt es dann keine.</p>;
-  if (!v) return <p className="text-sm text-ink-muted">Vorschläge aus der Liegenschaft werden geladen …</p>;
+  if (fehler) return <p className="text-fliess text-ink-deep">Die Beteiligten der Liegenschaft konnten nicht geladen werden — Vorschläge gibt es dann keine.</p>;
+  if (!v) return <p className="text-fliess text-ink-muted">Vorschläge aus der Liegenschaft werden geladen …</p>;
 
   const kundenZeilen = v.kunden.filter((k) => k.customerId !== kundeGewaehlt && kunden.has(k.customerId));
   const adresseZeile = v.adresse && v.adresse !== adresse.trim() ? v.adresse : null;
@@ -89,9 +89,9 @@ export default function LiegenschaftVorschlaege({
           const kunde = kunden.get(k.customerId)!;
           return (
             <li key={k.customerId} className="flex flex-wrap items-center justify-between gap-2 py-1">
-              <span className="min-w-0 text-sm text-ink">
+              <span className="min-w-0 text-fliess text-ink">
                 Kunde: {kunde.name}
-                <span className="block text-xs text-ink-muted">{ROLLE_TEXT[k.rolle]}{k.amTop ? ' des Tops' : ''}</span>
+                <span className="block text-meta text-ink-muted">{ROLLE_TEXT[k.rolle]}{k.amTop ? ' des Tops' : ''}</span>
               </span>
               <Button type="button" variant="secondary" groesse="klein" onClick={() => onKunde(kunde)}
                 aria-label={`${kunde.name} als Kunde übernehmen`}>
@@ -102,7 +102,7 @@ export default function LiegenschaftVorschlaege({
         })}
         {adresseZeile && (
           <li className="flex flex-wrap items-center justify-between gap-2 py-1">
-            <span className="min-w-0 text-sm text-ink">Baustellenadresse: {adresseZeile}</span>
+            <span className="min-w-0 text-fliess text-ink">Baustellenadresse: {adresseZeile}</span>
             <Button type="button" variant="secondary" groesse="klein" onClick={() => onAdresse(adresseZeile)}
               aria-label="Anschrift der Liegenschaft als Baustellenadresse übernehmen">
               Übernehmen
@@ -111,9 +111,9 @@ export default function LiegenschaftVorschlaege({
         )}
         {ap && (
           <li className="flex flex-wrap items-center justify-between gap-2 py-1">
-            <span className="min-w-0 text-sm text-ink">
+            <span className="min-w-0 text-fliess text-ink">
               Ansprechpartner vor Ort: {[ap.name, ap.telefon].filter(Boolean).join(' · ')}
-              <span className="block text-xs text-ink-muted">{ROLLE_TEXT.nutzer} des Tops</span>
+              <span className="block text-meta text-ink-muted">{ROLLE_TEXT.nutzer} des Tops</span>
             </span>
             <Button type="button" variant="secondary" groesse="klein" onClick={() => onAnsprechpartner(ap)}
               aria-label="Nutzer des Tops als Ansprechpartner übernehmen">

@@ -179,7 +179,7 @@ export default function NachrichtAktionen({
       >
         {n && (
           <div className="space-y-4">
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {n.eigene ? 'Du' : n.vonName} · <span className="font-mono">{zeitText(n.gesendetAm)}</span>
             </p>
 
@@ -191,7 +191,7 @@ export default function NachrichtAktionen({
                 onSubmit={(e) => { e.preventDefault(); void tun(() => nachrichtBearbeiten(n.id, text), 'Nachricht geändert'); }}
               >
                 <TextareaField id="nachricht-bearbeiten" label="Text" rows={5} maxLength={20000} value={text} onChange={(e) => setText(e.target.value)} />
-                <p className="text-sm text-ink-muted">Geändert steht die Nachricht mit „bearbeitet“ da. Die alte Fassung wird nicht aufbewahrt.</p>
+                <p className="text-meta text-ink-muted">Geändert steht die Nachricht mit „bearbeitet“ da. Die alte Fassung wird nicht aufbewahrt.</p>
                 <div className="fuss-aktionen">
                   <Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>
                   <Button type="submit" loading={laeuft} disabled={text.trim() === (n.text ?? '').trim()}>Speichern</Button>
@@ -207,7 +207,7 @@ export default function NachrichtAktionen({
                   void tun(() => nachrichtMelden(n.id, grund), niemand ? 'Gemeldet' : 'An die Geschäftsführung weitergegeben');
                 }}
               >
-                <p className="text-sm">
+                <p className="text-fliess">
                   {niemand ? 'Gemeldet wird ' : 'Die Geschäftsführung bekommt '}
                   <strong>genau diese Nachricht</strong> — Absender, Zeit, Text
                   {n.anhaenge.length > 0 ? ' und Anhänge' : ''} — als Kopie.

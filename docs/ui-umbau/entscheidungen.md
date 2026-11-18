@@ -4108,3 +4108,120 @@ farbtöne“; nach den Beispielbildern: „die border noch 1 px dicker“.
   `WochenplanView.test.tsx` und im Browser `tests/links/planungAblage.spec.ts`
   (Höhe gleich Raster bei 3.195 Baustellen, eingeklappt ganze Woche,
   Mitrollen rechts/links/unten; Gegenprobe mit dem Stand davor rot).
+
+**E97 — Eine Schriftskala nach Rollen (17.11.2026).**
+Auftrag: „in den akten (baustellen, kunden etc.) aber auch auf weiteren
+seiten sind die schriftgrößen abgesehen von den Überschriften sehr
+uneinheitlich. ich möchte dass du alles genauestens durchsiehst — jeden
+screen und tab — und alles fixt.“
+
+Gemessen (`tools/vorschau/schriften.mjs`: 46 Seiten, jeder Reiter, 390 /
+834 / 1.440 px): im Inhalt standen zwölf Größen in DM Sans (9 bis 22 px) und
+acht in Plex Mono. In der Baustellenakte der Leersatz in 14 und 16 px, die
+Beschriftung über einem Wert in 12 und 13, der Wert in 13, 14 und 15, der
+Verweis im Blattkopf in 13 und 14. Drei Ursachen: Text ohne eigene Größe erbte
+die 16 px des Browsers; die Tailwind-Stufe `sm` (14 px) stand an 660 Stellen
+neben 13 (`text-meta`) und 15 (`text-fliess`) für dieselben Rollen; im Stil
+rund 60 freie Zwischenwerte.
+
+- **Vier Stufen, je eine Rolle** (`--groesse-*` in `index.css`, gleich am
+  Handy und am Schreibtisch):
+  - **12 px — Dachzeile und Marke:** Kategorie über einer Gruppe
+    (`section-label`, versale Köpfe der Kontextspalte, des Schriftfelds und
+    der Tabellen), Zähler, Einheit („brutto“), Nummernstempel, Köpfe der
+    Raster, Zeitmarken im Chat.
+  - **13 px — Begleitung:** Beschriftung über einem Wert und einem Feld,
+    Meta-Zeile unter einem Titel, Hinweis und Fehler am Feld, Zustand,
+    Verweis („Alle Termine ›“), Filter und Segmente, kleine Knöpfe in der
+    Zeile; in den dichten Rastern (Woche, Monat, Kalender) auch Einträge und
+    Namen.
+  - **15 px — Inhalt:** Text, Werte, Namen, Leersätze und Ladesätze, Knöpfe,
+    Links mit Handlung, Menüs, Reiter, Tabellenzellen. Grundschrift am `body`
+    — was keine eigene Größe hat, steht hier.
+  - **16 px — Feld:** jedes Eingabefeld (sonst vergrößert iOS beim Antippen
+    die Seite) und der Text einer Nachricht.
+- **Eigene Größen behalten** nur Titel (Seite, Blatt, Fenster), große
+  Kennwerte und die Uhr, Zeichen (Emoji, @, +/−, ›), Namenskürzel und die
+  Navigation (Leiste, untere Leiste, Kopfzeile) — die Überschriften waren
+  nicht Teil des Auftrags, die Navigation richtet sich nach ihrer Breite.
+- **Tailwind kennt `sm` nicht mehr** (die Skala steht außerhalb von
+  `extend`); die 660 Stellen sind nach Rolle umgestellt: grau begleitend →
+  13, Inhalt → 15, Leer- und Ladesätze → 15. Unterzeilen in `text-xs` (12)
+  unter einem Eintrag sind jetzt 13 wie `zeile-meta`.
+- **Rollen, die vorher falsch saßen:** `dt` der Angaben am Handy
+  (Angebot, Auftragseingang, Wartung, Annahmeseite) als Dachzeile 12 statt
+  Beschriftung 13; die Kontextspalte der Akten 13 statt 15 (jetzt wie
+  dieselben Angaben in der Hauptspalte, weiter alle gleich groß, E31); die
+  Startseite mit 12-px-Details und 14-px-Zeilen; das Suchfeld der Nachrichten
+  in 15 px (iOS zoomte).
+- **Folgen, gemessen und behoben:** die Dachzeile „NOV 2026“ im nächsten
+  Termin braucht eine Spalte von 4,5 rem (vorher 3,5); am Tablet nimmt die
+  Dachzeile im Schriftfeld 0,04 em statt 0,1 em Sperrung (sonst fehlten
+  „Bezahlt im November“ 11 px); die Positionsspalte der Stückliste 4 rem,
+  am Handy 2,75 rem; das Zustandszeichen der Startseite sitzt ohne eigenen
+  Versatz (das Wort hat dort jetzt 13 px wie überall). Die Überlaufmessung
+  (`messen.mjs`) gegen den Stand davor zeigt sonst keinen neuen Befund.
+- **Prüfungen:** `schriftskala.test.ts` (Stufen, Grundschrift, Felder,
+  keine freie Größe im Stil außer den benannten, kein `sm`, kein `text-sm`)
+  und im Browser `tests/links/schriftskala.spec.ts` (jede Seite, jeder
+  Reiter, drei Breiten: jede Schrift im Inhalt auf einer Stufe; in den
+  Akten Beschriftung 13, Wert 15, Leersatz 15, Verweis 13). Gegenprobe: mit
+  dem Stand davor 7 von 7 und 52 von 54 rot.
+- **Nebenbei: die Wackelstelle der Nachrichten (WebKit, CI vom 17.11.2026).**
+  Einmal stand im Weg „Senden springt nicht“ das Nachrichtenfeld nach `fill`
+  leer, „Senden“ blieb gesperrt. Untersucht: die Spur zeigt kein neues
+  Laden des Gesprächs (der Verlauf steht in jedem Bild), das Feld trug nie
+  Text; lokal in WebKit 52 Läufe ohne Fehler (einzeln und mit der ganzen
+  Datei), in Chromium 8. Eine Ursache in der App ist damit nicht belegt —
+  geändert wird an der App nichts. Der Weg prüft jetzt nach `fill`, dass der
+  Text im Feld steht: ein nächstes Mal meldet er genau diesen Schritt statt
+  nach drei Minuten abzulaufen. Nichts wird wiederholt oder überdeckt.
+- **Nebenbei: Bewegungsprüfung der unteren Leiste (E95).** „Mit reduzierter
+  Bewegung wechselt die Fläche sofort“ nahm als Endlage das letzte Bild
+  einer Aufnahme von 900 ms; unter Last kam die Rechnungsseite später, und
+  die Fläche stand im ganzen Fenster noch auf „Start“. Die Endlage wird
+  jetzt nach dem Wechsel gemessen; kein Abbild und keine Zwischenstellung
+  prüft der Weg wie vorher.
+- **Nebenbei: Speicherleiste mit reduzierter Bewegung (B4).** Die Prüfung
+  zählte die Lage der Leiste erst nach „Gespeichert“ und dem Haken; in der
+  CI (WebKit) war die Lesezeit von 1,2 s da schon vorbei, und es gab nur
+  das Bild „weg“. Jetzt zählt die Seite selbst ab dem Moment, in dem die
+  Leiste ruht. Gegenprobe: mit 1,3 s Verzug vor der Zählung ist die alte
+  Fassung rot wie in der CI, die neue grün; eine Leiste mit Weg (300 ms)
+  macht die neue rot. An der App ändert sich nichts.
+- **Folge der 15-px-Grundschrift: Taktgeber auf Bruchteile genau.** Was
+  keine eigene Zeilenhöhe hat, erbt das 1,5-Fache der Schrift — vorher
+  24 px, jetzt 22,5 px. Blätter wurden dadurch 143,5 px hoch; der
+  Taktgeber (`lib/takt.ts`) rundete auf 144, gab keinen Ausgleich, und die
+  Unterkante lag einen halben Pixel über der Linie (`raster.spec.ts` in der
+  CI: fünf Seiten, drei Breiten; auf `main` lag schon ein Blatt so). Jetzt
+  füllt er bis zur Linie auf, auf ein Vierundsechzigstel Pixel genau; ein
+  Rest unter einem halben Pixel zählt wie bisher nicht. Gemessen auf 46
+  Seiten in drei Breiten (138 Ansichten): auf `main` lag in einer Ansicht
+  ein Blatt daneben, mit E97 ohne diesen Schritt in 15, jetzt in keiner. Die Zeilenhöhen selbst bleiben: sie auf ganze
+  Pixel zu zwingen hieße, jede Regel ohne eigene Zeilenhöhe anzufassen.
+- **Nebenbei: vier Browserprüfungen, die unter Last falsch maßen.** Gefunden,
+  als die CI für E97 rot war; jede schlägt auch auf `main` fehl, wenn der
+  Rechner ausgelastet ist (lokal mit sechs Läufen nebeneinander
+  nachgestellt). An der App ändert sich nichts.
+  - *B2 „Nachbarn rücken nach“* maß die Lage im Fenster. Über der Liste lud
+    die Seite noch nach (Stand im Seitenkopf, ein Hinweis von „fehlt“ auf
+    „Achtung“), die Liste rutschte um 13 oder 133 px. Jetzt zählt die Lage
+    in der Liste.
+  - *B2 „Das Abbild ist stumm“* suchte das Abbild im nächsten Bild; es lebt
+    160 ms, ein Bild unter Last länger. Jetzt gleich nach dem Beobachter der
+    App, ebenso „ein Austausch bewegt nichts“ (dort hätte ein kurzes Abbild
+    sonst übersehen werden können).
+  - *B3 „Zeile kommt dazu“* nahm das Endbild nach 300 ms Uhrzeit; eine
+    Bewegung beginnt erst mit dem nächsten gezeichneten Bild. Jetzt nach dem
+    Ende der Bewegungen der beiden Zeilen.
+  - *„Bündige Karten“* maß, während noch der Platzhalter stand (sein
+    unsichtbarer Satz „Wird geladen …“ zählte als Text). Jetzt erst, wenn
+    nichts mehr `aria-busy` meldet.
+  - *Rechtstexte (`rechtLot.spec.ts`)* zählte die Blätter, sobald der Titel
+    stand — der Text kommt danach aus der Datenbank. Jetzt nach dem Blatt.
+  Gegenproben: unter Last vorher rot, jetzt 72/72 (B2), 12/12 (Bündige
+  Karten); mit einem echten Fehler der App (Nachbar rückt nicht nach,
+  Abbild ohne `inert`, Austausch mit Abbild, neue Zeile bleibt halb
+  durchsichtig, Leersatz ohne Rand, verzögerter Rechtstext gegen die alte
+  Fassung) ist jede rot.

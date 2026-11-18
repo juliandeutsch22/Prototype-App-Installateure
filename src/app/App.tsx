@@ -232,7 +232,7 @@ function AppInhalt() {
         <MarkenBand />
         <header className="space-y-1">
           <h1 className="font-titel text-2xl font-normal text-ink-deep">Willkommen</h1>
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             {passwortFaellig === 'start'
               ? 'Du bist mit einem Startpasswort angemeldet. Vergib zuerst ein eigenes — danach geht es weiter.'
               : 'Vergib zuerst ein Passwort. Danach geht es weiter.'}
@@ -250,7 +250,7 @@ function AppInhalt() {
           war für jemand anderen —, stand hier fest: nur das Passwortformular,
           kein Weg hinaus (Prüflauf L3). Abmelden verlangt kein Passwort.
         */}
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Nicht dein Konto?{' '}
           <button
             type="button"

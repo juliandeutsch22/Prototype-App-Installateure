@@ -1157,7 +1157,7 @@ export default function TimeForm({
             mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
             Lösung wie im Prototyp (Zeile 940). */}
         {standardAn('vehiclePlate') && <div className="flex flex-col gap-1">
-          <label htmlFor="vehiclePlate" className="text-sm font-normal text-ink">
+          <label htmlFor="vehiclePlate" className="text-meta font-normal text-ink">
             Fahrzeug (Kennzeichen)
           </label>
           <div className="flex">
@@ -1224,7 +1224,7 @@ export default function TimeForm({
   const billed = !!entry?.isBilled;
   const gesperrt = billed || meldungsTag || antragsTag;
 
-  if (!entry && !speichernMit && !aktiveModule(company?.modules).has('zeiterfassung')) return <p className="text-sm text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>;
+  if (!entry && !speichernMit && !aktiveModule(company?.modules).has('zeiterfassung')) return <p className="text-meta text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>;
 
   return (
     <>
@@ -1278,7 +1278,7 @@ export default function TimeForm({
           // Weiss mit Haarlinie wie ein Nebenknopf (Designlinie „Fassung 3"):
           // die türkis getönte Fläche war die einzige farbige im Formular.
           // V10: ohne Schatten — Felder und Knöpfe liegen flach auf dem Blatt.
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink-deep transition hover:bg-surface-2 active:scale-[0.99]"
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-fliess font-normal text-ink-deep transition hover:bg-surface-2 active:scale-[0.99]"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
@@ -1374,7 +1374,7 @@ export default function TimeForm({
         weiter ganz da: die muss man ohne Tipp sehen.
       */}
       {alsKrankmeldung && (
-        <div className="space-y-3 text-sm text-ink-muted">
+        <div className="space-y-3 text-meta text-ink-muted">
           <p className="flex flex-wrap items-center gap-x-1">
             Wird als Krankmeldung erfasst; das Ende lässt sich später ändern.
             <InfoHint about="Krankmeldung">
@@ -1399,7 +1399,7 @@ export default function TimeForm({
         </div>
       )}
       {alsUrlaubEintrag && (
-        <div className="space-y-3 text-sm text-ink-muted">
+        <div className="space-y-3 text-meta text-ink-muted">
           <p className="flex flex-wrap items-center gap-x-1">
             Wird als genehmigter Urlaub eingetragen; schon gebuchte Tage bleiben.
             <InfoHint about="Urlaub eintragen">
@@ -1423,7 +1423,7 @@ export default function TimeForm({
         </div>
       )}
       {alsBerufsschule && (
-        <div className="space-y-3 text-sm text-ink-muted">
+        <div className="space-y-3 text-meta text-ink-muted">
           <p className="flex flex-wrap items-center gap-x-1">
             Erfüllt das Tagessoll und geht auf keine Rechnung.
             <InfoHint about="Berufsschule">
@@ -1490,12 +1490,12 @@ export default function TimeForm({
         </div>
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && !alsBerufsschule && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           {status}: keine Arbeitszeit — der Tag wird als voller Solltag gutgeschrieben.
         </p>
       )}
       {status === 'Zeitausgleich' && (
-        <div className="space-y-3 text-sm text-ink-muted">
+        <div className="space-y-3 text-meta text-ink-muted">
           <p className="flex flex-wrap items-center gap-x-1">
             Das Zeitguthaben sinkt um die freie Zeit{zaStundenweise ? '' : ' — ganzer Tag: um das Tagessoll'}.
             <InfoHint about="Zeitausgleich">
@@ -1606,7 +1606,7 @@ export default function TimeForm({
               )}
               {/* Im Fenster (ohne Seitenhilfe) steht das (i) hinter dem Satz, nicht verwaist darunter (14.11.2026). */}
               <div className="zeitbild-satz">
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
                   {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
                 </p>
@@ -1640,7 +1640,7 @@ export default function TimeForm({
             er steht an der Buchung.
           */}
           {showWorkFields && mitZeiten && nachtImEintrag > 0 && (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-fliess">
               <p className="text-ink-muted">
                 {nachtAbwahl
                   ? `${fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit (${nachtzeitText(nacht)}) — abgewählt, sie zählen nicht als Nachtarbeit.`
@@ -1742,8 +1742,8 @@ export default function TimeForm({
                 }}
                 required={brauchtBaustelle}
               />
-              {vorbelegt && projectNumber && <p className="text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
-              {baustelleFrei && <p className="text-sm text-ink-muted">Ohne Baustelle zählt die Zeit zum Zeitkonto, ohne eine Auftragsleistung oder Rechnungsquelle zu erzeugen.</p>}
+              {vorbelegt && projectNumber && <p className="text-meta text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
+              {baustelleFrei && <p className="text-meta text-ink-muted">Ohne Baustelle zählt die Zeit zum Zeitkonto, ohne eine Auftragsleistung oder Rechnungsquelle zu erzeugen.</p>}
               {/*
                 AUFTEILEN (10.10.2026): den Tag am Stück gebucht, danach auf
                 die Baustellen verteilt. Geteilt wird die GESPEICHERTE
@@ -1752,7 +1752,7 @@ export default function TimeForm({
               */}
               {!speichernMit && isEdit && entry && status === 'Anwesend' && !aufteilenGeht(entry) && (
                 aufteilenUngespeichert ? (
-                  <p className="-mt-2 text-sm text-ink-muted">
+                  <p className="-mt-2 text-meta text-ink-muted">
                     Auf mehrere Baustellen aufteilen geht mit der gespeicherten Buchung — zuerst speichern.
                   </p>
                 ) : (
@@ -1779,7 +1779,7 @@ export default function TimeForm({
         />
       )}
       {isEdit && feldsatz.satz && zfAltFehler && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Die Angaben für den Betrieb ließen sich nicht laden — sie bleiben, wie sie sind.
         </p>
       )}
@@ -1923,7 +1923,7 @@ export default function TimeForm({
         await absenden(true);
       }}
     >
-      <ul className="space-y-1 text-sm text-ink">
+      <ul className="space-y-1 text-fliess text-ink">
         {(rueckfrage ?? []).map((f) => {
           const { titel, gesetz } = grenzText(f);
           return (

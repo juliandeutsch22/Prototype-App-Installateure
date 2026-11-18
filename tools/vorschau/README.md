@@ -68,6 +68,7 @@ Falschmeldungen der Messung, die keine Fehler sind:
 | `messen.mjs` | Der Durchgang über alle Routen. |
 | `schnell.mjs` | Eine Route auf einen Blick: ganzseitiges Bild und Breite der Seite, Fehler beim Rendern (`node tools/vorschau/schnell.mjs /time Mitarbeiter 390 /tmp/zeit.png`). |
 | `ausschnitt.mjs` | Ein Element fotografieren, wahlweise nach einem Klick (`… ausschnitt.mjs <pfad> <rolle> <breite> <datei> <selektor> [höhe] [klick-selektor]`) — für Vorher/Nachher eines Bausteins. |
+| `schriften.mjs` | Misst die Schrift jeder Seite je Rolle, Breite und Reiter (Größe, Schriftart, Gewicht, Klassen) und zählt die Größen je Schriftart (`… schriften.mjs <ziel.json> [filter]`). Für E97 entstanden: die Skala hält `tests/links/schriftskala.spec.ts` fest, hiermit sieht man, wo welche Größe steht. |
 | `texte.mjs` | Liest den sichtbaren Text jeder Route (aufgeklappt) und meldet Formate zum Nachsehen: ISO-Datum, Dezimalpunkt, Monatsnamen, ungepolsterte Daten, ganze Stunden. Weiter gefasst als die feste Regel der Linkprüfung (`tests/links/schreibweise.ts`) — es meldet Kandidaten, keine Fehler. |
 | `unterschrift.mjs` | Geht am Telefon den Schein bis zur Unterschrift durch und fotografiert das Feld, das große Blatt hoch und quer (`… unterschrift.mjs <ordner>`). Die Funktion prüft `SignaturePad.test.tsx`; das hier ist der Blick darauf. |
 

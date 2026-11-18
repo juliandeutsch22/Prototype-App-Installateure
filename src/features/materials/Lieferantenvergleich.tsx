@@ -120,7 +120,7 @@ export default function Lieferantenvergleich({
     <section aria-label="Lieferanten" className="space-y-3">
       <h3 className="section-label">Lieferanten ({zeilen.length})</h3>
       {zeilen.length === 0 ? (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Für diesen Artikel liegt von keinem Großhändler ein Preis vor — er wurde von Hand angelegt
           oder sein Katalog noch nicht eingespielt.
         </p>
@@ -147,7 +147,7 @@ export default function Lieferantenvergleich({
               }
               wert={<span className="font-mono">{preisText(z)}</span>}
             >
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-fliess">
                 <dt className="text-ink-muted">Nummer</dt>
                 <dd>{z.lieferantenNr ?? '—'}</dd>
                 {z.bezeichnung && (
@@ -222,7 +222,7 @@ export default function Lieferantenvergleich({
         </div>
       )}
       {vergleich.basisGrund && zeilen.length > 0 && (
-        <p className="text-sm text-ink-muted">Kein „günstigster“: {vergleich.basisGrund}.</p>
+        <p className="text-meta text-ink-muted">Kein „günstigster“: {vergleich.basisGrund}.</p>
       )}
 
       <ConfirmDialog
@@ -284,14 +284,14 @@ function Verlauf({ materialId, supplierId, lieferant }: { materialId: string; su
   if (!zeilen) {
     return (
       <div className="mt-3">
-        {fehler && <p className="mb-2 text-sm text-danger" role="alert">{fehler}</p>}
+        {fehler && <p className="mb-2 text-meta text-danger" role="alert">{fehler}</p>}
         <Button type="button" variant="ghost" loading={laedt} onClick={() => void holen()}>
           Preisverlauf zeigen
         </Button>
       </div>
     );
   }
-  if (zeilen.length === 0) return <p className="mt-3 text-sm text-ink-muted">Noch kein Preisverlauf.</p>;
+  if (zeilen.length === 0) return <p className="mt-3 text-fliess text-ink-muted">Noch kein Preisverlauf.</p>;
   return (
     <div className="mt-3">
       <LotVerlauf

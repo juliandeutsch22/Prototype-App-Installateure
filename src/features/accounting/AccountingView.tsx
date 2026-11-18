@@ -1385,7 +1385,7 @@ export default function AccountingView() {
               onSchliessen={aufgabeFertig}
             />
           ) : personZeile && imSupport ? (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               Zeitbuchungen, Urlaube und Krankenstände sind im Supportzugang nicht einsehbar.
             </p>
           ) : personZeile ? (

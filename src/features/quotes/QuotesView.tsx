@@ -1295,7 +1295,7 @@ export default function QuotesView() {
                     />
                   )}
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm text-ink-muted">
+                    <span className="text-meta text-ink-muted">
                       {z.art === 'titel' ? `Summe ${euro(titelSumme.get(i) ?? 0)}` : 'ohne Preis'}
                     </span>
                     {zeilenKnoepfe(i)}
@@ -1416,7 +1416,7 @@ export default function QuotesView() {
                     </div>
                   )}
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm text-ink-muted">
+                    <span className="text-meta text-ink-muted">
                       {euro(positionNetto(num(z.qty), cent(num(z.unitPrice)), rabattAnteil(num(z.rabatt))))}
                       {z.materialId ? ' · aus dem Katalog' : ''}
                     </span>
@@ -1459,7 +1459,7 @@ export default function QuotesView() {
 
             {/* Die Summen unter der Doppellinie der Stückliste (Planlinie B6), nicht in einem Kasten. */}
             <div className="angebot-summe">
-              <p className="text-sm text-ink">
+              <p className="text-fliess text-ink">
                 Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
                 <strong className="font-semibold">Brutto {euro(summen.totalBrutto)}</strong>
               </p>
@@ -1467,7 +1467,7 @@ export default function QuotesView() {
                 Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
                 beim ersten Angebot im Weg und beim fünfzigsten erst recht.
               */}
-              <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
+              <p className="mt-1 flex flex-wrap items-center text-meta text-ink-muted">
                 Kalkulierte Arbeitszeit: <strong className="ml-1 font-semibold">{fmtStunden(kalkulierteStunden)} h</strong>
                 <InfoHint about="kalkulierte Arbeitszeit">
                   Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
@@ -1567,12 +1567,12 @@ export default function QuotesView() {
           />
         )}
         {suchbegriff && suchFehler && (
-          <p className="px-4 pb-3 text-xs text-warning">
+          <p className="px-4 pb-3 text-meta text-warning">
             Die Suche über alle Angebote ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
           </p>
         )}
         {serverTreffer && serverTreffer.length >= ANGEBOT_TREFFER && (
-          <p className="px-4 pb-3 text-xs text-ink-muted">
+          <p className="px-4 pb-3 text-meta text-ink-muted">
             Die {ANGEBOT_TREFFER} jüngsten Treffer — für ältere genauer suchen.
           </p>
         )}
@@ -1642,7 +1642,7 @@ export default function QuotesView() {
         }}
       >
         {annehmenFragen && fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.length > 0 && (
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             Damit gilt {fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.map((x) => x.quoteNumber).join(', ')} als
             ersetzt und lässt sich nicht mehr annehmen.
           </p>

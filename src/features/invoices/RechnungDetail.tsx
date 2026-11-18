@@ -106,7 +106,7 @@ export default function RechnungDetail({
 
   return (
     <BottomSheet open auchBreit breit onClose={onClose} label={name} titel={ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} stempel={inv.invoiceNumber}>
-      <div className="rechnung-leseansicht text-sm">
+      <div className="rechnung-leseansicht text-fliess">
         <p className="text-ink-muted">
           {inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}
         </p>
@@ -176,9 +176,9 @@ export default function RechnungDetail({
           <section className="rechnung-lesegruppe" aria-label="Leistungen" aria-busy={belegLaedt}>
             <h3 className="rechnung-lesetitel">Leistungen</h3>
             {belegLaedt ? (
-              <p className="text-sm text-ink-muted">Leistungen werden geladen …</p>
+              <p className="text-fliess text-ink-muted">Leistungen werden geladen …</p>
             ) : (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Die Leistungen konnten nicht geladen werden — ohne sie gibt es hier kein PDF und keine Handlung.{' '}
                 {onBelegErneut && <Button variant="secondary" onClick={onBelegErneut}>Erneut versuchen</Button>}
               </p>
@@ -227,7 +227,7 @@ export default function RechnungDetail({
                       <td>
                         {p.label}
                         {positionsRabattText(p.rabattProzent) && (
-                          <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
+                          <span className="block text-meta text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
                         )}
                       </td>
                       <td className="r whitespace-nowrap stueck-menge">
@@ -316,7 +316,7 @@ export default function RechnungDetail({
                   >
                     <span className="text-ink">
                       {m.titel} vom {datumAT(m.datum)}
-                      <span className="block text-xs text-ink-muted">
+                      <span className="block text-meta text-ink-muted">
                         Frist bis {datumAT(m.frist)}{m.von ? ` · gemahnt von ${m.von}` : ''}
                       </span>
                     </span>

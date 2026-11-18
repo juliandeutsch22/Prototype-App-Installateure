@@ -201,7 +201,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
               </div>
               <p className="min-w-0 flex-1 font-normal text-ink-deep">
                 {z.name}
-                {z.einheit && <span className="ml-2 text-sm text-ink-muted">{z.einheit}</span>}
+                {z.einheit && <span className="ml-2 text-meta text-ink-muted">{z.einheit}</span>}
               </p>
               <IconButton
                 label={`${z.name} vom Schein nehmen`}
@@ -279,7 +279,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
         </div>
       )}
       {abgeholtFehlt && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Was du für diese Baustelle abgeholt hast, ließ sich gerade nicht laden — suchen geht trotzdem.
         </p>
       )}
@@ -302,13 +302,13 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
               Hand ein, und auf der Rechnung stünde er später ohne Preis.
             */}
             {suchStand.ohneNetz && (
-              <p className="mb-2 text-sm text-ink-deep">
+              <p className="mb-2 text-fliess text-ink-deep">
                 Keine Verbindung zum Katalog — gesucht nur in den beim Öffnen geladenen Artikeln.
                 Den Artikel kann es trotzdem geben.
               </p>
             )}
             {treffer.length === 0 ? (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {suchStand.laeuft
                   ? 'Sucht im Katalog …'
                   : 'Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als freie Zeile dazu.'}

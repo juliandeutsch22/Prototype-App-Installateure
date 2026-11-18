@@ -58,16 +58,37 @@ export const BLATT_SELEKTOR =
  */
 export const TAKT_SELEKTOR = `${BLATT_SELEKTOR}, .inhalt :is(.akten-kontext, .beleg-kontext, .plattform-kontext, .arbeitstag)`;
 
-/** Um wie viel muss etwas nach unten, damit `oben` auf einer Linie liegt? 0 bis 23. */
-export function ausgleichOben(oben: number, ursprung: number): number {
-  const rest = (((Math.round(oben) - Math.round(ursprung)) % ZELLE) + ZELLE) % ZELLE;
-  return rest === 0 ? 0 : ZELLE - rest;
+/*
+  AUF EIN VIERUNDSECHZIGSTEL PIXEL GENAU (E97, 17.11.2026). Bis dahin rundete
+  der Taktgeber Lage und Höhe auf ganze Pixel. Das ging gut, solange Zeilen
+  ganze Pixel hoch waren; seit die Grundschrift 15 px misst, erbt mancher
+  Satz 22,5 px Zeilenhöhe (15 × 1,5), und ein Blatt war 143,5 px hoch. Ganz
+  gerundet sind das 144, also kein Ausgleich, und die Unterkante lag einen
+  halben Pixel über der Linie (`raster.spec.ts`, fünf Seiten in drei
+  Breiten; auf `main` schon eine). Jetzt wird bis zur Linie aufgefüllt, auch
+  um einen Bruchteil. Ein Rest unter einem halben Pixel zählt weiterhin
+  nicht: das Polster wächst nur, und eine ganze Zelle mehr für 0,4 px wäre
+  schlimmer als die 0,4 px. Ein Vierundsechzigstel ist die Einheit, in der
+  Chrome und Safari Kästen legen; feiner gerechnet schriebe der Taktgeber
+  Werte, die sich nur in der Rechenungenauigkeit unterscheiden, und liefe
+  jedes Bild von neuem.
+*/
+const TEIL = 64;
+const aufTeil = (wert: number) => Math.round(wert * TEIL) / TEIL;
+/** Was bis zur nächsten Linie fehlt; ein Rest unter einem halben Pixel zählt nicht. */
+function bisZurLinie(lage: number): number {
+  const rest = ((aufTeil(lage) % ZELLE) + ZELLE) % ZELLE;
+  return rest < 0.5 ? 0 : aufTeil(ZELLE - rest);
 }
 
-/** Um wie viel muss eine Höhe wachsen, damit sie ganze Zellen misst? 0 bis 23. */
+/** Um wie viel muss etwas nach unten, damit `oben` auf einer Linie liegt? 0 bis unter 24. */
+export function ausgleichOben(oben: number, ursprung: number): number {
+  return bisZurLinie(oben - ursprung);
+}
+
+/** Um wie viel muss eine Höhe wachsen, damit sie ganze Zellen misst? 0 bis unter 24. */
 export function ausgleichHoehe(hoehe: number): number {
-  const rest = ((Math.round(hoehe) % ZELLE) + ZELLE) % ZELLE;
-  return rest === 0 ? 0 : ZELLE - rest;
+  return bisZurLinie(hoehe);
 }
 
 /** Die größte Breite in ganzen Zellen, die in `breite` passt. */

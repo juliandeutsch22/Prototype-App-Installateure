@@ -183,9 +183,9 @@ export default function KundenZusammenfuehren({
                 Wandert von „{v.geht.name}“ zu „{v.bleibt.name}“
               </h3>
               {zeilen.length === 0 ? (
-                <p className="text-sm text-ink-muted">An der Dublette hängt nichts — sie wird nur entfernt.</p>
+                <p className="text-meta text-ink-muted">An der Dublette hängt nichts — sie wird nur entfernt.</p>
               ) : (
-                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-ink">
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-fliess text-ink">
                   {zeilen.map((z) => <li key={z}>{z}</li>)}
                 </ul>
               )}
@@ -205,7 +205,7 @@ export default function KundenZusammenfuehren({
                   ];
                   return (
                     <fieldset key={feld}>
-                      <legend className="text-sm text-ink">{f.name}</legend>
+                      <legend className="text-meta text-ink">{f.name}</legend>
                       <div className="wahl-gruppe mt-1">
                         {optionen.map((o) => (
                           <label key={o.wert} className="wahl-option">
@@ -228,7 +228,7 @@ export default function KundenZusammenfuehren({
               </section>
             )}
 
-            {hinweise(v, wahl).map((h) => <p key={h} className="text-sm text-ink-muted">{h}</p>)}
+            {hinweise(v, wahl).map((h) => <p key={h} className="text-meta text-ink-muted">{h}</p>)}
             {fehler && (
               <Hinweiszeile stufe="warn">
                 <p>{fehler}</p>

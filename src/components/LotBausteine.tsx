@@ -183,7 +183,7 @@ export function LotVerlauf({ punkte, name }: { punkte: LotPunkt[]; name: string 
           <>
             <p className="lot-titel">{p.titel}</p>
             {p.zeit && <p className="lot-zeit">{p.zeit}</p>}
-            {p.text && <div className="text-sm text-ink-muted">{p.text}</div>}
+            {p.text && <div className="text-meta text-ink-muted">{p.text}</div>}
           </>
         );
         return (

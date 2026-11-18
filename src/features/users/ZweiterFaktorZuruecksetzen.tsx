@@ -85,7 +85,7 @@ export default function ZweiterFaktorZuruecksetzen({
         </Button>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Für den Fall, dass {person.name} Telefon und Wiederherstellungscodes nicht mehr hat. Die
             Authenticator-App und die offenen Codes gelten danach nicht mehr, und {person.name} wird
             überall abgemeldet.{' '}
@@ -98,7 +98,7 @@ export default function ZweiterFaktorZuruecksetzen({
             id="zf-zuruecksetzen-grund" label="Grund" pflicht
             value={grund} onChange={(e) => setGrund(e.target.value)}
           />
-          {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+          {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
           <div className="flex flex-wrap gap-3">
             <Button loading={laeuft} onClick={() => void zuruecksetzen()}>Zurücksetzen</Button>
             <Button variant="ghost" onClick={schliessen} disabled={laeuft}>Abbrechen</Button>

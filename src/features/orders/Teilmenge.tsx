@@ -26,7 +26,7 @@ export function TeilmengeFeld({
   return (
     <div className="space-y-1">
       <ZahlFeld id={id} label={label} value={wert} onChange={onChange} />
-      <p className="text-sm text-ink-muted">
+      <p className="text-meta text-ink-muted">
         {w.art === 'teil'
           ? `Der Rest — ${fmtMenge(angefordert - w.menge)}${e} — ${rest}.`
           : w.art === 'fehler'

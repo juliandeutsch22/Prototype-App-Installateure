@@ -732,7 +732,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 an={rechnungsarten}
                 onChange={(wert) => setRechnungsarten(wert)}
               />
-              <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+              <p className="mt-2 flex flex-wrap items-center gap-1 text-meta text-ink-muted">
                 Die Schlussrechnung zieht die Anzahlungen samt Umsatzsteuer wieder ab.
                 <InfoHint about="Anzahlungs- und Schlussrechnungen">
                   Beim Anlegen einer Rechnung steht dann die Art zur Wahl. Ohne den Abzug in der
@@ -863,7 +863,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           {/* Sofort sehen, was die Sätze bedeuten — Prozentwerte allein sind
               im Kundengespräch wenig greifbar. */}
           <div className="mt-4 overflow-x-auto border-t border-line pt-3">
-            <table className="w-full text-sm">
+            <table className="w-full text-fliess">
               <caption className="mb-2 text-left section-label">
                 So wird ein Monteur verrechnet
               </caption>
@@ -949,12 +949,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               Zahl, die aus der Hausnummer 42 gerechnet war — und sie sah
               genauso aus wie eine echte.
             */
-            <p className="mt-3 text-sm text-ink-muted">
+            <p className="mt-3 text-fliess text-ink-muted">
               Noch nicht hinterlegt. Solange beide Felder leer sind, rechnet die Nachkalkulation
               nicht und sagt das auch — eine erfundene Zahl wäre schlimmer als keine.
             </p>
           ) : (
-            <p className="mt-3 text-sm text-ink">
+            <p className="mt-3 text-fliess text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
               {/* Mit Zeichen: „21,50" allein war die einzige Geldangabe der
                   App ohne € (Prüflauf 25.09.2026, P4-11). Dahinter, wie die
@@ -990,7 +990,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             <Button type="button" variant="secondary" loading={vorschlagLaeuft} onClick={() => void preiseVorschlagen()}>
               Verkaufspreise vorschlagen
             </Button>
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               Setzt den Verkaufspreis nur bei Artikeln ohne Preis — mit dem gespeicherten Aufschlag.
             </p>
           </div>
@@ -1093,7 +1093,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 <option key={wert} value={wert}>{name}</option>
               ))}
             </SelectField>
-            <p className="w-full text-sm text-ink-muted">
+            <p className="w-full text-meta text-ink-muted">
               An diesem Tag entsteht der neue Jahresanspruch — beim Kalenderjahr am 1. Jänner.
             </p>
           </div>
@@ -1117,7 +1117,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 checked={uebertrag === 'verjaehrung'}
                 onChange={() => setUebertrag('verjaehrung')}
               />
-              <span className="text-sm">
+              <span className="text-fliess">
                 <strong className="text-ink">Gesetzliche Verjährung</strong>
                 <span className="mt-1 block text-ink-muted">
                   Der Rest wird übertragen und verjährt zwei Jahre nach dem Jahr, in dem er
@@ -1136,7 +1136,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 checked={uebertrag === 'stichtag'}
                 onChange={() => setUebertrag('stichtag')}
               />
-              <span className="text-sm">
+              <span className="text-fliess">
                 <strong className="text-ink">Vereinbarter Verfallstag</strong>
                 <span className="mt-1 block text-ink-muted">
                   Der Rest wird übertragen und verfällt an einem festen Tag im Folgejahr.
@@ -1197,7 +1197,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <option value="taggenau">taggenau nach Kalendertagen</option>
               <option value="zwoelftel">je begonnenem Monat ein Zwölftel (§ 2 Abs 4 Z 1 UrlG)</option>
             </SelectField>
-            <p className="mt-1 text-sm text-ink-muted">
+            <p className="mt-1 text-meta text-ink-muted">
               So rechnet der Vorschlag beim Anlegen einer Person, die mitten im Urlaubsjahr eintritt.
               Was gilt, steht in der Vereinbarung, die das Urlaubsjahr umstellt.
             </p>
@@ -1256,7 +1256,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                   etwas; „RE-2026-1001" beantwortet die Frage, die jemand hat,
                   wenn er hier steht — wie sieht die nächste Nummer aus?
                 */}
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   {naechste
                     ? `Nächste: ${belegNummer(vorsaetze[schluessel], naechste.jahr, naechste[schluessel])}`
                     : `z. B. ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}`}
@@ -1274,7 +1274,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 onChange={(e) =>
                   setVorsaetze({ ...vorsaetze, kennzeichen: praefixPutzen(e.target.value) })}
               />
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {vorsaetze.kennzeichen
                   ? `${vorsaetze.kennzeichen}-12345A`
                   : 'Ohne Vorsatz — im Zeiteintrag steht das ganze Kennzeichen'}
@@ -1282,7 +1282,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           </FormGrid>
 
-          <p className="mt-4 text-sm text-ink-muted">
+          <p className="mt-4 text-meta text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
             „kein Vorsatz“ — dann zählt der Kreis als
             <span> {belegNummer('', naechste?.jahr ?? new Date().getFullYear(), 1001)}</span>.
@@ -1318,7 +1318,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         >
           {/* Die Begründungen stehen hinter dem „i“ (Analyse 03.10.2026, Paket 1). */}
           <div className="formular">
-          <p className="text-sm text-ink">
+          <p className="text-fliess text-ink">
             Immer: <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administrator'}</strong>.
             Hier kommen weitere Personen dazu.
           </p>
@@ -1565,7 +1565,7 @@ function RechnungsvorgabenFelder({
         return (
           <>
             {befund.firmaZuViel !== null && (
-              <p role="alert" className="text-sm text-danger">
+              <p role="alert" className="text-meta text-danger">
                 Firmenkunden: höchstens 40 € je Rechnung (§ 458 UGB) — zusammen stehen hier{' '}
                 {euro(befund.firmaZuViel)}. So lässt sich nicht speichern.
               </p>
@@ -1594,7 +1594,7 @@ function RechnungsvorgabenFelder({
 
 function RechnungsvorgabenHinweis() {
   return (
-    <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+    <p className="mt-2 flex flex-wrap items-center gap-1 text-meta text-ink-muted">
       Mahnspesen gelten je Kundenart; Skonto steht mit Betrag und Frist auf der
       Rechnung; ab der Mahnung stehen gesetzliche Verzugszinsen auf dem Beleg.
       <InfoHint about="Mahnspesen, Skonto und Verzugszinsen">

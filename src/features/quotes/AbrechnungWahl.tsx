@@ -28,7 +28,7 @@ export default function AbrechnungWahl({
           </option>
         ))}
       </SelectField>
-      <p className="mt-1 text-sm text-ink-muted">{abrechnungHinweis(wert)}</p>
+      <p className="mt-1 text-meta text-ink-muted">{abrechnungHinweis(wert)}</p>
     </div>
   );
 }

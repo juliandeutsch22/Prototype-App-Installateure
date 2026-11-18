@@ -57,22 +57,22 @@ export default function NotzugangPasswort({ kennung, name }: { kennung: string; 
   }
 
   if (ladeFehler) return <ErrorState message={ladeFehler} />;
-  if (!konten) return <p className="text-sm text-ink-muted">Leitungskonten werden geladen …</p>;
+  if (!konten) return <p className="text-fliess text-ink-muted">Leitungskonten werden geladen …</p>;
 
   return (
     <div className="plattform-wiederherstellung space-y-3">
-      <p className="text-sm font-normal text-ink">Passwort eines Leitungskontos neu setzen — {name}</p>
+      <p className="text-meta font-normal text-ink">Passwort eines Leitungskontos neu setzen — {name}</p>
       {ergebnis && (
         <Hinweiszeile stufe="warn">
           <p>
-            Startpasswort für {ergebnis.wer}: <span className="font-mono text-base">{ergebnis.passwort}</span>. Nur
+            Startpasswort für {ergebnis.wer}: <span className="font-mono text-fliess">{ergebnis.passwort}</span>. Nur
             jetzt zu sehen. Alle Sitzungen dieses Kontos sind beendet, beim nächsten Anmelden vergibt er ein
             eigenes, und im Protokoll des Betriebs steht der Vorgang.
           </p>
         </Hinweiszeile>
       )}
       {konten.length === 0 ? (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Dieser Betrieb hat kein aktives Leitungskonto mit Benutzername. Konten mit E-Mail setzen ihr
           Passwort über „Passwort vergessen“ selbst.
         </p>

@@ -49,7 +49,7 @@ export default function VorschlagGrund({
   const stand = w.stand ? `Stand ${datumAT(w.stand)}` : null;
   const zusatz = [w.einkaufspreis != null ? euroPreis(w.einkaufspreis) : null, stand].filter(Boolean).join(', ');
   return (
-    <p className="mt-1 text-sm text-ink-muted" data-testid="vorschlag-grund">
+    <p className="mt-1 text-meta text-ink-muted" data-testid="vorschlag-grund">
       {w.grund === 'guenstigster'
         ? `Vorgeschlagen: günstigster vergleichbarer Einkaufspreis${zusatz ? ` (${zusatz})` : ''}.`
         : `Vorgeschlagen: zuletzt eingespielter Katalog${stand ? ` (${stand})` : ''} — kein vollständiger Preisvergleich.`}

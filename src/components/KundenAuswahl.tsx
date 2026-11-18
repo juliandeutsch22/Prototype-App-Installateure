@@ -128,7 +128,7 @@ export default function KundenAuswahl({
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="min-w-[9rem]">
             <p>{gewaehlt?.name ?? 'Wird geladen …'}</p>
-            {gewaehlt?.address && <p className="text-sm text-ink-muted">{gewaehlt.address}</p>}
+            {gewaehlt?.address && <p className="text-meta text-ink-muted">{gewaehlt.address}</p>}
           </div>
           <Button type="button" variant="secondary" groesse="klein" disabled={disabled} onClick={() => { setBegriff(''); setSuchen(true); }}>
             Anderen Kunden wählen
@@ -166,9 +166,9 @@ export default function KundenAuswahl({
       {q !== '' && (
         <div className="mt-2">
           {fehler === q ? (
-            <p className="text-sm text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
+            <p className="text-fliess text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
           ) : treffer.length === 0 ? (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {laeuft ? 'Sucht …' : (
                 <>
                   Kein Kunde passt zur Suche. Neue Kunden legt die{' '}

@@ -74,12 +74,12 @@ export function EinsaetzeListe({ lage, namen, grenze }: { lage: Laden<EinsatzLag
   const abschnitt = (titel: string, tage: typeof kommend, voll: boolean, leer: string) => (
     <section aria-label={titel}>
       <h3 className="section-label">{titel}</h3>
-      {tage.length === 0 ? <p className="text-sm text-ink-muted">{leer}</p> : (
+      {tage.length === 0 ? <p className="text-fliess text-ink-muted">{leer}</p> : (
         <ul className="akten-einsaetze">
           {tage.map((t) => <li key={t.datum}><TagZeile tag={t} /></li>)}
         </ul>
       )}
-      {voll && <p className="mt-1 text-sm text-ink-muted">Weitere Tage stehen in der Einsatzplanung.</p>}
+      {voll && <p className="mt-1 text-meta text-ink-muted">Weitere Tage stehen in der Einsatzplanung.</p>}
     </section>
   );
   return (

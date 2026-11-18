@@ -174,7 +174,7 @@ export default function NachrichtenEinstellungen() {
       <BottomSheet open={!!offen} onClose={() => setOffen(null)} label="Gemeldete Nachricht" titel="Gemeldete Nachricht" auchBreit>
         {offen && (
           <div className="space-y-4">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-fliess">
               <dt className="text-ink-muted">Von</dt><dd>{offen.vonName}</dd>
               <dt className="text-ink-muted">Gesendet</dt><dd className="font-mono">{zeitText(offen.gesendetAm)}</dd>
               <dt className="text-ink-muted">Gemeldet von</dt><dd>{offen.gemeldetVonName}</dd>
@@ -197,7 +197,7 @@ export default function NachrichtenEinstellungen() {
                 })}
               </div>
             )}
-            {offen.grund && <p className="text-sm"><span className="text-ink-muted">Grund: </span>{offen.grund}</p>}
+            {offen.grund && <p className="text-meta"><span className="text-ink-muted">Grund: </span>{offen.grund}</p>}
             {offen.status === 'offen' ? (
               <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void erledigen(offen); }}>
                 <TextareaField id="meldung-vermerk" label="Vermerk (freiwillig)" rows={3} maxLength={2000} value={vermerk} onChange={(e) => setVermerk(e.target.value)} />
@@ -208,7 +208,7 @@ export default function NachrichtenEinstellungen() {
               </form>
             ) : (
               <>
-                <p className="text-sm text-ink-muted">
+                <p className="text-meta text-ink-muted">
                   Erledigt {offen.erledigtAm ? zeitText(offen.erledigtAm) : ''}{offen.erledigtVonName ? ` von ${offen.erledigtVonName}` : ''}.
                   {offen.vermerk ? ` Vermerk: ${offen.vermerk}` : ''}
                 </p>

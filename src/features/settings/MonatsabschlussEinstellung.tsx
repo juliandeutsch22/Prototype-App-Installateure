@@ -55,7 +55,7 @@ export default function MonatsabschlussEinstellung() {
           an={an}
           onChange={(wert) => setAn(wert)}
         />
-        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
         <Speicherleiste geaendert={an !== gespeichert} speichert={speichert} onVerwerfen={() => { setFehler(null); setAn(gespeichert); }} onSpeichern={() => void speichern()} />
       </div>
     </Card>

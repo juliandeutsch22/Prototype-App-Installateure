@@ -808,7 +808,7 @@ export default function StockView() {
         {artikel && (
           <div className="space-y-5">
             {(artikel.category || artikel.articleNumber) && (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {[artikel.category, artikel.articleNumber && `Art.-Nr. ${artikel.articleNumber}`].filter(Boolean).join(' · ')}
               </p>
             )}
@@ -858,7 +858,7 @@ export default function StockView() {
                       </div>
                     ))}
                 </dl>
-                {ortMengen(artikel.id) === null && <p className="pt-1 text-sm text-ink-muted">Wird geladen …</p>}
+                {ortMengen(artikel.id) === null && <p className="pt-1 text-fliess text-ink-muted">Wird geladen …</p>}
               </div>
             )}
 
@@ -909,7 +909,7 @@ export default function StockView() {
             }}
           />
           {wahlTreffer.length === 0 ? (
-            <p className="text-sm text-ink-muted">
+            <p className="text-fliess text-ink-muted">
               {wahlListe?.imLager === 0
                 ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                 : 'Kein Lagerartikel passt zur Suche.'}

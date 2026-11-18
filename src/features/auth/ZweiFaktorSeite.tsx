@@ -83,7 +83,7 @@ export default function ZweiFaktorSeite({
             <Button type="submit" loading={laeuft} disabled={!code.trim()}>
               {mitWiederherstellung ? 'Code einlösen' : 'Anmelden'}
             </Button>
-            <p className="text-sm">
+            <p className="text-fliess">
               <button
                 type="button"
                 className="link inline-flex min-h-touch items-center"
@@ -100,7 +100,7 @@ export default function ZweiFaktorSeite({
         )}
       </Card>
 
-      <p className="text-sm text-ink-muted">
+      <p className="text-meta text-ink-muted">
         Weder Telefon noch Code? Die Geschäftsführung oder Administration deines Betriebs setzt den zweiten Faktor in
         deiner Benutzerakte zurück. Hat der Betrieb nur eine Leitung, tut es für deren Konto der Senklot-Support über den
         Notzugang — mit Rückruf an die Nummer aus dem Firmenbuch.{' '}

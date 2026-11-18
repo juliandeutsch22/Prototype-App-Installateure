@@ -89,6 +89,10 @@ Zuordnung der Namen aus dem Entwurf (`quelle/stil.css`) zu den Tokens der App:
 
 ## 5. Schriftskala
 
+> **Überholt seit E97 (17.11.2026):** es gelten die vier Stufen nach Rollen in
+> `docs/design/v10/style.md` (12 / 13 / 15 / 16 px). Die Tabelle unten ist die
+> Geschichte der Fassung 3 — ihre Zwischenwerte (12,5, 13,5, 14 px) gibt es nicht mehr.
+
 Alle Größen in px (Tailwind-Klasse in Klammern, wo es eine gibt). Gewicht
 **maximal 600**. `font-bold`/700 nur für den Avatar und die Zähler auf der
 dunklen Leiste (bleibt wie es ist).

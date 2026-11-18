@@ -23,11 +23,11 @@ export default function RuestlisteWahl({
 }) {
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm text-ink">
+      <legend className="text-meta text-ink">
         <strong>Rüstliste auflösen?</strong> Nach dem Entfernen ist an diesem Tag niemand mehr auf dieser Baustelle
         eingeteilt.
       </legend>
-      <label className="flex min-h-touch cursor-pointer items-start gap-2 text-base text-ink">
+      <label className="flex min-h-touch cursor-pointer items-start gap-2 text-fliess text-ink">
         <input
           type="radio"
           name={name}
@@ -37,10 +37,10 @@ export default function RuestlisteWahl({
         />
         <span>
           Auflösen
-          <span className="block text-sm text-ink-muted">{aufloesenText(frage)}</span>
+          <span className="block text-meta text-ink-muted">{aufloesenText(frage)}</span>
         </span>
       </label>
-      <label className="flex min-h-touch cursor-pointer items-start gap-2 text-base text-ink">
+      <label className="flex min-h-touch cursor-pointer items-start gap-2 text-fliess text-ink">
         <input
           type="radio"
           name={name}
@@ -50,7 +50,7 @@ export default function RuestlisteWahl({
         />
         <span>
           Behalten
-          <span className="block text-sm text-ink-muted">
+          <span className="block text-meta text-ink-muted">
             Die Liste bleibt an diesem Tag stehen, samt Reservierung — für die nächste Einteilung dort.
           </span>
         </span>

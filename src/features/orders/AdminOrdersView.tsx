@@ -1152,12 +1152,12 @@ export default function AdminOrdersView() {
           buendig
         >
           {suchbegriff && suchFehler && (
-            <p className="px-4 pb-3 text-xs text-warning">
+            <p className="px-4 pb-3 text-meta text-warning">
               Die Suche über alle Anforderungen ist gerade nicht erreichbar — gezeigt werden Treffer unter den geladenen.
             </p>
           )}
           {serverTreffer && serverTreffer.length >= ANFORDERUNG_TREFFER && (
-            <p className="px-4 pb-3 text-xs text-ink-muted">
+            <p className="px-4 pb-3 text-meta text-ink-muted">
               Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
@@ -1236,7 +1236,7 @@ export default function AdminOrdersView() {
                               <span className="zeile-meta block">{meta(o)}</span>
                               {notiz(o)}
                               {zeilenFehler[o.id] && (
-                                <span className="mt-1 block text-sm text-danger" role="alert">
+                                <span className="mt-1 block text-meta text-danger" role="alert">
                                   {zeilenFehler[o.id]}
                                 </span>
                               )}
@@ -1779,7 +1779,7 @@ export default function AdminOrdersView() {
           if (liste) await sammelAusfuehren(liste);
         }}
       >
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-fliess">
           {(sammelFrage ?? [])
             .filter((o) => schrittFuer(o)?.art === 'abholung')
             .map((o) => (

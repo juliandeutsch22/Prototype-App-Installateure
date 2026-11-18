@@ -66,7 +66,7 @@ export default function StundennachweisDialog({
         <InputField id="nachweis-bis" label="Bis" type="date" value={bis} onChange={(e) => setBis(e.target.value)} />
       </FormGrid>
       {ungueltig && (
-        <p className="mt-2 text-sm text-ink" role="alert">Bitte einen gültigen Zeitraum wählen (Von ≤ Bis).</p>
+        <p className="mt-2 text-fliess text-ink" role="alert">Bitte einen gültigen Zeitraum wählen (Von ≤ Bis).</p>
       )}
     </ConfirmDialog>
   );

@@ -477,7 +477,7 @@ export default function PlattformView() {
             wie eine Rüge für etwas, das noch niemand versucht hat (D19).
           */}
           {eingabeFehler && !fehler && (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {[form.name, form.companyId, form.adminName, form.adminEmail, form.adminBenutzername].some((v) => String(v ?? '').trim() !== '')
                 ? eingabeFehler
                 : 'Alle Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
@@ -512,31 +512,31 @@ export default function PlattformView() {
                 <p className="font-semibold text-ink">
                   {b.name} <span className="text-ink-muted">({b.companyId})</span>
                 </p>
-                {b.hinweis && <p className="mt-1 text-sm text-warning">{b.hinweis}</p>}
+                {b.hinweis && <p className="mt-1 text-meta text-warning">{b.hinweis}</p>}
                 {b.startpasswort ? (
                   <>
-                    <p className="mt-1 text-sm text-ink-muted">
+                    <p className="mt-1 text-meta text-ink-muted">
                       Erster Administrator: Benutzername <strong className="text-ink">{b.benutzername}</strong>
                     </p>
-                    <p className="mt-2 text-sm">
-                      Startpasswort: <span className="font-mono text-base text-ink">{b.startpasswort}</span>
+                    <p className="mt-2 text-fliess">
+                      Startpasswort: <span className="font-mono text-fliess text-ink">{b.startpasswort}</span>
                     </p>
-                    <p className="mt-1 text-xs text-warning">
+                    <p className="mt-1 text-meta text-warning">
                       Benutzername und Startpasswort an den Administrator weitergeben. Beim ersten
                       Anmelden vergibt er ein eigenes. Das Startpasswort steht nur jetzt hier.
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="mt-1 text-sm text-ink-muted">
+                    <p className="mt-1 text-meta text-ink-muted">
                       Erster Administrator: {b.adminEmail}
                     </p>
-                    <p className="mt-2 break-all text-sm">
+                    <p className="mt-2 break-all text-fliess">
                       <a href={b.passwortLink} className="link">
                         {b.passwortLink}
                       </a>
                     </p>
-                    <p className="mt-1 text-xs text-warning">
+                    <p className="mt-1 text-meta text-warning">
                       Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
                       steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?“.
                     </p>
@@ -568,15 +568,15 @@ export default function PlattformView() {
         title={`Aktuelle Zugänge (${offen.length})`}
         hint="„Ansehen“ ist lesend; „Mitarbeiten“ erlaubt die ausdrücklich freigegebenen Änderungen. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
       >
-        {!freigabenGeladen && <p className="text-sm text-ink-muted">Supportzugänge werden geladen …</p>}
+        {!freigabenGeladen && <p className="text-fliess text-ink-muted">Supportzugänge werden geladen …</p>}
         {freigabenFehler && <ErrorState message={freigabenFehler} onRetry={() => void freigabenLaden()} />}
         {offen.length === 0 && freigabenGeladen && !freigabenFehler ? (
-          <p className="text-sm text-ink-muted">
+          <p className="text-fliess text-ink-muted">
             Kein Betrieb gewährt gerade Einblick. Gewähren kann ihn nur er selbst, unter
             Einstellungen → Supportzugang.
           </p>
         ) : (
-          <ul className="text-sm">
+          <ul className="text-fliess">
             {offen.map((f) => (
               <li key={f.id} className="plattform-supportzeile">
                 <div className="plattform-supportinfo">
@@ -700,7 +700,7 @@ export default function PlattformView() {
               action={<Button variant="secondary" onClick={() => void fehlerLaden()}>Neu laden</Button>} />
       <section aria-label="Fehler aus den Betrieben" className="space-y-6">
         {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
-        {!fehlerListe && !fehlerFehler && <p className="text-sm text-ink-muted">Fehlerprotokoll wird geladen …</p>}
+        {!fehlerListe && !fehlerFehler && <p className="text-fliess text-ink-muted">Fehlerprotokoll wird geladen …</p>}
         {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
       </section>
           </Bereich>

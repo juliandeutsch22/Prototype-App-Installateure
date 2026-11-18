@@ -290,7 +290,7 @@ export default function BenutzerakteView() {
   const eigenesKonto = p.uid === user.uid;
 
   const stammdaten = <Card title="Beschäftigung" id="akte-stammdaten"><StammdatenLesen p={p} teil="profil" />
-    {!darfAendern && <p className="text-sm text-ink-muted">Ein Administrator lässt sich nur von einem Administrator ändern.</p>}
+    {!darfAendern && <p className="text-meta text-ink-muted">Ein Administrator lässt sich nur von einem Administrator ändern.</p>}
     {/* Wer was wann an den Stammdaten geändert hat (M01b) — Lohnstammdaten, nur für die Spitze; auf Klick. */}
     {companyId && verlaufSichtbar(user.role, 'benutzer', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="benutzer" objektId={p.uid} />}
   </Card>;
@@ -311,7 +311,7 @@ export default function BenutzerakteView() {
         */}
         {istBenutzerkonto(p.email) ? (
           eigenesKonto ? (
-            <span className="text-sm text-ink-muted">
+            <span className="text-meta text-ink-muted">
               Das eigene Passwort unter „Mein Konto“ ändern.
             </span>
           ) : (
@@ -341,7 +341,7 @@ export default function BenutzerakteView() {
         {eigenesKonto ? (
           // Wer sich selbst sperrt oder aus der Leitung nimmt, ist ausgesperrt —
           // und niemand sonst muss den Fehler beheben können.
-          <span className="text-sm text-ink-muted">
+          <span className="text-meta text-ink-muted">
             Das eigene Konto lässt sich nicht sperren, und die eigene Rolle ändert eine zweite Leitung.
           </span>
         ) : (
@@ -371,7 +371,7 @@ export default function BenutzerakteView() {
               Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
               Anmelden vergibt {p.name} ein eigenes.
             </p>
-            <p className="mt-2 text-sm text-ink">
+            <p className="mt-2 text-fliess text-ink">
               Benutzername:{' '}
               <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
             </p>
@@ -404,7 +404,7 @@ export default function BenutzerakteView() {
         nie“ — und dieselbe Seite bietet unter „Datenschutz“ die Löschung nach
         DSGVO an (UI-Prüfung 05.10.2026). Beides stimmt jetzt zusammen.
       */}
-      <p className="mt-3 text-sm text-ink-muted">
+      <p className="mt-3 text-meta text-ink-muted">
         Deaktivieren sperrt die Anmeldung und nimmt die Person aus den
         Auswahllisten. Löschen nach DSGVO geht erst danach, unter
         „Datenschutz“; Buchungen und Scheine bleiben dabei, solange sie
@@ -465,7 +465,7 @@ export default function BenutzerakteView() {
         <Card title="Anmeldekonto"><StammdatenLesen p={p} teil="konto" /></Card>
         <Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>
         {canAccess(user.role, '/accounting', company?.modules) && <Card title="Mitarbeiterübersicht">
-          <p className="text-sm text-ink-muted">Aktuelle Stunden, Urlaubssalden und Tagesbuchungen stehen in der Mitarbeiterübersicht.</p>
+          <p className="text-meta text-ink-muted">Aktuelle Stunden, Urlaubssalden und Tagesbuchungen stehen in der Mitarbeiterübersicht.</p>
           <Link to="/accounting" className="link akten-verweis">Mitarbeiterübersicht öffnen →</Link>
         </Card>}
       </>} bereiche={[
@@ -522,7 +522,7 @@ export default function BenutzerakteView() {
           await speichern(true);
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(jugendschutz ?? []).map((h) => <li key={h}>{h}</li>)}
         </ul>
       </ConfirmDialog>
@@ -588,8 +588,8 @@ export default function BenutzerakteView() {
               aria-describedby="b-austritt-deaktivieren-hinweis"
             />
             {austrittUngueltig
-              ? <p id="b-austritt-deaktivieren-hinweis" role="alert" className="mt-1 text-sm text-danger">{austrittUngueltig}</p>
-              : <p id="b-austritt-deaktivieren-hinweis" className="mt-1 text-xs text-ink-muted">Bis zu diesem Tag rechnen Soll und Saldo. Leer lassen, wenn er noch nicht feststeht.</p>}
+              ? <p id="b-austritt-deaktivieren-hinweis" role="alert" className="mt-1 text-meta text-danger">{austrittUngueltig}</p>
+              : <p id="b-austritt-deaktivieren-hinweis" className="mt-1 text-meta text-ink-muted">Bis zu diesem Tag rechnen Soll und Saldo. Leer lassen, wenn er noch nicht feststeht.</p>}
             {/* Austritt in einem Zug (Z2): was danach noch offen ist, bevor deaktiviert wird. */}
             {austrittWahl && !austrittUngueltig && (
               <div className="mt-3"><AustrittFolgen uid={p.uid} tag={austrittWahl} urlaubsweg={urlaubsweg} /></div>
@@ -607,7 +607,7 @@ export default function BenutzerakteView() {
               id="b-wieder-urlaub" label="Urlaub im ersten Jahr" inputMode="decimal" placeholder="leer = voller Anspruch"
               value={wiederUrlaub} onChange={(e) => setWiederUrlaub(e.target.value)}
             />
-            {wiederFehler && wiederTag && <p role="alert" className="text-sm text-danger">{wiederFehler}</p>}
+            {wiederFehler && wiederTag && <p role="alert" className="text-meta text-danger">{wiederFehler}</p>}
           </div>
         )}
       </ConfirmDialog>
@@ -911,7 +911,7 @@ function StammdatenFormular({
           dieser Seite“, und ein „Warum …“ ohne Antwort daneben wäre eine
           Frage ins Leere.
         */}
-        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+        <div className="flex flex-wrap items-center gap-2 text-meta text-ink-muted">
           <span>Urlaubstage pro Jahr gelten laut Vertrag; der Resturlaub nur im Startjahr.</span>
           <InfoHint about="Resturlaub beim Umstieg">
             <p>
@@ -934,13 +934,13 @@ function StammdatenFormular({
           Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage ändern sich ab
           einem Tag (Z3) — nicht hier, sondern im Bereich „Arbeitszeit und Urlaub“.
         */}
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage pro Jahr ändern sich ab einem Tag:
           im Bereich „Arbeitszeit und Urlaub“ über „Arbeitszeit ändern“ bzw. „Urlaubsanspruch ändern“.
         </p>
       </div>
 
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
       {/*
         DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste

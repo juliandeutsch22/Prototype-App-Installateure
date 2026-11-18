@@ -119,7 +119,7 @@ export default function BeteiligterFormular({
       </FormGrid>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-2 text-sm text-ink">Wer</legend>
+        <legend className="mb-2 text-meta text-ink">Wer</legend>
         <Segmente
           name="Beteiligter"
           werte={[{ wert: 'kunde', text: 'Kunde' }, { wert: 'frei', text: 'Freie Angaben' }]}

@@ -30,8 +30,8 @@ function BlockSetzen({ block, verarbeiter }: { block: Block; verarbeiter: Verarb
         {verarbeiter.map((v) => (
           <li key={v.wer}>
             <p className="recht-liste-name">{v.wer}</p>
-            <p className="text-sm">{v.wofuer}</p>
-            <p className="text-sm text-ink-muted">{v.wo}</p>
+            <p className="text-fliess">{v.wofuer}</p>
+            <p className="text-meta text-ink-muted">{v.wo}</p>
           </li>
         ))}
       </ul>

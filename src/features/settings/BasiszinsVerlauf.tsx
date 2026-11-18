@@ -60,13 +60,13 @@ export default function BasiszinsVerlauf({
 
   return (
     <div className="flex flex-col gap-3 sm:col-span-2">
-      <p className="text-sm font-normal text-ink">Basiszinssatz je Halbjahr</p>
+      <p className="text-meta font-normal text-ink">Basiszinssatz je Halbjahr</p>
       {geltend.length === 0 ? (
-        <p className="text-sm text-ink-muted">Noch keiner eingetragen — Mahnungen an Unternehmer tragen dann keine Zinsen.</p>
+        <p className="text-fliess text-ink-muted">Noch keiner eingetragen — Mahnungen an Unternehmer tragen dann keine Zinsen.</p>
       ) : (
         <ul className="divide-y divide-line rounded-sm border border-line">
           {[...geltend].reverse().map((b) => (
-            <li key={b.ab} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+            <li key={b.ab} className="flex items-center justify-between gap-3 px-3 py-1.5 text-fliess">
               <span>
                 ab {datumAT(b.ab)}: <strong>{pz(b.satz)}</strong>
               </span>

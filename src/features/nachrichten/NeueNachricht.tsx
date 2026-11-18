@@ -91,7 +91,7 @@ export default function NeueNachricht({
     <BottomSheet open={open} onClose={schliessen} label="Neue Nachricht" titel={benennen ? 'Runde beginnen' : 'Neue Nachricht'} auchBreit>
       {open && benennen && (
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void oeffnen(() => kanalRunde(name, gewaehlt)); }}>
-          <p className="text-sm">Mit {namen.join(', ')}.</p>
+          <p className="text-fliess">Mit {namen.join(', ')}.</p>
           <InputField id="runde-name" label="Name der Runde (freiwillig)" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="etwa „Bad Huber“" />
           {fehler && <ErrorState message={fehler} />}
           <div className="fuss-aktionen">

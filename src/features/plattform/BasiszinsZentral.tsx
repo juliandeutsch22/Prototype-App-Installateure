@@ -68,15 +68,15 @@ export default function BasiszinsZentral() {
       {fehler ? (
         <ErrorState message={fehler} onRetry={() => void laden()} />
       ) : !liste ? (
-        <p className="text-sm text-ink-muted">Wird geladen …</p>
+        <p className="text-fliess text-ink-muted">Wird geladen …</p>
       ) : (
         <div className="flex flex-col gap-3">
           {liste.length === 0 ? (
-            <p className="text-sm text-ink-muted">Noch keiner hinterlegt — es gelten die Einträge der Betriebe.</p>
+            <p className="text-fliess text-ink-muted">Noch keiner hinterlegt — es gelten die Einträge der Betriebe.</p>
           ) : (
             <ul className="divide-y divide-line border-y border-line">
               {[...liste].reverse().map((b) => (
-                <li key={b.ab} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                <li key={b.ab} className="flex items-center justify-between gap-3 px-3 py-1.5 text-fliess">
                   <span>
                     ab {datumAT(b.ab)}: <span className="nr">{pz(b.satz)}</span>
                   </span>
@@ -127,7 +127,7 @@ export default function BasiszinsZentral() {
               {vorhanden ? 'Satz ersetzen' : 'Satz eintragen'}
             </Button>
           </div>
-          {aktionsFehler && <p className="text-sm text-danger">{aktionsFehler}</p>}
+          {aktionsFehler && <p className="text-meta text-danger">{aktionsFehler}</p>}
         </div>
       )}
     </Card>

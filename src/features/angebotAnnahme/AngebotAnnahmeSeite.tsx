@@ -117,7 +117,7 @@ export default function AngebotAnnahmeSeite() {
               <>
                 <PageHeader ort={seite.firma || 'Angebot'} title="Es gibt eine neuere Fassung" stempel={seite.angebot || undefined} />
                 <Card className="recht-blatt">
-                  <p className="pt-6 text-base text-ink">
+                  <p className="pt-6 text-fliess text-ink">
                     Zu diesem Angebot{seite.angebot ? ` (${seite.angebot})` : ''} hat {seite.firma || 'der Betrieb'} inzwischen
                     eine neuere Fassung erstellt. Dieser Link gilt deshalb nicht mehr. Bitte verwenden Sie den Link aus der
                     jüngsten Nachricht des Betriebs oder wenden Sie sich direkt an ihn.
@@ -128,7 +128,7 @@ export default function AngebotAnnahmeSeite() {
               <>
                 <PageHeader ort="Angebot" title="Link nicht gültig" />
                 <Card className="recht-blatt">
-                  <p className="pt-6 text-base text-ink">
+                  <p className="pt-6 text-fliess text-ink">
                     Dieser Link ist nicht (mehr) gültig. Er kann abgelaufen oder zurückgezogen sein, oder er wurde
                     nicht vollständig kopiert. Bitte wenden Sie sich an den Betrieb, der Ihnen das Angebot geschickt
                     hat.
@@ -197,7 +197,7 @@ function AngebotMitAntwort({
         <div className="min-w-0">
           <p className="text-lg font-semibold text-ink-deep">{firma}</p>
           {[stand.aussteller.addressLine, stand.aussteller.contactLine].filter(Boolean).map((z) => (
-            <p key={z} className="text-sm text-ink-muted">{z}</p>
+            <p key={z} className="text-meta text-ink-muted">{z}</p>
           ))}
         </div>
         {logo && <img src={logo} alt={`Logo ${firma}`} className="h-12 w-auto max-w-[8rem] shrink-0 object-contain" />}
@@ -256,11 +256,11 @@ function AngebotMitAntwort({
 
       {q.notes?.trim() && (
         <Card title="Anmerkungen" className="recht-blatt">
-          <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
+          <p className="whitespace-pre-line text-fliess text-ink">{q.notes}</p>
         </Card>
       )}
 
-      <p className="text-xs text-ink-muted">
+      <p className="text-meta text-ink-muted">
         Prüfsumme dieses Stands: <span className="break-all font-mono">{seite.pruefsumme}</span>
       </p>
     </>
@@ -368,7 +368,7 @@ function Antwort({
             onChange={(e) => setGrund(e.target.value)}
           />
         )}
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Gespeichert werden Name{art === 'annehmen' ? ', Unterschrift' : ', Grund'} und Zeitpunkt — keine IP-Adresse,
           kein Gerät.
         </p>
@@ -406,7 +406,7 @@ function Entschieden({ seite }: { seite: MitStand }) {
   const angenommen = seite.zustand === 'angenommen';
   return (
     <Card title={angenommen ? 'Angenommen' : 'Abgelehnt'} className="recht-blatt">
-      <div role="status" className="space-y-2 pt-1 text-base text-ink">
+      <div role="status" className="space-y-2 pt-1 text-fliess text-ink">
         {seite.neu ? (
           <p>
             {angenommen
@@ -419,7 +419,7 @@ function Entschieden({ seite }: { seite: MitStand }) {
             {seite.name ? ` von ${seite.name}` : ''}.
           </p>
         )}
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           {angenommen
             ? 'Bitte bewahren Sie das Angebot als PDF auf. Der Betrieb hat Ihre Annahme erhalten.'
             : 'Der Betrieb hat Ihre Antwort erhalten.'}
@@ -432,8 +432,8 @@ function Entschieden({ seite }: { seite: MitStand }) {
 function Angabe({ wort, children }: { wort: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="section-label">{wort}</dt>
-      <dd className="mt-0.5 text-sm text-ink">{children}</dd>
+      <dt className="text-meta text-ink-muted">{wort}</dt>
+      <dd className="mt-0.5 text-fliess text-ink">{children}</dd>
     </div>
   );
 }

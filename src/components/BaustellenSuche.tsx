@@ -109,8 +109,8 @@ export default function BaustellenSuche({
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="min-w-[9rem]">
             <p>{gewaehlt ? baustelleInAuswahl(gewaehlt) : 'Wird geladen …'}</p>
-            {gewaehlt?.address && <p className="text-sm text-ink-muted">{gewaehlt.address}</p>}
-            {gewaehlt?.status === 'Abgeschlossen' && <p className="text-sm text-ink-muted">{hinweisAbgeschlossen}</p>}
+            {gewaehlt?.address && <p className="text-meta text-ink-muted">{gewaehlt.address}</p>}
+            {gewaehlt?.status === 'Abgeschlossen' && <p className="text-meta text-ink-muted">{hinweisAbgeschlossen}</p>}
           </div>
           <Button type="button" variant="secondary" groesse="klein" disabled={disabled} onClick={() => { setBegriff(''); setSuchen(true); }}>
             Andere Baustelle wählen
@@ -148,9 +148,9 @@ export default function BaustellenSuche({
       {schluessel !== '' && (
         <div className="mt-2">
           {fehler === schluessel ? (
-            <p className="text-sm text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
+            <p className="text-fliess text-ink-deep">Die Suche ist gerade nicht erreichbar. Bitte gleich noch einmal versuchen.</p>
           ) : treffer.length === 0 ? (
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {laeuft ? 'Sucht …' : q ? 'Keine Baustelle passt zur Suche.' : 'Dieser Kunde hat keine laufende Baustelle — oben suchen.'}
             </p>
           ) : (

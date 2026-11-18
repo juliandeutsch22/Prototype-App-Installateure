@@ -146,7 +146,7 @@ export default function RuestlisteAbhaken({
     <div className="mt-3">
       <p className="flex flex-wrap items-center justify-between gap-2 pb-1">
         <span className="section-label">Material</span>
-        <span className="text-sm text-ink-muted">
+        <span className="text-meta text-ink-muted">
           {offen === 0 ? 'alles eingeladen' : `noch ${offen} von ${positionen.length}`}
         </span>
       </p>
@@ -196,13 +196,13 @@ export default function RuestlisteAbhaken({
                     Abholung, nicht aus dem Regal — der Haken bucht nur den Rest.
                   */}
                   {(p.angefordert ?? 0) > 0 && (
-                    <span className="block text-xs text-ink-muted">
+                    <span className="block text-meta text-ink-muted">
                       davon {fmtMenge(p.angefordert!)}{p.einheit ? ` ${p.einheit}` : ''} über die Anforderung — dort abholen
                     </span>
                   )}
                   {/* Der Name verhindert die doppelte Suche im Lager. */}
                   {eintrag && (
-                    <span className="block text-xs text-ink-muted">
+                    <span className="block text-meta text-ink-muted">
                       eingeladen von {eintrag.von}
                       {eintrag.gebucht
                         ? eintrag.ort && lo.an
@@ -222,13 +222,13 @@ export default function RuestlisteAbhaken({
           type="button"
           aria-expanded={alle}
           onClick={() => setAlle((a) => !a)}
-          className="flex min-h-touch w-full items-center border-b border-line text-left text-sm font-semibold text-ink-deep"
+          className="flex min-h-touch w-full items-center border-b border-line text-left text-fliess font-semibold text-ink-deep"
         >
           {alle ? 'weniger anzeigen' : `und ${positionen.length - max} weitere →`}
         </button>
       )}
       {abhakbar && (
-        <p className="pt-2 text-xs text-ink-muted">
+        <p className="pt-2 text-meta text-ink-muted">
           Der Haken bucht Lagermaterial vom Bestand ab. Zurücknehmen geht nur heute; was übrig
           bleibt, kommt über die Retoure zurück.
         </p>
@@ -240,7 +240,7 @@ export default function RuestlisteAbhaken({
         sein.
       */}
       {abhakbar && mitRouter && darfZurueckgeben && Object.keys(oertlich).length > 0 && (
-        <p className="pt-1 text-sm">
+        <p className="pt-1 text-fliess">
           <Link
             to={`/material?retoure=1&baustelle=${encodeURIComponent(projectNumber)}`}
             className="link-weiter inline-flex min-h-touch items-center"
@@ -251,7 +251,7 @@ export default function RuestlisteAbhaken({
         </p>
       )}
       {fehler && (
-        <p role="alert" className="py-2 text-sm text-danger">
+        <p role="alert" className="py-2 text-meta text-danger">
           {fehler}
         </p>
       )}

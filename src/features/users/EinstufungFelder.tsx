@@ -137,7 +137,7 @@ export default function EinstufungFelder({
           </InfoHint>
         </div>
       )}
-      <p className="text-sm text-ink-muted">
+      <p className="text-meta text-ink-muted">
         {vollstaendig ? (
           <>
             Heute im <strong>{lehrjahr(form.lehrbeginn, monate, heute)}. Lehrjahr</strong>
@@ -157,14 +157,14 @@ export default function EinstufungFelder({
         </InfoHint>
       </p>
       {umstufung && (
-        <p className="text-sm text-warning">
+        <p className="text-meta text-warning">
           Umstufung von {stufenName(bisher)} auf {stufenName(form.einstufung)}: gilt ab heute
           ({fmtDatum(heute)}). Stunden bis {fmtDatum(letzterTag(heute))} bleiben beim Satz
           {' '}{stufenName(bleibt)}.
         </p>
       )}
       {verlauf.length > 0 && (
-        <p className="text-sm text-ink-muted">
+        <p className="text-meta text-ink-muted">
           Frühere Einstufung:{' '}
           {verlauf.map((v) => `${stufenName(v.einstufung)} bis ${fmtDatum(letzterTag(v.bis))}`).join(', ')}.
         </p>

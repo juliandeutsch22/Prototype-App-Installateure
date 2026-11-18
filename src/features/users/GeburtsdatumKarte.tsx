@@ -114,7 +114,7 @@ export default function GeburtsdatumKarte({
       hint="Nur für die Schutzregeln für Jugendliche unter 18 (KJBG): Die Mitarbeiterübersicht prüft damit Tages- und Wochenarbeitszeit, Ruhezeit, Nachtruhe und Wochenfreizeit. Sehen können es die Person selbst sowie Büro und Leitung. Bei einer Löschung nach DSGVO wird es entfernt."
     >
       {alsAngabe ? <>
-        <p className="text-sm">{gespeichert ? datumAT(gespeichert) : 'nicht hinterlegt'}</p>
+        <p className="text-fliess">{gespeichert ? datumAT(gespeichert) : 'nicht hinterlegt'}</p>
         <Button variant="ghost" onClick={() => setBearbeitet(true)}>Geburtsdatum bearbeiten</Button>
         <AktenBearbeiten offen={bearbeitet} titel="Geburtsdatum bearbeiten" geaendert={geaendert} speichert={laeuft}
           onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => setWert(gespeichert ?? '')}>
@@ -124,7 +124,7 @@ export default function GeburtsdatumKarte({
         {formular}
       </>}
       {gespeichert && istJugendlich(gespeichert, todayStr()) && (
-        <p className="mt-2 text-sm text-ink-muted">Unter 18 — es gelten die Grenzen des KJBG.</p>
+        <p className="mt-2 text-meta text-ink-muted">Unter 18 — es gelten die Grenzen des KJBG.</p>
       )}
     </Card>
   );

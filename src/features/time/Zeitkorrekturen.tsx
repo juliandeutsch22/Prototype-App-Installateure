@@ -42,9 +42,9 @@ export function KorrekturAnfordern({ eintrag }: { eintrag: TimeEntry }) {
         das Portal liefe es sonst bis zu einem umgebenden Formular durch.
       */}
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); if (wunsch.trim() && !speichert) void senden(); }}>
-        <p className="text-sm">{datumAT(eintrag.date)} · {eintrag.startTime && eintrag.endTime ? `${eintrag.startTime}–${eintrag.endTime}` : eintrag.status}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
+        <p className="text-fliess">{datumAT(eintrag.date)} · {eintrag.startTime && eintrag.endTime ? `${eintrag.startTime}–${eintrag.endTime}` : eintrag.status}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
         <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
-        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
         <div className="fuss-aktionen">
           <Button type="button" variant="secondary" onClick={() => setOffen(false)}>Abbrechen</Button>
           <Button type="submit" disabled={!wunsch.trim() || speichert}>Beim Büro anfragen</Button>
@@ -109,22 +109,22 @@ export default function Zeitkorrekturen() {
   }
   return <Card title={an ? 'Korrekturanträge' : 'Korrekturanträge · Archiv'} hint="Deine bisher erlaubten Korrekturen bleiben direkt möglich. Gesperrte Buchungen prüft das Büro. Verrechnete Zeiten können erst nach dem bestehenden Rechnungs-Korrekturablauf geändert werden; Abwesenheiten werden am ursprünglichen Antrag berichtigt. Erst eine tatsächliche Änderung erlaubt die Entscheidung „umgesetzt“.">
     {an && <Schalter id="korrekturen-erledigte" label="Auch entschiedene Anträge zeigen" an={auchErledigte} onChange={(wert) => setAuchErledigte(wert)} />}
-    {(fehler || linkFehler) && <p role="alert" className="text-sm text-danger">{fehler ?? linkFehler}</p>}
-    {!antraege.length && <p className="mt-3 text-sm text-ink-muted">Keine offenen Korrekturanträge.</p>}
+    {(fehler || linkFehler) && <p role="alert" className="text-meta text-danger">{fehler ?? linkFehler}</p>}
+    {!antraege.length && <p className="mt-3 text-fliess text-ink-muted">Keine offenen Korrekturanträge.</p>}
     <List>{antraege.map((a) => <ListRow key={a.id} title={`${datumAT(a.datum)} · ${String(a.vorher.user_name ?? '')}`} subtitle={`${a.wunsch} · ${STANDNAME[a.stand]}`} onOeffnen={() => setAuswahl(a)} ausgewaehlt={auswahl?.id === a.id} pfeil />)}</List>
     {createPortal(<BottomSheet open={!!auswahl} onClose={schliessen} label="Korrekturantrag" titel="Korrekturantrag" auchBreit breit>
       {auswahl && <>
         <p className="mb-3">{datumAT(auswahl.datum)} · {auswahl.wunsch}</p>
-        {auswahl.entscheidung && <p className="mb-3 text-sm">Entscheidung: {auswahl.entscheidung}</p>}
+        {auswahl.entscheidung && <p className="mb-3 text-fliess">Entscheidung: {auswahl.entscheidung}</p>}
         {auswahl.stand === 'offen' && <>
           <InputField id="korrektur-entscheidung" label={buero ? 'Begründung der Entscheidung' : 'Grund für das Zurückziehen'} required pflicht value={grund} onChange={(e) => setGrund(e.target.value)} />
-          {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+          {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
           {buero && <>
-            <p className="my-3 text-sm text-ink-muted">Stand und Abwesenheiten werden im ursprünglichen Vorgang geändert. Danach die tatsächlich durchgeführte Korrektur bestätigen.</p>
+            <p className="my-3 text-meta text-ink-muted">Stand und Abwesenheiten werden im ursprünglichen Vorgang geändert. Danach die tatsächlich durchgeführte Korrektur bestätigen.</p>
             {/* Dieselbe Grenze wie `zeit_korrektur_entscheiden`: nur Arbeitszeit und Zeitausgleich ohne Antrag oder Meldung. */}
             {buchung && besitzer && !buchung.isBilled && !buchung.vacationId && !buchung.krankmeldungId && !buchung.freistellungId && (buchung.status === 'Anwesend' || buchung.status === 'Zeitausgleich') ?
               <TimeForm ownerRole={besitzer.role} besitzerProfil={besitzer} key={buchung.id} entry={buchung} speichernMit={(werte) => entscheiden('umgesetzt', werte)} onSaved={() => undefined} onCancel={schliessen} /> :
-              <p className="my-3 text-sm text-ink-muted">Die Buchung ist gesperrt, stammt aus einer Abwesenheit oder wurde bereits entfernt. Eine protokollierte Entfernung lässt sich als durchgeführte Korrektur bestätigen. Sonst zuerst den ursprünglichen Vorgang prüfen: <Link className="link" to="/invoices">Rechnungen</Link> · <Link className="link" to="/vacations">Abwesenheiten</Link>. Danach den Antrag erneut öffnen.</p>}
+              <p className="my-3 text-meta text-ink-muted">Die Buchung ist gesperrt, stammt aus einer Abwesenheit oder wurde bereits entfernt. Eine protokollierte Entfernung lässt sich als durchgeführte Korrektur bestätigen. Sonst zuerst den ursprünglichen Vorgang prüfen: <Link className="link" to="/invoices">Rechnungen</Link> · <Link className="link" to="/vacations">Abwesenheiten</Link>. Danach den Antrag erneut öffnen.</p>}
             <div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('umgesetzt').catch(() => undefined)}>Bereits durchgeführte Korrektur bestätigen</Button><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('abgelehnt').catch(() => undefined)}>Begründet ablehnen</Button></div>
           </>}
           {auswahl.userId === user.uid && <Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('zurueckgezogen').catch(() => undefined)}>Antrag zurückziehen</Button>}

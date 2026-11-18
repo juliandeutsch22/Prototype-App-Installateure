@@ -126,7 +126,7 @@ function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl, themen }: 
 
   return (
     <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); uebernehmen(); }}>
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
 
       {waehlbar.length > 0 && (
         <fieldset className="anpassen-gruppe">

@@ -167,7 +167,7 @@ export default function ModulesView() {
           <>
             {zu && <span className="block">Teil von {zu.name}</span>}
             <span className="block">{eintrag.zweck}</span>
-            <span className="mt-1 block text-xs">Betrifft: {eintrag.betrifft.join(', ')}</span>
+            <span className="mt-1 block text-meta">Betrifft: {eintrag.betrifft.join(', ')}</span>
           </>
         }
       >
@@ -192,7 +192,7 @@ export default function ModulesView() {
   function kernZeile(k: Kernbereich) {
     return (
       <ListRow key={k.id} title={k.name} subtitle={k.zweck}>
-        <span className="flex min-h-touch shrink-0 items-center text-sm text-ink-muted">immer an</span>
+        <span className="flex min-h-touch shrink-0 items-center text-meta text-ink-muted">immer an</span>
       </ListRow>
     );
   }

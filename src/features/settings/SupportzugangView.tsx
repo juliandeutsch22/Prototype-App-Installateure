@@ -155,10 +155,10 @@ export default function SupportzugangView() {
         ) : offen ? (
           <div className="space-y-4">
             <div>
-              <p className="text-sm">
+              <p className="text-fliess">
                 <strong>Grund:</strong> {offen.grund}
               </p>
-              <p className="mt-1 text-sm text-ink-muted">
+              <p className="mt-1 text-meta text-ink-muted">
                 {offen.notzugang
                   ? 'Notzugang — vom Support geöffnet, weil der Betrieb nicht selbst freigeben konnte.'
                   : 'Vom Betrieb gewährt'}{' '}
@@ -201,7 +201,7 @@ export default function SupportzugangView() {
                     checked={stufe === 'ansehen'}
                     onChange={() => setStufe('ansehen')}
                   />
-                  <span className="text-sm">
+                  <span className="text-fliess">
                     <strong className="text-ink">Nur ansehen</strong>
                     <span className="mt-1 block text-ink-muted">
                       Er sieht den Betrieb wie ein Administrator und kann nichts ändern.
@@ -224,7 +224,7 @@ export default function SupportzugangView() {
                       if (Number(stunden) > 24) setStunden('24');
                     }}
                   />
-                  <span className="text-sm">
+                  <span className="text-fliess">
                     <strong className="text-ink">Mitarbeiten</strong>
                     <span className="mt-1 block text-ink-muted">
                       Er kann auch ändern — wie ein Administrator. Zeitbuchungen, Urlaube,
@@ -260,7 +260,7 @@ export default function SupportzugangView() {
         hint="Je Zugang steht hier, WOFÜR er gewährt wurde, WIE LANGE er galt — und welche Bereiche darin geöffnet wurden. Gezählt wird jeder einzelne Aufruf; angehängt wird, geändert nie. Auch wir können hier nichts nachbessern."
       >
         {(liste ?? []).length === 0 ? (
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             Noch nie Einblick gewährt. Hier steht später jeder Zugang mit dem, was darin
             angesehen wurde.
           </p>

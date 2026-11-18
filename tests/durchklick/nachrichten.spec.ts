@@ -41,6 +41,15 @@ test.afterEach(abraeumen);
 async function senden(seite: Page, text: string) {
   const feld = seite.getByRole('textbox', { name: 'Nachricht' });
   await feld.fill(text);
+  /*
+    ERST WENN DER TEXT IM FELD STEHT, WIRD GESENDET (E97). In der CI stand
+    einmal (WebKit, 17.11.2026) das Feld nach `fill` leer, „Senden“ blieb
+    gesperrt und der Weg lief nach drei Minuten ab — ohne zu sagen, ob der
+    Text nie ankam oder danach verschwand. Lokal in 52 Läufen nicht
+    nachzustellen. So meldet ein nächstes Mal genau diesen Schritt; es wird
+    nichts wiederholt und nichts überdeckt.
+  */
+  await expect(feld, 'der Text steht im Feld, bevor gesendet wird').toHaveValue(text);
   await seite.getByRole('button', { name: 'Senden' }).click();
   await expect(seite.getByRole('list', { name: 'Verlauf' }).getByText(text)).toBeVisible({ timeout: 15_000 });
   await expect(seite.getByText('wird gesendet')).toHaveCount(0, { timeout: 15_000 });

@@ -53,7 +53,7 @@ export default function Hinweiszeile({
           <>
             <button
               type="button"
-              className="link text-sm hinweiszeile-anzeigen"
+              className="link text-meta hinweiszeile-anzeigen"
               aria-expanded={offen}
               aria-controls={id}
               onClick={() => setOffen((o) => !o)}

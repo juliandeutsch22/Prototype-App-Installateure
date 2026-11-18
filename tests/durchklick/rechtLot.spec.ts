@@ -54,6 +54,13 @@ for (const seite of [
       await page.setViewportSize(breite);
       await page.goto(seite.pfad);
       await expect(page.getByRole('heading', { level: 1, name: seite.titel })).toBeVisible();
+      /*
+        Der Seitenkopf steht schon, während der Text noch aus der Datenbank
+        kommt (`RechtSeite`: Ladesatz statt Blatt). Gemessen wird das
+        geladene Blatt — bei langsamer Antwort zählte die Prüfung sonst 0
+        Blätter (lokal mit zwei Läufen nebeneinander, 17.11.2026).
+      */
+      await expect(page.locator('.inhalt .karte'), `${breite.name}: der Text ist geladen`).toHaveCount(1);
 
       const kanten = await blattKanten(page);
       expect(kanten, `${breite.name}: Raster und genau ein Blatt`).toMatchObject({ blaetter: 1, raster: true });

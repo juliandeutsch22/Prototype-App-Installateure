@@ -80,7 +80,7 @@ export default function BaustelleAbschliessen({
       }}
     >
       {l && projekt && (einsaetze > 0 || punkte.length > 0) && (
-        <ul className="space-y-2 text-sm text-ink">
+        <ul className="space-y-2 text-fliess text-ink">
           {einsaetze > 0 && (
             <li>
               {einsaetze === 1 ? 'Ein Einsatz' : `${einsaetze} Einsätze`} ab {datumAT(l.naechsterEinsatz ?? undefined)} geplant
@@ -102,7 +102,7 @@ export default function BaustelleAbschliessen({
         </ul>
       )}
       {l && l.unverrechneteMinuten === null && (
-        <p className="mt-2 text-sm text-ink-muted">Ob noch Leistung unverrechnet ist, sieht, wer die Rechnungen dieser Baustelle liest.</p>
+        <p className="mt-2 text-meta text-ink-muted">Ob noch Leistung unverrechnet ist, sieht, wer die Rechnungen dieser Baustelle liest.</p>
       )}
     </ConfirmDialog>
   );

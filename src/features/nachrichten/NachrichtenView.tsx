@@ -252,7 +252,7 @@ export default function NachrichtenView() {
                 <ListRow key={t.uid} title={t.ich ? `${t.name} (du)` : t.name} subtitle={t.aktiv ? undefined : 'Konto deaktiviert'} />
               ))}
             </List>
-            <p className="text-sm text-ink-muted">
+            <p className="text-meta text-ink-muted">
               {kopf.art === 'runde'
                 ? 'Wer später dazukommt, liest ab dem Beitritt. Wer die Runde verlässt, liest sie nicht mehr.'
                 : 'Ein Gespräch zu zweit — es gibt es zwischen zwei Personen nur einmal.'}

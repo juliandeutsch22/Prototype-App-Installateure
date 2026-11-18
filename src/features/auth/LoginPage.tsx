@@ -175,7 +175,7 @@ export default function LoginPage() {
           */}
           <div className="anmelde-markenband px-6 pt-6">
             <ProduktMarke hoehe={32} />
-            <p className="mt-1 text-sm text-ink-muted">Mitarbeiter-Portal</p>
+            <p className="mt-1 text-meta text-ink-muted">Mitarbeiter-Portal</p>
           </div>
 
           <form onSubmit={handleSubmit} className="px-6 py-6">
@@ -183,7 +183,7 @@ export default function LoginPage() {
             <h1 className="mb-1 font-titel text-2xl font-normal text-ink-deep">
               {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
             </h1>
-            <p className="mb-4 text-sm text-ink-muted">
+            <p className="mb-4 text-meta text-ink-muted">
               {resetMode
                 ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
                   + 'Mit Benutzername geht eine Bitte an die Leitung deines Betriebs; sie gibt dir ein neues Passwort.'
@@ -263,7 +263,7 @@ export default function LoginPage() {
                   setError(null);
                   setNotice(null);
                 }}
-                className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-accent-deep"
+                className="min-h-touch text-meta text-ink-muted underline underline-offset-2 hover:text-accent-deep"
               >
                 {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
               </button>

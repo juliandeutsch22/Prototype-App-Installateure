@@ -49,7 +49,7 @@ export default function PushStatus() {
   if (!geladen) return null;
 
   const u = pushBeurteilen(lauf);
-  if (u.stand !== 'ueberfaellig') return <p className="text-sm text-ink-muted">{u.text}</p>;
+  if (u.stand !== 'ueberfaellig') return <p className="text-meta text-ink-muted">{u.text}</p>;
   // `status`, nicht `alert` — dieselbe Überlegung wie in `LaufStatus`:
   // wer hier steht, sieht ohnehin hin.
   return (

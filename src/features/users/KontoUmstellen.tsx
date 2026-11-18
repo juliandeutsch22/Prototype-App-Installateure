@@ -118,7 +118,7 @@ export default function KontoUmstellen({
         <div className="space-y-3">
           {aufBenutzername ? (
             <>
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 {person.name} wird überall abgemeldet und meldet sich danach mit dem Benutzernamen
                 und einem Startpasswort an, das nur einmal angezeigt wird. Der Grund steht im Protokoll.
               </p>
@@ -133,7 +133,7 @@ export default function KontoUmstellen({
             </>
           ) : (
             <>
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Danach meldet sich {eigenesKonto ? 'dein Konto' : person.name} mit dieser Adresse an;
                 das Passwort bleibt. Eine Passwort-Mail geht an die Adresse — kommt sie nicht an,
                 stimmt die Adresse nicht.
@@ -144,7 +144,7 @@ export default function KontoUmstellen({
               />
             </>
           )}
-          {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+          {fehler && <p role="alert" className="text-meta text-danger">{fehler}</p>}
           <div className="flex flex-wrap gap-3">
             <Button loading={laeuft} onClick={() => void umstellen()}>Umstellen</Button>
             <Button variant="ghost" onClick={schliessen} disabled={laeuft}>Abbrechen</Button>
@@ -154,8 +154,8 @@ export default function KontoUmstellen({
 
       {(protokoll ?? []).length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-ink">Anmeldung umgestellt</p>
-          <ul className="mt-1 space-y-1 text-sm text-ink-muted">
+          <p className="text-fliess font-semibold text-ink">Anmeldung umgestellt</p>
+          <ul className="mt-1 space-y-1 text-meta text-ink-muted">
             {protokoll!.map((u) => (
               <li key={u.id}>
                 {datumAT(localDateStr(new Date(u.am)))} · auf {u.nach === 'mail' ? 'E-Mail' : 'Benutzername'}

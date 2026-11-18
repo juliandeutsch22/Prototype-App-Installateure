@@ -333,7 +333,7 @@ export default function KatalogImport({
             )}
           </MetricRow>
           {bericht.ohneRabattsatz > 0 && (
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="mt-4 text-meta text-ink-muted">
               {bericht.ohneRabattsatz} Artikel stehen mit Listenpreis im Katalog, aber ohne
               Einkaufspreis — zu ihrer Rabattgruppe ist kein Satz hinterlegt. Die Nachkalkulation
               führt sie weiter als Lücke.
@@ -345,7 +345,7 @@ export default function KatalogImport({
             zuordnet.
           */}
           {zuordnenAn && (bericht.offenZuzuordnen ?? 0) > 0 && (
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="mt-4 text-meta text-ink-muted">
               {bericht.offenZuzuordnen} Artikel dieses Katalogs tragen eine Nummer, die im Katalog schon
               einem Artikel eines anderen Großhändlers gehört, oder sind von Hand gelöst. Sie wurden nicht
               zugeordnet und haben ihre Preise bei sich — ordne sie zu oder lege sie als neue Artikel an.
@@ -421,7 +421,7 @@ export default function KatalogImport({
             )}
 
             {zuordnenAn && onZuordnen && (
-              <p className="text-sm text-ink-muted">
+              <p className="text-meta text-ink-muted">
                 Was ein Katalog nicht selbst zuordnen durfte, steht unter{' '}
                 <button type="button" className="link-weiter" onClick={onZuordnen}>
                   Offene Lieferantenartikel
@@ -436,7 +436,7 @@ export default function KatalogImport({
               trägt weiter den Namen „DATANORM-Datei“.
             */}
             <div className="flex flex-col items-start gap-2">
-              <label htmlFor="dn-datei" className="text-sm font-normal">
+              <label htmlFor="dn-datei" className="text-meta font-normal">
                 DATANORM-Datei
               </label>
               <input
@@ -490,7 +490,7 @@ export default function KatalogImport({
                 tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
               />
             </MetricRow>
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="mt-4 text-meta text-ink-muted">
               {zahlen.neu} neu · {zahlen.aenderungen} Änderungen · {zahlen.loeschungen}{' '}
               Löschsätze
               {zahlen.uebersprungen > 0 && <> · {zahlen.uebersprungen} andere Satzarten</>}
@@ -501,8 +501,8 @@ export default function KatalogImport({
 
           {warnung && (
             <Card title="Die Felder stehen anders als erwartet">
-              <p className="text-sm">{warnung}</p>
-              <p className="mt-3 text-sm text-ink-muted">
+              <p className="text-fliess">{warnung}</p>
+              <p className="mt-3 text-meta text-ink-muted">
                 Die Zeilen unten zeigen, woran es liegt. Schick deinem Großhändler die
                 Rückmeldung, welche DATANORM-Fassung er liefert.
               </p>
@@ -554,7 +554,7 @@ export default function KatalogImport({
                 </>
               }
             >
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3 text-fliess">
                 {ergebnis.unverstanden.slice(0, ZEIGE_ZEILEN).map((z) => (
                   <li key={z.zeile} className="border-l-2 border-line pl-3">
                     <p className="font-normal">
@@ -565,7 +565,7 @@ export default function KatalogImport({
                 ))}
               </ul>
               {ergebnis.unverstanden.length > ZEIGE_ZEILEN && (
-                <p className="mt-3 text-sm text-ink-muted">
+                <p className="mt-3 text-meta text-ink-muted">
                   … und {ergebnis.unverstanden.length - ZEIGE_ZEILEN} weitere.
                 </p>
               )}
@@ -577,7 +577,7 @@ export default function KatalogImport({
               title="Vorschau"
               hint="Die ersten fünf Artikel, so wie sie in den Katalog gingen. Stimmen Bezeichnung, Einheit und Preis hier nicht, stimmen sie auch bei den übrigen nicht."
             >
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-fliess">
                 {ergebnis.artikel.slice(0, 5).map((a) => (
                   <li key={`${a.zeile}-${a.artikelnummer}`} className="flex flex-wrap gap-x-2">
                     <span className="font-normal">{a.name || '(ohne Bezeichnung)'}</span>
@@ -651,7 +651,7 @@ function Protokoll({ laeufe, inArbeit, onVerwerfen }: {
   if (laeufe.length === 0) return null;
   return (
     <Card title="Bisher eingespielt">
-      <ul className="space-y-2 text-sm">
+      <ul className="space-y-2 text-fliess">
         {laeufe.map((l) => {
           const u = (l.bericht as { uebernahme?: dn.UebernahmeBericht } | null)?.uebernahme;
           return (

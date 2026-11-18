@@ -215,7 +215,7 @@ export default function ArbeitszeitVerlaufKarte({
       id="akte-verlauf"
       hint="Eine Änderung gilt ab ihrem Tag; Soll und Saldo davor bleiben, wie sie waren. Der Urlaubsanspruch gilt für ganze Urlaubsjahre — für einen Teil des Jahres (etwa Teilzeit ab Juli) eine Anpassung des Anspruchs eintragen. Ein Tag vor dem Saldo-Start berichtigt den Anfang."
     >
-      <h3 className="text-sm font-normal text-ink-muted">Arbeitszeit</h3>
+      <h3 className="text-meta font-normal text-ink-muted">Arbeitszeit</h3>
       <List>
         {verlauf.length === 0 ? (
           <ListRow title={arbeitszeitText(person)} subtitle="seit dem Saldo-Start" />
@@ -232,7 +232,7 @@ export default function ArbeitszeitVerlaufKarte({
         ))}
       </List>
 
-      <h3 className="mt-4 text-sm font-normal text-ink-muted">Urlaubstage pro Jahr</h3>
+      <h3 className="mt-4 text-meta font-normal text-ink-muted">Urlaubstage pro Jahr</h3>
       <List>
         {anspruchVerlauf.length === 0 ? (
           <ListRow title={`${urlaubsanspruchIm(person, laufendesJahr)} Tage`} subtitle="für jedes Urlaubsjahr" />
@@ -263,7 +263,7 @@ export default function ArbeitszeitVerlaufKarte({
             />
           </FormGrid>
           <fieldset>
-            <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
+            <legend className="mb-1 text-meta font-normal text-ink">Arbeitstage</legend>
             <div className="flex flex-wrap gap-x-4">
               {WEEKDAYS.map((d) => (
                 <CheckboxField
@@ -281,7 +281,7 @@ export default function ArbeitszeitVerlaufKarte({
             </div>
             <TagessollFelder form={entwurf} setForm={setEntwurf} />
           </fieldset>
-          <p className="text-sm text-ink-muted" aria-live="polite">
+          <p className="text-meta text-ink-muted" aria-live="polite">
             {vonAnfang
               ? 'Berichtigt den Anfang: gilt für alles bis zur nächsten Änderung, auch für Monate, die schon gerechnet sind.'
               : rueckwirkend
@@ -310,7 +310,7 @@ export default function ArbeitszeitVerlaufKarte({
               value={tage} onChange={(e) => setTage(e.target.value)}
             />
           </FormGrid>
-          <p className="text-sm text-ink-muted">
+          <p className="text-meta text-ink-muted">
             {Number(jahr) <= laufendesJahr
               ? `Gilt auch für das laufende oder ein vergangenes Urlaubsjahr — Resturlaub und Übertrag ab ${jahr} rechnen neu.`
               : `Bis einschließlich ${Number(jahr) - 1} bleibt es bei ${urlaubsanspruchIm(person, Number(jahr) - 1)} Tagen.`}
@@ -342,7 +342,7 @@ export default function ArbeitszeitVerlaufKarte({
           await arbeitSpeichern(true);
         }}
       >
-        <ul className="space-y-1 text-sm text-ink">
+        <ul className="space-y-1 text-fliess text-ink">
           {(jugendschutz ?? []).map((h) => <li key={h}>{h}</li>)}
         </ul>
       </ConfirmDialog>

@@ -223,7 +223,7 @@ export default function SicherungView() {
           {/* Der Knopf darunter sagt bereits, was er tut. Uebrig bleibt der
               eine Satz, der jemanden davon abhaelt, ihn fuer noetig zu
               halten — das Warum steht im „i" darueber. */}
-          <p className="text-sm text-ink-muted">Sie läuft von selbst.</p>
+          <p className="text-meta text-ink-muted">Sie läuft von selbst.</p>
           {/*
             „SIE LÄUFT VON SELBST" WAR EINE BEHAUPTUNG, bis diese Zeile
             dazukam. Ob sie tatsächlich lief, stand nur im Google-Protokoll —
@@ -236,7 +236,7 @@ export default function SicherungView() {
             {laeuft === 'sicherung' ? 'Sicherung läuft …' : 'Sicherung jetzt erstellen'}
           </Button>
           {letzte && (
-            <p className="text-sm text-ink">
+            <p className="text-fliess text-ink">
               Zuletzt gesichert: <strong>{letzte.zeilen}</strong> Datensätze,{' '}
               {mb(letzte.bytes)} — Ziel: {letzte.ziel}
               {/*
@@ -279,7 +279,7 @@ export default function SicherungView() {
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>
           {laeuft === 'download' && teile && teile.gesamt > 1 && (
-            <p className="text-sm text-ink-muted" role="status">
+            <p className="text-meta text-ink-muted" role="status">
               Teil {teile.fertig} von {teile.gesamt} abgeholt
             </p>
           )}
@@ -323,7 +323,7 @@ export default function SicherungView() {
           </Button>
         </div>
         {archivErgebnis && (
-          <p className="mt-3 text-sm text-ink">
+          <p className="mt-3 text-fliess text-ink">
             Im Archiv: {archivErgebnis.rechnungen} {archivErgebnis.rechnungen === 1 ? 'Rechnung' : 'Rechnungen'},{' '}
             {archivErgebnis.stornos} {archivErgebnis.stornos === 1 ? 'Stornorechnung' : 'Stornorechnungen'},{' '}
             {archivErgebnis.angebote} {archivErgebnis.angebote === 1 ? 'Angebot' : 'Angebote'},{' '}
