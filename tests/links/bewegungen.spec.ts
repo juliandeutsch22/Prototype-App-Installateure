@@ -163,21 +163,41 @@ test.describe('B2 Zeile verschwindet', () => {
       const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
       const weg = zeilen[1], nachbar = zeilen[2];
       const hoehe = weg.getBoundingClientRect().height;
-      const vorher = nachbar.getBoundingClientRect().top;
+      /*
+        DIE LAGE IN DER LISTE, NICHT IM FENSTER (17.11.2026). Über der Liste
+        lädt die Seite noch nach — der Stand im Seitenkopf, ein Hinweis, der
+        von „fehlt“ auf „Achtung“ wechselt. Auf einem langsamen Läufer kam das
+        nach den 700 ms Ruhe; die Liste rutschte dann um 13 oder 133 px, und
+        der Nachbar stand scheinbar falsch (WebKit in der CI, lokal unter Last
+        auch auf `main`). Gefragt ist nur: rückt der Nachbar in seiner Liste
+        um die Zeile nach?
+      */
+      const inListe = () => nachbar.getBoundingClientRect().top - ul.getBoundingClientRect().top;
+      const vorher = inListe();
+      const bilder: Array<{ geist: boolean; y: number }> = [];
+      const bildNehmen = () => {
+        const t = getComputedStyle(nachbar).transform;
+        bilder.push({ geist: !!ul.querySelector('[data-geist]'), y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42 });
+      };
       // React nimmt eine Zeile heraus — hier von Hand, derselbe Eingriff im DOM.
       weg.remove();
-      const bilder: Array<{ geist: boolean; y: number; top: number }> = [];
+      /*
+        Das erste Bild gleich nach dem Beobachter der App (er läuft als
+        Mikroaufgabe, bevor diese hier dran ist), nicht erst im nächsten
+        Bild: das Abbild lebt 160 ms, und unter Last dauert ein Bild länger.
+      */
+      await new Promise<void>((fertig) => queueMicrotask(fertig));
+      bildNehmen();
       const t0 = performance.now();
       await new Promise<void>((fertig) => {
         const bild = () => {
-          const t = getComputedStyle(nachbar).transform;
-          bilder.push({ geist: !!ul.querySelector('[data-geist]'), y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42, top: nachbar.getBoundingClientRect().top });
+          bildNehmen();
           if (performance.now() - t0 < 400) requestAnimationFrame(bild); else fertig();
         };
         requestAnimationFrame(bild);
       });
       const geist = ul.querySelector('[data-geist]');
-      return { hoehe, vorher, bilder, geistAmEnde: !!geist, endeOben: nachbar.getBoundingClientRect().top };
+      return { hoehe, vorher, bilder, geistAmEnde: !!geist, endeOben: inListe() };
     });
     // Am Ende: die Lücke ist zu, kein Abbild bleibt — mit und ohne Bewegung gleich.
     expect(ergebnis.geistAmEnde).toBe(false);
@@ -205,7 +225,8 @@ test.describe('B2 Zeile verschwindet', () => {
       ziel.focus();
       const naechstes = zeilen[2].querySelector<HTMLElement>('a, button')!;
       zeilen[1].remove();
-      return new Promise<{ aria: string | null; inert: boolean; ids: number; fokusNaechste: boolean }>((fertig) => requestAnimationFrame(() => {
+      // Gleich nach dem Beobachter der App, nicht im nächsten Bild: das Abbild lebt 160 ms, ein Bild unter Last länger.
+      return new Promise<{ aria: string | null; inert: boolean; ids: number; fokusNaechste: boolean }>((fertig) => queueMicrotask(() => {
         const g = ul.querySelector<HTMLElement>('[data-geist]');
         fertig({ aria: g?.getAttribute('aria-hidden') ?? null, inert: !!g?.hasAttribute('inert'), ids: g ? g.querySelectorAll('[id]').length + (g.id ? 1 : 0) : -1, fokusNaechste: document.activeElement === naechstes });
       }));
@@ -220,7 +241,8 @@ test.describe('B2 Zeile verschwindet', () => {
     const geister = await page.evaluate(() => {
       const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
       for (const z of [...ul.querySelectorAll(':scope > li.zeile')].slice(0, 4)) z.remove();
-      return new Promise<number>((fertig) => requestAnimationFrame(() => fertig(ul.querySelectorAll('[data-geist]').length)));
+      // Gleich nach dem Beobachter der App: ein Abbild, das unter Last schon vor dem nächsten Bild wieder ginge, zählt auch.
+      return new Promise<number>((fertig) => queueMicrotask(() => fertig(ul.querySelectorAll('[data-geist]').length)));
     });
     expect(geister).toBe(0);
   });
@@ -260,6 +282,18 @@ test.describe('B3 Zeile kommt dazu', () => {
       };
       requestAnimationFrame(bild);
     });
+    /*
+      DAS ENDBILD NACH DEM ENDE DER BEWEGUNG, NICHT NACH 300 MS UHRZEIT
+      (17.11.2026). Eine Bewegung beginnt erst mit dem nächsten gezeichneten
+      Bild; unter Last kam das spät, und nach 300 ms lief sie noch (WebKit,
+      lokal unter Last). Gewartet wird auf genau die Bewegungen der beiden
+      Zeilen — läuft keine, ist das sofort.
+    */
+    await Promise.all([...neu.getAnimations(), ...nachbar.getAnimations()]
+      .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+      .map((a) => a.finished.catch(() => undefined)));
+    const t = getComputedStyle(nachbar).transform;
+    bilder.push({ deck: Number(getComputedStyle(neu).opacity), grund: getComputedStyle(neu).backgroundColor, y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42 });
     return { bilder, auswahlRgb };
   }, art);
 

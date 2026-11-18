@@ -303,6 +303,13 @@ test('Bündige Karten: Leerzustände und Zeilen stehen auf der Flucht des Karten
       await page.goto(`./?pfad=${encodeURIComponent(pfad)}&rolle=Administrator`);
       await expect(page.locator('.inhalt .karte').first()).toBeVisible();
       await page.waitForLoadState('networkidle');
+      /*
+        Gemessen wird die geladene Karte. Unter Last stand nach `networkidle`
+        noch der Platzhalter da, und sein Satz für Screenreader („Wird
+        geladen …“, unsichtbar) zählte als erster Text, 9 px neben dem
+        Titel (WebKit, 17.11.2026). Jeder Ladezustand meldet `aria-busy`.
+      */
+      await expect(page.locator('.inhalt [aria-busy="true"]')).toHaveCount(0);
       const daneben = await page.evaluate(() => {
         const out: string[] = [];
         for (const k of document.querySelectorAll('.inhalt .karte')) {

@@ -4200,3 +4200,28 @@ rund 60 freie Zwischenwerte.
   Seiten in drei Breiten (138 Ansichten): auf `main` lag in einer Ansicht
   ein Blatt daneben, mit E97 ohne diesen Schritt in 15, jetzt in keiner. Die Zeilenhöhen selbst bleiben: sie auf ganze
   Pixel zu zwingen hieße, jede Regel ohne eigene Zeilenhöhe anzufassen.
+- **Nebenbei: vier Browserprüfungen, die unter Last falsch maßen.** Gefunden,
+  als die CI für E97 rot war; jede schlägt auch auf `main` fehl, wenn der
+  Rechner ausgelastet ist (lokal mit sechs Läufen nebeneinander
+  nachgestellt). An der App ändert sich nichts.
+  - *B2 „Nachbarn rücken nach“* maß die Lage im Fenster. Über der Liste lud
+    die Seite noch nach (Stand im Seitenkopf, ein Hinweis von „fehlt“ auf
+    „Achtung“), die Liste rutschte um 13 oder 133 px. Jetzt zählt die Lage
+    in der Liste.
+  - *B2 „Das Abbild ist stumm“* suchte das Abbild im nächsten Bild; es lebt
+    160 ms, ein Bild unter Last länger. Jetzt gleich nach dem Beobachter der
+    App, ebenso „ein Austausch bewegt nichts“ (dort hätte ein kurzes Abbild
+    sonst übersehen werden können).
+  - *B3 „Zeile kommt dazu“* nahm das Endbild nach 300 ms Uhrzeit; eine
+    Bewegung beginnt erst mit dem nächsten gezeichneten Bild. Jetzt nach dem
+    Ende der Bewegungen der beiden Zeilen.
+  - *„Bündige Karten“* maß, während noch der Platzhalter stand (sein
+    unsichtbarer Satz „Wird geladen …“ zählte als Text). Jetzt erst, wenn
+    nichts mehr `aria-busy` meldet.
+  - *Rechtstexte (`rechtLot.spec.ts`)* zählte die Blätter, sobald der Titel
+    stand — der Text kommt danach aus der Datenbank. Jetzt nach dem Blatt.
+  Gegenproben: unter Last vorher rot, jetzt 72/72 (B2), 12/12 (Bündige
+  Karten); mit einem echten Fehler der App (Nachbar rückt nicht nach,
+  Abbild ohne `inert`, Austausch mit Abbild, neue Zeile bleibt halb
+  durchsichtig, Leersatz ohne Rand, verzögerter Rechtstext gegen die alte
+  Fassung) ist jede rot.
