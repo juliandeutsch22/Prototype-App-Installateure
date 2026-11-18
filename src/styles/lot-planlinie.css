@@ -244,10 +244,20 @@
   .masslinie-plus-unten { top: 1.875rem; }
   .masslinie-schmal .masslinie-plus-unten { top: 1.3125rem; }
   .masslinie-schmal .masslinie-ist { top: 1.3125rem; font-size: var(--groesse-klein); }
+  /* Reicht der Platz weder oben noch unten (E99): der Überhang in einer eigenen Zeile, die Linie wächst um sie. */
+  .masslinie[data-plus-darunter] { height: 3.75rem; }
+  .masslinie-schmal[data-plus-darunter] { height: 3rem; }
+  .masslinie-plus-darunter { top: 2.75rem; }
+  .masslinie-schmal .masslinie-plus-darunter { top: 2.1875rem; }
   /* Eine Maßlinie mit Beschriftung links (Akte): Name, dann die Linie. */
   .masslinie-zeile { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); align-items: start; gap: 0.5rem 1.5rem; padding: 0.5rem 0; }
   .masslinie-name { padding-top: 0.875rem; font-size: var(--groesse-klein); line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
-  @media (max-width: 759px) {
+  /*
+    BIS ZUM SCHREIBTISCH STEHT DER NAME ÜBER DER LINIE (E99; vorher nur am
+    Handy). Am Tablet ließ die Spalte neben der Akte der Linie nach dem Namen
+    rund 170 px — „Budget 240 h · 240,0 h verbleibend“ lief rechts hinaus.
+  */
+  @media (max-width: 1199px) {
     .masslinie-zeile { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
     .masslinie-name { padding-top: 0; }
   }

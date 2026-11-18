@@ -130,7 +130,14 @@ export function ScheinZeilen({ scheine, verrechnet }: { scheine: WithId<WorkShee
       <ListRow
         key={s.id}
         to={`/worksheets?markiert=${encodeURIComponent(s.id)}`}
-        wert={minuten > 0 ? fmtDauer(minuten) : undefined}
+        /*
+          DIESELBE SPALTE AUCH OHNE STUNDEN (E99): ein Pauschal-Schein ohne
+          Zeiten ließ den Wert weg, und sein Stand rückte nach rechts — unter
+          „Entwurf“ stand „Unterschrieben“ eine Spalte weiter. Der Pfeil sagt
+          wie in jeder Liste, dass die Zeile den Schein öffnet.
+        */
+        wert={<span className="schein-dauer">{minuten > 0 ? fmtDauer(minuten) : ''}</span>}
+        pfeil
         zustand={
           <Zustand stand={istVerrechnet ? 'ruht' : SCHEIN_STAND[s.status]}>
             {istVerrechnet ? 'verrechnet' : s.status}

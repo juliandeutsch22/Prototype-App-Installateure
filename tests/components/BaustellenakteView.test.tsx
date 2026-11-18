@@ -289,7 +289,9 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     // Die Abrechnung steht seit der Planlinie im Schriftfeld des Kopfes (B1), nicht mehr in den Angaben.
     const kopf = document.querySelector('.akten-kopf') as HTMLElement;
     expect(within(kopf).getByText('Abrechnung').closest('.schriftfeld')).toHaveTextContent('Pauschal');
-    expect(angabe('Stundenbudget')).toBeInTheDocument();
+    // E99: das Stundenbudget steht nur noch in seiner Maßlinie (Stundenauswertung), nicht zusätzlich als Angabe.
+    expect(await screen.findByText('Stundenauswertung')).toBeInTheDocument();
+    expect(screen.queryAllByText('Stundenbudget').filter((e) => e.tagName === 'DT')).toHaveLength(0);
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
 
@@ -695,12 +697,14 @@ describe('Was die Akte sonst noch zeigt', () => {
 */
 describe('Das Angebot hinter der Baustelle', () => {
   it('ist von der Akte aus verlinkt', async () => {
-    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', quoteDate: '2026-09-01', status: 'Angenommen', totalNetto: 18400 }];
     zeige();
-    expect(await screen.findByRole('link', { name: 'Angebot AN-2026-0007' })).toHaveAttribute(
-      'href',
-      '/quotes/q7',
-    );
+    // E99: als Belegzeile in der Karte „Angebote“ — Datum, Nummer, Stand, Betrag netto, Pfeil.
+    const zeile = await screen.findByRole('link', { name: /^Angebot · 01\.09\.2026\s*AN-2026-0007/ });
+    expect(zeile).toHaveAttribute('href', '/quotes/q7');
+    expect(zeile).toHaveTextContent(/Angenommen€\s18\s400,00 netto/);
+    expect(zeile.querySelector('.zeile-pfeil')).not.toBeNull();
+    expect(zeile.closest('section.karte')).toHaveTextContent(/^Angebote/);
     // Über die Kennung gesucht, nicht über die änderbare Nummer.
     expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
   });
@@ -713,9 +717,12 @@ describe('Das Angebot hinter der Baustelle', () => {
       { id: 'q11', quoteNumber: 'AN-2026-0011', status: 'Entwurf', positions: [] },
     ];
     zeige();
-    expect(await screen.findByRole('link', { name: 'Nachtrag AN-2026-0009' })).toHaveAttribute('href', '/quotes/q9');
-    expect(screen.getByRole('link', { name: 'Angebot AN-2026-0011 (Entwurf)' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(await screen.findByRole('link', { name: /^Nachtrag\s*AN-2026-0009/ })).toHaveAttribute('href', '/quotes/q9');
+    expect(screen.getByRole('link', { name: /^Angebot\s*AN-2026-0011\s*Entwurf/ })).toBeInTheDocument();
+    // „Nachtrag anlegen“ steht im Kopf der Karte, wie „Handwerksschein schreiben“ bei den Scheinen.
+    const anlegen = screen.getByRole('link', { name: 'Nachtrag anlegen' });
+    expect(anlegen).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(anlegen.closest('.karte-kopf')).not.toBeNull();
   });
 
   it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
@@ -725,7 +732,16 @@ describe('Das Angebot hinter der Baustelle', () => {
     zeige();
     await screen.findByText('Stundenauswertung');
     expect(listQuotesForProject).not.toHaveBeenCalled();
-    expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Angebot/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Angebote' })).toBeNull();
+  });
+
+  it('ohne Angebot sagt die Karte es — und erst, wenn geladen ist (E99)', async () => {
+    angebote = [];
+    zeige();
+    const karte = (await screen.findByRole('heading', { name: 'Angebote' })).closest('section.karte') as HTMLElement;
+    expect(karte).toHaveTextContent('Zu dieser Baustelle gibt es kein Angebot.');
+    expect(listQuotesForProject).toHaveBeenCalled();
   });
 
   it('sagt bei Pauschal, woher der Preis kommt: aus dem angenommenen Angebot (M14)', async () => {
@@ -754,7 +770,12 @@ describe('Das Angebot hinter der Baustelle', () => {
   it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {
     angeboteScheitern = true;
     zeige();
-    expect(await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toBeInTheDocument();
+    const satz = await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/);
+    // E99: in der Karte „Angebote“, einmal; „Nachtrag anlegen“ bleibt erreichbar wie vorher der Verweis.
+    expect(satz.closest('section.karte')).toHaveTextContent(/^Angebote/);
+    expect(screen.getAllByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(screen.queryByText('Zu dieser Baustelle gibt es kein Angebot.')).toBeNull();
   });
 });
 
@@ -768,6 +789,8 @@ describe('Der Eingang hinter der Baustelle (M02b)', () => {
     ausEingang = { id: 'e1', nummer: 'EG-2026-0003' };
     zeige();
     expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0003' })).toHaveAttribute('href', '/eingaenge/e1');
+    // E99: als Angabe „Herkunft“ wie in der Angebotsakte, kein loser Verweis.
+    expect(angabe('Herkunft')).toHaveTextContent('Aus Eingang EG-2026-0003');
     expect(getEingangZu).toHaveBeenCalledWith('perl', { projectId: BAUSTELLE.id });
   });
 
@@ -1007,6 +1030,26 @@ describe('Die Handwerksscheine der Baustelle', () => {
     expect(listWorkSheetsForProject).toHaveBeenCalledWith('perl', '2026-101', 20);
   });
 
+  /*
+    E99: jede Zeile trägt den Pfeil, und die Spalte der Stunden steht auch
+    beim Schein ohne Zeiten — sonst rückte sein Stand eine Spalte nach rechts.
+    Gegenprobe: vor E99 fehlten Pfeil und leere Spalte.
+  */
+  it('Pfeil am Ende und die Spalte der Stunden auch ohne Zeiten (E99)', async () => {
+    scheine = [SCHEIN('s2', { datum: '2026-10-07', abrechnung: 'Pauschal', zeiten: [] }), SCHEIN('s1')];
+    zeige();
+    const karte = await scheinKarte();
+    await within(karte).findAllByRole('link', { name: /07\.10\.2026|05\.10\.2026/ });
+    const zeilen = [...karte.querySelectorAll('li.zeile')];
+    expect(zeilen).toHaveLength(2);
+    for (const z of zeilen) {
+      expect(z.querySelector('.zeile-pfeil')).not.toBeNull();
+      expect(z.querySelector('.zeile-wert .schein-dauer')).not.toBeNull();
+    }
+    expect(zeilen[0].querySelector('.schein-dauer')).toHaveTextContent(/^$/);
+    expect(zeilen[1].querySelector('.schein-dauer')).toHaveTextContent('04:00 Std');
+  });
+
   it('nennt „verrechnet“, wer Rechnungen sieht — und fragt sonst gar nicht', async () => {
     scheine = [SCHEIN('s1')];
     aufRechnung = ['s1'];
@@ -1216,8 +1259,27 @@ describe('Übersicht: Einsätze, Material, Rechnungen (E84)', () => {
     expect(karte).toHaveTextContent(/Gestellt€\s2\s400,00 brutto · 2 Rechnungen/);
     expect(karte).toHaveTextContent(/Offen€\s1\s200,00/);
     expect(within(karte).queryByText('RE-2026-3')).toBeNull();
-    expect(within(karte).getByRole('link', { name: /RE-2026-2/ })).toHaveAttribute('href', '/invoices?oeffnen=2');
     expect(within(karte).getByRole('link', { name: 'Alle Rechnungen' })).toHaveAttribute('href', '/invoices?suche=2026-101');
+  });
+
+  /*
+    E99, gemeldet: die Rechnungen der Baustellenakte waren „verlinkt ohne
+    sichtbaren Button“ und sprangen auf die Rechnungsseite. Jetzt wie in der
+    Kundenakte: ein Knopf mit Pfeil, die Rechnung öffnet sich im Fenster.
+    Gegenprobe: vor E99 war die Zeile ein Verweis auf `/invoices?oeffnen=…`.
+  */
+  it('eine Rechnung öffnet sich im Fenster der Akte, die Zeile trägt den Pfeil (E99)', async () => {
+    rechnungen = [RECHNUNG('2', { invoiceDate: '2026-10-10' })];
+    zeige();
+    const karte = await block('Rechnungen');
+    const zeile = await within(karte).findByRole('button', { name: /RE-2026-2/ });
+    expect(within(karte).queryByRole('link', { name: /RE-2026-2/ })).toBeNull();
+    expect(zeile.querySelector('.zeile-pfeil')).not.toBeNull();
+    await userEvent.click(zeile);
+    const fenster = await screen.findByRole('dialog');
+    expect(within(fenster).getByText('RE-2026-2')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('Gegenprobe: die Verwaltung sieht das Material, aber keine Rechnungen — und lädt sie nicht', async () => {

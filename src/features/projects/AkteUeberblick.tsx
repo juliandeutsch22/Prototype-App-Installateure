@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/components/Card';
 import StatusBadge from '@/components/StatusBadge';
+import Icon from '@/components/Icon';
 import { Stempel } from '@/components/Planlinie';
 import { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
@@ -121,8 +123,43 @@ export function MaterialVorschau({ stand, projectNumber }: { stand: Laden<Materi
   );
 }
 
-/** Rechnungen: Stand und Summe, die jüngsten drei — nur für Rollen, die Rechnungen sehen. */
-export function RechnungenVorschau({ rechnungen, projectNumber }: { rechnungen: Laden<WithId<Invoice>[]>; projectNumber: string }) {
+/**
+ * EIN BELEG IN DER AKTE (E99) — Rechnung oder Angebot, in der Kunden- und
+ * der Baustellenakte dieselbe Zeile: Art und Datum, die Nummer als Stempel,
+ * der Stand, der Betrag rechts und am Ende der Pfeil. Gemeldet am iPhone:
+ * die Rechnungen der Baustellenakte waren „verlinkt ohne sichtbaren Button“
+ * — die ganze Zeile führte weiter, nichts sagte es. Der Pfeil ist dasselbe
+ * Zeichen wie in jeder Liste (`ListRow pfeil`): diese Zeile öffnet etwas.
+ * Mit `onOeffnen` ein Fenster in der Akte, mit `to` eine andere Akte.
+ */
+export function AktenBelegZeile({ art, datum, nummer, stand, betrag, einheit, to, onOeffnen }: {
+  art: string;
+  datum?: string | null;
+  nummer: string;
+  stand: ReactNode;
+  betrag: number;
+  einheit: 'brutto' | 'netto';
+  to?: string;
+  onOeffnen?: () => void;
+}) {
+  const inhalt = <>
+    {/* Nummer als Stempel, Stand mit Statuszeichen (Planlinie B10, B3) — wie in den Listen der Belege. */}
+    <span className="akten-zeile-inhalt"><span>{art}{datum ? ` · ${datumAT(datum)}` : ''}</span><span><Stempel>{nummer}</Stempel></span></span>
+    <span className="akten-belegstand">{stand}</span>
+    <span className="akten-belegbetrag">{euro(betrag)} <small>{einheit}</small></span>
+    <Icon name="weiter" size={16} className="zeile-pfeil akten-belegpfeil" />
+  </>;
+  return <li>{onOeffnen
+    ? <button type="button" className="akten-belegzeile" onClick={onOeffnen}>{inhalt}</button>
+    : <Link className="akten-belegzeile" to={to!}>{inhalt}</Link>}</li>;
+}
+
+/** Rechnungen: Stand und Summe, die jüngsten drei — nur für Rollen, die Rechnungen sehen. Eine Rechnung öffnet sich im Fenster der Akte. */
+export function RechnungenVorschau({ rechnungen, projectNumber, onOeffnen }: {
+  rechnungen: Laden<WithId<Invoice>[]>;
+  projectNumber: string;
+  onOeffnen: (id: string) => void;
+}) {
   const gueltig = Array.isArray(rechnungen) ? rechnungen.filter((r) => r.paymentStatus !== 'Storniert') : [];
   const offen = gueltig.reduce((s, r) => s + offenerRest(r), 0);
   const gestellt = gueltig.reduce((s, r) => s + (Number(r.totalBrutto) || 0), 0);
@@ -144,15 +181,8 @@ export function RechnungenVorschau({ rechnungen, projectNumber }: { rechnungen: 
               <AktenAngabe wort="Offen"><span className="font-mono">{euro(offen)}</span></AktenAngabe>
             </AktenAngaben>
             <ul className="akten-belege">
-              {juengste.map((r) => (
-                <li key={r.id}>
-                  <Link className="akten-belegzeile" to={`/invoices?oeffnen=${encodeURIComponent(r.id)}`}>
-                    <span className="akten-zeile-inhalt"><span>Rechnung · {datumAT(r.invoiceDate)}</span><span><Stempel>{r.invoiceNumber}</Stempel></span></span>
-                    <span className="akten-belegstand"><StatusBadge status={r.paymentStatus} /></span>
-                    <span className="akten-belegbetrag">{euro(r.totalBrutto)} <small>brutto</small></span>
-                  </Link>
-                </li>
-              ))}
+              {juengste.map((r) => <AktenBelegZeile key={r.id} art="Rechnung" datum={r.invoiceDate} nummer={r.invoiceNumber}
+                stand={<StatusBadge status={r.paymentStatus} />} betrag={r.totalBrutto} einheit="brutto" onOeffnen={() => onOeffnen(r.id)} />)}
             </ul>
           </>
         )}

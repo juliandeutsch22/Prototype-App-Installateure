@@ -268,6 +268,8 @@ it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-
   expect(vorschau.getByRole('link', { name: /AN-neu/ })).toHaveTextContent('netto');
   // Eine Rechnung öffnet sich im Fenster der Akte (Knopf), ein Angebot in seiner Akte (Verweis).
   expect(vorschau.getByRole('button', { name: /RE-neu/ })).toHaveTextContent('brutto');
+  // E99: jede Belegzeile öffnet etwas und trägt deshalb den Pfeil — wie in der Baustellenakte.
+  expect(vorschau.getAllByRole('listitem').every((z) => z.querySelector('.zeile-pfeil'))).toBe(true);
   expect(vorschau.queryByText('RE-alt')).toBeNull();
   await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
   expect(screen.getByRole('button', { name: /^RE-alt/ })).toBeVisible();
@@ -679,6 +681,9 @@ describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => 
     const baustelle = await screen.findByRole('link', { name: /2026-042.*Ringstraße 3/ });
     expect(baustelle).toHaveAttribute('href', '/admin-projects/p1');
     expect(baustelle.className).toMatch(/\bmin-h-touch\b/);
+    // E99: der Pfeil ist das Zeichen jeder Liste (`ListRow pfeil`), kein Textzeichen „→“ mehr.
+    expect(baustelle.querySelector('.zeile-pfeil')).not.toBeNull();
+    expect(baustelle).not.toHaveTextContent('→');
     await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
     const angebot = await screen.findByRole('link', { name: 'A-2026-0007' });
     expect(angebot.className).toMatch(/\bmin-h-touch\b/);

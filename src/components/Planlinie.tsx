@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LOT_MOTIV_BAU } from './LotZeichnung';
 
 /**
@@ -54,22 +54,80 @@ export function Masslinie({
   const darueber = soll > 0 && ist > soll;
   const ganz = darueber ? ist : soll;
   const sollLage = prozent(soll, ganz);
+  const lage = useBeschriftungImBlatt(!!sollText, darueber && !!ueberText, soll > 0 && ganz > 0 ? Math.min(1, soll / ganz) : 0);
+  const plusUnten = lage.plus ? lage.plus === 'unten' : soll / ist > 0.6;
   const klasse = `masslinie${schmal ? ' masslinie-schmal' : ''}${achtung && !darueber ? ' masslinie-achtung' : ''}`;
   return (
     // Ein span, kein div: die Linie steht auch in Listenzeilen, die ein <p> sind.
-    <span className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}>
-      {sollText && <span className="masslinie-soll" style={{ left: sollLage }}>{sollText}</span>}
+    <span ref={lage.linie} className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}
+      data-plus-darunter={lage.plus === 'darunter' || undefined}>
+      {sollText && <span ref={lage.soll} className="masslinie-soll"
+        style={{ left: sollLage, ...(lage.versatz !== null ? { transform: `translateX(${lage.versatz}px)` } : {}) }}>{sollText}</span>}
       {/* Steht die Soll-Marke weit rechts, träfe der Überhang oben auf ihre Beschriftung — dann steht er unten rechts. */}
-      {darueber && ueberText && <span className={soll / ist > 0.6 ? 'masslinie-plus masslinie-plus-unten' : 'masslinie-plus'}>{ueberText}</span>}
+      {darueber && ueberText && <span ref={lage.plusRef}
+        className={lage.plus === 'darunter' ? 'masslinie-plus masslinie-plus-darunter' : plusUnten ? 'masslinie-plus masslinie-plus-unten' : 'masslinie-plus'}>{ueberText}</span>}
       <span className="masslinie-grund" />
       <span className="masslinie-strecke" style={{ width: darueber ? sollLage : prozent(ist, soll) }} />
       {darueber && <span className="masslinie-ueber" style={{ left: sollLage, width: prozent(ist - soll, ist) }} />}
       <span className="masslinie-marke" style={{ left: 0 }} />
       <span className={darueber ? 'masslinie-marke' : 'masslinie-marke masslinie-marke-ende'} style={{ left: sollLage }} />
       {darueber && <span className="masslinie-marke masslinie-marke-ende masslinie-marke-rot" style={{ left: '100%' }} />}
-      <span className="masslinie-ist">{istText}</span>
+      <span ref={lage.ist} className="masslinie-ist">{istText}</span>
     </span>
   );
+}
+
+/** Luft zwischen zwei Beschriftungen in einer Zeile, in px. */
+const LUFT = 8;
+
+/**
+ * DIE BESCHRIFTUNG BLEIBT IM BLATT (E99, 18.11.2026; gemeldet am iPhone:
+ * „…antes Ende 01.10.“ — der Leistungszeitraum war um 48 Tage überschritten,
+ * die Soll-Marke stand bei 30 %, und ihre rechtsbündige Beschriftung lief
+ * links aus der Karte).
+ *
+ * Die Stellen der Marken stehen in Prozent fest, die Breite der Texte nicht —
+ * sie hängt an Schrift, Zahl und Breite des Geräts. Deshalb wird gemessen,
+ * sobald sich eine der Breiten ändert:
+ * - Die Soll-Beschriftung steht rechtsbündig an ihrer Marke, solange sie
+ *   passt; sonst rückt sie nur so weit, dass sie ganz im Blatt bleibt.
+ * - Der Überhang steht oben rechts, wenn er die Soll-Beschriftung dort nicht
+ *   trifft, sonst unten rechts neben dem Ist; reicht auch dort der Platz
+ *   nicht, steht er in einer eigenen Zeile darunter.
+ * Ohne Messung (Test ohne Layout, erster Aufbau) gilt die Regel aus dem Stil.
+ */
+function useBeschriftungImBlatt(mitSoll: boolean, mitPlus: boolean, anteil: number) {
+  const linie = useRef<HTMLSpanElement>(null);
+  const soll = useRef<HTMLSpanElement>(null);
+  const plusRef = useRef<HTMLSpanElement>(null);
+  const ist = useRef<HTMLSpanElement>(null);
+  const [lage, setLage] = useState<{ versatz: number | null; plus: 'oben' | 'unten' | 'darunter' | null }>({ versatz: null, plus: null });
+  useLayoutEffect(() => {
+    const el = linie.current;
+    if (!el) return;
+    const messen = () => {
+      const breite = el.clientWidth;
+      if (!breite) return;
+      const marke = anteil * breite;
+      const ws = soll.current?.offsetWidth ?? 0;
+      const links = ws ? Math.max(0, Math.min(marke - ws, breite - ws)) : marke;
+      const versatz = ws ? Math.round((links - marke) * 10) / 10 : null;
+      let plus: 'oben' | 'unten' | 'darunter' | null = null;
+      if (mitPlus && plusRef.current) {
+        const wp = plusRef.current.offsetWidth;
+        const wi = ist.current?.offsetWidth ?? 0;
+        plus = !ws || links + ws + LUFT <= breite - wp ? 'oben' : wi + LUFT <= breite - wp ? 'unten' : 'darunter';
+      }
+      setLage((alt) => (alt.versatz === versatz && alt.plus === plus ? alt : { versatz, plus }));
+    };
+    messen();
+    if (typeof ResizeObserver === 'undefined') return;
+    const beobachter = new ResizeObserver(messen);
+    for (const teil of [el, soll.current, plusRef.current, ist.current]) if (teil) beobachter.observe(teil);
+    return () => beobachter.disconnect();
+  // Kommt eine Beschriftung hinzu oder fällt weg, wird neu beobachtet.
+  }, [mitSoll, mitPlus, anteil]);
+  return { linie, soll, plusRef, ist, ...lage };
 }
 
 /** Eine Maßlinie mit ihrem Namen davor — in Akten untereinander („Stundenbudget“, „Leistungszeitraum“). */

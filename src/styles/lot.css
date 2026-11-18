@@ -456,7 +456,7 @@
     Gemessen wird sie im Layout wie die Reiterleiste: die Sicherheitszone
     oben gehört dazu, und ab dem Tablet ist sie ausgeblendet (dann 0).
   */
-  :root { --kopf-oben: 0px; }
+  :root { --kopf-oben: 0px; --sicher-oben: env(safe-area-inset-top, 0px); }
   /*
     V10 (13.11.2026): KOPF- UND FUSSLEISTE SIND INSELN — hell, mit feiner
     Kontur, demselben weichen Radius (`--radius-xl`) und einem leisen Schatten,
@@ -465,6 +465,19 @@
   */
   .kopfzeile { position: sticky; top: max(0.5rem, env(safe-area-inset-top, 0px)); z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: max(0.5rem, env(safe-area-inset-top, 0px)) 0.5rem 0; padding: 0.125rem 0.375rem 0.125rem 0.875rem; background: var(--surface-2); border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); box-shadow: var(--shadow-insel); }
   @media (max-width: 759px) { html { scroll-padding-top: var(--kopf-oben); } }
+  /*
+    DIE STATUSLEISTE DES IPHONES IST DECKEND (E99, 18.11.2026; gemeldet mit
+    zwei Bildschirmfotos: unter Uhrzeit und Akku lief der Inhalt durch, eine
+    Zeile Text halb hinter der „18:58“). Die App zeichnet bis an den oberen
+    Rand (`viewport-fit=cover`); die Insel des Kopfs beginnt erst unter der
+    Sicherheitszone. Die Zone selbst trägt jetzt den Grund der Seite — ohne
+    Zone (Android, Browser) ist die Fläche 0 hoch. Unter der Insel, damit ihr
+    Schatten bleibt; Fenster und Menüs liegen ohnehin darüber. Ein Tipp in die
+    Zone trifft die Fläche, nicht den verdeckten Inhalt darunter.
+  */
+  @media (max-width: 759px) {
+    .huelle::before { content: ''; position: fixed; inset: 0 0 auto; z-index: 29; height: var(--sicher-oben); background: var(--bg); }
+  }
   @media (min-width: 760px) { .kopfzeile { display: none; } }
   .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); animation: kopf-titel-ein 180ms ease-out; }
   @keyframes kopf-titel-ein { from { opacity: 0; transform: translateY(0.375rem); } }

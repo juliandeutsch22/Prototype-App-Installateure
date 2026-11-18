@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -64,6 +64,53 @@ describe('B2 Maßlinie', () => {
   it('ist ein span und darf damit in einem Absatz stehen (Listenzeilen)', () => {
     render(<p><Masslinie ist={1} soll={2} istText="1" name="n" /></p>);
     expect(screen.getByRole('img').tagName).toBe('SPAN');
+  });
+});
+
+/*
+  E99 — DIE BESCHRIFTUNG BLEIBT IM BLATT. jsdom misst nichts; die Breiten
+  werden hier vorgegeben: die Linie 300 px, die Soll-Beschriftung 150, der
+  Überhang 60, das Ist 100 (oder 250). Gegenprobe: vor E99 gab es keine
+  Messung — kein Versatz, und der Überhang hing nur am Verhältnis Soll/Ist.
+*/
+describe('B2 Maßlinie gemessen (E99)', () => {
+  afterEach(() => vi.restoreAllMocks());
+  function breiten(ist = 100) {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('masslinie') ? 300 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('masslinie-soll') ? 150 : this.classList.contains('masslinie-plus') ? 60 : this.classList.contains('masslinie-ist') ? ist : 0;
+    });
+  }
+
+  it('die Marke weit links (das Foto): die Soll-Beschriftung rückt bis an den Rand, nicht darüber hinaus', () => {
+    breiten();
+    render(<Masslinie ist={108} soll={29} istText="03.08. bis 31.08.2026" sollText="geplantes Ende 31.08." ueberText="+79 Tage" name="n" />);
+    // Marke bei 29/108 von 300 px = 80,6 px; die 150 px breite Beschriftung beginnt bei 0.
+    expect(screen.getByText('geplantes Ende 31.08.').style.transform).toBe('translateX(-80.6px)');
+    expect(screen.getByText('+79 Tage')).toHaveClass('masslinie-plus');
+    expect(screen.getByText('+79 Tage')).not.toHaveClass('masslinie-plus-unten');
+  });
+
+  it('passt sie vor die Marke, steht sie rechtsbündig daran wie bisher; der Überhang weicht nach unten aus', () => {
+    breiten();
+    render(<Masslinie ist={20} soll={16} istText="20 h" sollText="Budget 16 h" ueberText="+4 h" name="n" />);
+    expect(screen.getByText('Budget 16 h').style.transform).toBe('translateX(-150px)');
+    expect(screen.getByText('+4 h')).toHaveClass('masslinie-plus', 'masslinie-plus-unten');
+    expect(screen.getByRole('img')).not.toHaveAttribute('data-plus-darunter');
+  });
+
+  it('weder oben noch unten Platz: der Überhang bekommt eine eigene Zeile', () => {
+    breiten(250);
+    render(<Masslinie ist={20} soll={16} istText="20 h" sollText="Budget 16 h" ueberText="+4 h" name="n" />);
+    expect(screen.getByText('+4 h')).toHaveClass('masslinie-plus-darunter');
+    expect(screen.getByRole('img')).toHaveAttribute('data-plus-darunter');
+  });
+
+  it('ohne Messung (erster Aufbau, kein Layout) gilt die Regel aus dem Stil', () => {
+    render(<Masslinie ist={108} soll={29} istText="i" sollText="s" ueberText="+79" name="n" />);
+    expect(screen.getByText('s').style.transform).toBe('');
   });
 });
 

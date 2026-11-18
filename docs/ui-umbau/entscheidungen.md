@@ -4319,3 +4319,70 @@ als der header oben. die abstände sollten einheitlich sein“.
   (2). Gegenproben: ohne die Änderungen
   5 (Rechnungen), 5 (Startseite), 2 (Insel), 5 (Flucht) rot; was gleich
   bleiben muss (Abwesende als Verweis, ohne Zone 8 px), grün.
+
+**E99 — Die Baustellenakte wie die übrigen Akten: Pfeil an jeder Zeile, die etwas öffnet, Rechnungen im Fenster, Angebote als Belege, die Maßlinie im Blatt, eine deckende Statusleiste (18.11.2026).**
+Auftrag mit zwei Bildschirmfotos vom iPhone: „die baustellenakte muss noch
+überarbeitet werden hier passt noch vieles nicht: der zeitstrahl und die
+rechnungen verlinkt ohne sichtbaren button. das muss einheitlich zu anderen
+elementen passen. setze das alles direkt um, sehe dir dabei alle ansichten
+an und fixe auch was dir dabei sonst noch auffällt. Es muss einheitlicher mit
+den anderen akten werden“.
+
+Durchgesehen: alle vier Reiter der Baustellenakte (Übersicht, Scheine,
+Termine, Pläne) bei 390, 834 und 1.440 px, verglichen mit Kunden-, Angebots-
+und Benutzerakte.
+
+- **Die Maßlinie hält ihre Beschriftung im Blatt** (`Masslinie`,
+  `Planlinie.tsx`). Im Foto war der Leistungszeitraum 48 Tage überschritten;
+  die Soll-Marke stand bei 30 %, und „geplantes Ende 01.10.“ hing
+  rechtsbündig an ihr und lief links aus der Karte. Die Marken stehen in
+  Prozent fest, die Breite der Texte nicht — also wird gemessen, sobald sich
+  eine Breite ändert: die Soll-Beschriftung steht rechtsbündig an der Marke,
+  solange sie passt, sonst rückt sie nur so weit, dass sie ganz im Blatt
+  bleibt; der Überhang („+48 Tage“) steht oben rechts, wenn er sie dort
+  nicht trifft, sonst unten neben dem Ist, und hat er auch dort keinen
+  Platz, in einer eigenen Zeile darunter. Das gilt für alle Maßlinien
+  (Budget, Leistungszeitraum, Teilzahlung, Urlaub, Projektauswertung).
+  Bis 1.199 px steht der Name einer Maßlinie über ihr statt daneben: am
+  Tablet blieben der Linie neben Name und Aktenkontext rund 170 px, und
+  „Budget 240 h · 240,0 h verbleibend“ lief rechts hinaus.
+- **Pfeil an jeder Zeile, die etwas öffnet** — dasselbe Zeichen wie in jeder
+  Liste (`ListRow pfeil`, Symbol „weiter“). Die Rechnungen der
+  Baustellenakte führten „ohne sichtbaren Button“ weiter; die Scheine
+  ebenso; die Baustellen der Kundenakte trugen ein Textzeichen „→“. Eine
+  Belegzeile (`AktenBelegZeile`) für Kunden- und Baustellenakte: Art und
+  Datum, Nummer als Stempel, Stand, Betrag, Pfeil.
+- **Rechnungen öffnen sich im Fenster der Akte**, wie seit 03.11.2026 in der
+  Kundenakte (`AkteRechnungFenster`, vorher `KundenRechnungFenster`): Angaben,
+  Leistungen, Summen, PDFs; „In Rechnungen bearbeiten“ führt auf die
+  Rechnungsseite mit derselben Rechnung offen. Vorher sprang die
+  Baustellenakte auf die Rechnungsseite.
+- **Angebote als eigene Karte mit Belegzeilen.** Sie standen als lose
+  Verweise unter der Maßlinie, am Handy einer je Zeile mit großen Lücken.
+  Jetzt die Karte „Angebote“ mit derselben Zeile wie die Rechnungen
+  (netto), „Nachtrag anlegen“ als Zweitknopf im Kopf der Karte wie
+  „Handwerksschein schreiben“ bei den Scheinen. „Aus Eingang EG-…“ ist die
+  Angabe „Herkunft“ im Auftrag, wie in der Angebotsakte. Lädt das Angebot
+  nicht, sagt es die Karte (vorher oben über den Reitern), und „Nachtrag
+  anlegen“ bleibt erreichbar.
+- **Das Stundenbudget steht einmal.** Die Akte nannte es als Angabe und,
+  sobald gebucht war, noch einmal in der Maßlinie darunter. Jetzt nur in der
+  Maßlinie — ohne Buchung bei 0 h, ohne Budget als Satz „Noch keine Stunde
+  gebucht · kein Stundenbudget hinterlegt.“; laden die Stunden nicht, steht
+  das Budget über dem Teilfehler. „Stunden nach Person“ erst, wenn gebucht
+  ist.
+- **Scheine fluchten.** Ein Schein ohne Zeiten (Pauschal) ließ die Spalte der
+  Stunden weg, sein Stand rückte eine Spalte nach rechts. Die Spalte steht
+  jetzt immer, auch leer.
+- **Die Statusleiste des iPhones ist deckend.** Die App zeichnet bis an den
+  oberen Rand; im Foto lief unter Uhrzeit und Akku eine Zeile Text durch.
+  Die Sicherheitszone oben trägt jetzt den Grund der Seite
+  (`.huelle::before`, Höhe `--sicher-oben` = `env(safe-area-inset-top)`),
+  unter der Insel des Kopfs; ohne Zone ist die Fläche 0 hoch.
+
+**Benannte Grenze:** ob die deckende Zone am Gerät so wirkt wie nachgestellt,
+zeigt erst der Blick auf ein iPhone nach der Auslieferung — Chromium und
+WebKit kennen die Sicherheitszone nicht (Grund: Gerät). Eine Ist-Beschriftung,
+die breiter ist als ihre ganze Linie, bleibt einzeilig; in der App kommt das
+nicht vor (die schmalen Linien der Listen tragen kurze Texte), die
+Prüfung auf der Musterseite würde es zeigen.
