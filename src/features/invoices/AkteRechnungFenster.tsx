@@ -13,9 +13,10 @@ import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
- * DIE RECHNUNG IN DER KUNDENAKTE (Auftrag 03.11.2026: „die Rechnungen
- * sollten sich direkt in der Akte öffnen lassen … und nicht einfach zur
- * Rechnungsseite wechseln“).
+ * DIE RECHNUNG IN DER AKTE (Auftrag 03.11.2026: „die Rechnungen sollten
+ * sich direkt in der Akte öffnen lassen … und nicht einfach zur
+ * Rechnungsseite wechseln“). Seit E99 in der Kunden- und der Baustellenakte
+ * dasselbe Fenster: vorher sprang die Baustellenakte auf die Rechnungsseite.
  *
  * Dasselbe Seitenfenster wie auf der Rechnungsseite (`RechnungDetail`):
  * Angaben, Leistungen, Summen, Zahlstand und Mahnungen; die Rechnung, ihre
@@ -25,7 +26,7 @@ import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
  * Rechnungskreis es mit, und zwei Wege zu denselben Buchungen liefen
  * auseinander. „In Rechnungen bearbeiten“ öffnet dort genau dieses Fenster.
  */
-export default function KundenRechnungFenster({
+export default function AkteRechnungFenster({
   inv,
   companyId,
   company,

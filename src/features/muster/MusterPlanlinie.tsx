@@ -66,6 +66,14 @@ export default function MusterPlanlinie() {
         <MasslinieZeile name="Überschritten">
           <Masslinie ist={45} soll={16} istText="45,0 h gebucht (davon 16,0 h Lehrling)" sollText="Budget 16 h" ueberText="+29,0 h über Budget" name="45,0 h gebucht von 16 h Budget, 29,0 h darüber" />
         </MasslinieZeile>
+        {/* E99: die Soll-Marke weit links, ihre Beschriftung länger als der Platz davor — sie bleibt im Blatt. */}
+        <MasslinieZeile name="Weit überschritten">
+          <Masslinie ist={108} soll={29} istText="03.08. bis 31.08.2026 · 29 Tage" sollText="geplantes Ende 31.08." ueberText="+79 Tage" name="Leistungszeitraum 03.08.2026 bis 31.08.2026, 29 Tage, Ende seit 79 Tagen überschritten" />
+        </MasslinieZeile>
+        {/* E99: zu eng für den Überhang oben und unten — er bekommt eine eigene Zeile. */}
+        <MasslinieZeile name="Eng, Überhang darunter">
+          <div className="w-60"><Masslinie ist={50} soll={40} istText="50,0 h gebucht" sollText="Budget 40 h" ueberText="+10,0 h über Budget" name="50,0 h gebucht von 40 h Budget, 10,0 h darüber" /></div>
+        </MasslinieZeile>
         <MasslinieZeile name="Schmal, in der Zeile">
           <div className="w-60"><Masslinie schmal ist={20.5} soll={16} istText="20,5 h gebucht" sollText="16 h" ueberText="+4,5 h" name="20,5 h gebucht von 16 h Budget, 4,5 h darüber" /></div>
         </MasslinieZeile>

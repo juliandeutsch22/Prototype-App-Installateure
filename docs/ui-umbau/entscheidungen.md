@@ -4319,3 +4319,120 @@ als der header oben. die abstände sollten einheitlich sein“.
   (2). Gegenproben: ohne die Änderungen
   5 (Rechnungen), 5 (Startseite), 2 (Insel), 5 (Flucht) rot; was gleich
   bleiben muss (Abwesende als Verweis, ohne Zone 8 px), grün.
+
+**E99 — Die Baustellenakte wie die übrigen Akten: Pfeil an jeder Zeile, die etwas öffnet, Rechnungen im Fenster, Angebote als Belege, die Maßlinie im Blatt, eine deckende Statusleiste (18.11.2026).**
+Auftrag mit zwei Bildschirmfotos vom iPhone: „die baustellenakte muss noch
+überarbeitet werden hier passt noch vieles nicht: der zeitstrahl und die
+rechnungen verlinkt ohne sichtbaren button. das muss einheitlich zu anderen
+elementen passen. setze das alles direkt um, sehe dir dabei alle ansichten
+an und fixe auch was dir dabei sonst noch auffällt. Es muss einheitlicher mit
+den anderen akten werden“.
+
+Durchgesehen: alle vier Reiter der Baustellenakte (Übersicht, Scheine,
+Termine, Pläne) bei 390, 834 und 1.440 px, verglichen mit Kunden-, Angebots-
+und Benutzerakte.
+
+- **Die Maßlinie hält ihre Beschriftung im Blatt** (`Masslinie`,
+  `Planlinie.tsx`). Im Foto war der Leistungszeitraum 48 Tage überschritten;
+  die Soll-Marke stand bei 30 %, und „geplantes Ende 01.10.“ hing
+  rechtsbündig an ihr und lief links aus der Karte. Die Marken stehen in
+  Prozent fest, die Breite der Texte nicht — also wird gemessen, sobald sich
+  eine Breite ändert: die Soll-Beschriftung steht rechtsbündig an der Marke,
+  solange sie passt, sonst rückt sie nur so weit, dass sie ganz im Blatt
+  bleibt; der Überhang („+48 Tage“) steht oben rechts, wenn er sie dort
+  nicht trifft, sonst unten neben dem Ist, und hat er auch dort keinen
+  Platz, in einer eigenen Zeile darunter. Das gilt für alle Maßlinien
+  (Budget, Leistungszeitraum, Teilzahlung, Urlaub, Projektauswertung).
+  Bis 1.199 px steht der Name einer Maßlinie über ihr statt daneben: am
+  Tablet blieben der Linie neben Name und Aktenkontext rund 170 px, und
+  „Budget 240 h · 240,0 h verbleibend“ lief rechts hinaus.
+- **Pfeil an jeder Zeile, die etwas öffnet** — dasselbe Zeichen wie in jeder
+  Liste (`ListRow pfeil`, Symbol „weiter“). Die Rechnungen der
+  Baustellenakte führten „ohne sichtbaren Button“ weiter; die Scheine
+  ebenso; die Baustellen der Kundenakte trugen ein Textzeichen „→“. Eine
+  Belegzeile (`AktenBelegZeile`) für Kunden- und Baustellenakte: Art und
+  Datum, Nummer als Stempel, Stand, Betrag, Pfeil.
+- **Rechnungen öffnen sich im Fenster der Akte**, wie seit 03.11.2026 in der
+  Kundenakte (`AkteRechnungFenster`, vorher `KundenRechnungFenster`): Angaben,
+  Leistungen, Summen, PDFs; „In Rechnungen bearbeiten“ führt auf die
+  Rechnungsseite mit derselben Rechnung offen. Vorher sprang die
+  Baustellenakte auf die Rechnungsseite.
+- **Angebote als eigene Karte mit Belegzeilen.** Sie standen als lose
+  Verweise unter der Maßlinie, am Handy einer je Zeile mit großen Lücken.
+  Jetzt die Karte „Angebote“ mit derselben Zeile wie die Rechnungen
+  (netto), „Nachtrag anlegen“ als Zweitknopf im Kopf der Karte wie
+  „Handwerksschein schreiben“ bei den Scheinen. „Aus Eingang EG-…“ ist die
+  Angabe „Herkunft“ im Auftrag, wie in der Angebotsakte. Lädt das Angebot
+  nicht, sagt es die Karte (vorher oben über den Reitern), und „Nachtrag
+  anlegen“ bleibt erreichbar.
+- **Das Stundenbudget steht einmal.** Die Akte nannte es als Angabe und,
+  sobald gebucht war, noch einmal in der Maßlinie darunter. Jetzt nur in der
+  Maßlinie — ohne Buchung bei 0 h, ohne Budget als Satz „Noch keine Stunde
+  gebucht · kein Stundenbudget hinterlegt.“; laden die Stunden nicht, steht
+  das Budget über dem Teilfehler. „Stunden nach Person“ erst, wenn gebucht
+  ist.
+- **Scheine fluchten.** Ein Schein ohne Zeiten (Pauschal) ließ die Spalte der
+  Stunden weg, sein Stand rückte eine Spalte nach rechts. Die Spalte steht
+  jetzt immer, auch leer.
+- **Die Statusleiste des iPhones ist deckend.** Die App zeichnet bis an den
+  oberen Rand; im Foto lief unter Uhrzeit und Akku eine Zeile Text durch.
+  Die Sicherheitszone oben trägt jetzt den Grund der Seite
+  (`.huelle::before`, Höhe `--sicher-oben` = `env(safe-area-inset-top)`),
+  unter der Insel des Kopfs; ohne Zone ist die Fläche 0 hoch.
+
+**Eigenes Schreiben zeigt sich auch ohne Live-Meldung** (gefunden in der CI
+dieses PR, `runde4.spec.ts`). Die Live-Listen (`abonnieren`) übernahmen eine
+Änderung nur über den Kanal: die Buchung war gespeichert (201), die Meldung
+kam in 20 s nicht, und die Mitarbeiterübersicht zeigte den Tag weiter „ohne
+Buchung“. Draußen dasselbe, wo ein Netz Websockets sperrt — dort stand die
+eigene Buchung erst nach dem Neuladen da. Jetzt meldet jeder geglückte eigene
+Schreibvorgang seine Tabelle (`src/lib/db/eigeneAenderung.ts`: `anlegen`,
+`anlegenMitKennung`, `aendern`, `loeschen`, das Ausgangsfach und der Weg ohne
+Fach), und jede Live-Liste dieser Tabelle gleicht gleich ab — Kennung und
+Änderungszeit wie beim Nachfassen, mehrere Schreibvorgänge kurz
+hintereinander einmal. Fremde Änderungen kommen weiter über den Kanal.
+**Benannte Grenze:** Schreibwege über eine Datenbankfunktion (etwa der Timer,
+`zeit_timer_befehl`) melden ihre Tabelle nicht — welche Zeilen eine Funktion
+ändert, weiß nur sie (Grund: fachlich, je Funktion verschieden); dort bleibt
+es beim Kanal und beim Nachfassen. Ebenso die drei Abonnements ohne
+`abonnieren` (Einstellungen, Rechnungen, Rüstliste).
+
+**Was weggelassen wurde — und warum** (Nachtrag zum Auftrag: „wichtig ist
+auch: welche Informationen/welcher text ist wirklich relevant und hat
+mehrwert und was könnte man weglassen“). Jeder Satz der Akte wurde gegen
+die Frage gelesen, ob er an anderer Stelle schon steht. Weggelassen wurde
+nur, was vollständig woanders steht:
+
+- **„Verlauf der Baustelle“** (aufklappbar im Auftrag): Angebot mit Datum und
+  Stand, Beginn, heute mit dem Stand, Ende geplant samt „überschritten“ —
+  alles steht im Schriftfeld des Kopfs, in der Karte „Angebote“ und im
+  Leistungszeitraum. Der „Änderungsverlauf“ (wer was wann geändert hat)
+  bleibt: den gibt es nirgends sonst.
+- **Die Daten am Leistungszeitraum**: „03.08. bis 31.08.2026 · 29 Tage“ und
+  „geplantes Ende 31.08.“ nannten das Ende zweimal, Beginn und Ende stehen
+  im Schriftfeld. Jetzt sagt die Linie, wie weit es ist — „Tag 16 von 29“,
+  vor dem Beginn „beginnt 03.08. · 29 Tage“, danach „29 Tage geplant“ — und
+  „Ende 31.08.“ an der Marke. Dabei behoben: eine abgeschlossene oder
+  pausierte Baustelle zählte nach dem Ende weiter rot über die Marke; jetzt
+  gilt dieselbe Regel wie „Ende überschritten“.
+- **„240,0 h verbleibend“ ohne Buchung**: das wäre nur das Budget noch
+  einmal; die Linie sagt „Budget 240 h“ und „0,0 h gebucht“.
+- **„· Zur Kundenakte“** hinter dem Namen des Kunden im Aktenkontext: der
+  Name ist der Verweis, wie in der Angebotsakte; die lange Zeile brach am
+  Tablet in drei.
+- **„Pläne, Fotos und Unterlagen dieser Baustelle“** unter „Pläne und
+  Dokumente“: wiederholte den Titel und den Leersatz darunter; die
+  Erklärung steht unter „Hilfe zu dieser Seite“.
+
+Bewusst geblieben: die Nummer der Rechnungen im Kopf der Karte („3
+Rechnungen“ — bei mehr als drei sonst nicht zu sehen), der Wochentag beim
+Beginn (für den kommenden Beginn die schnellste Orientierung), „geschrieben
+von“ bei den Scheinen (wer ihn verantwortet), die leeren Karten Nachrichten
+und Einsätze (sie tragen den nächsten Schritt).
+
+**Benannte Grenze:** ob die deckende Zone am Gerät so wirkt wie nachgestellt,
+zeigt erst der Blick auf ein iPhone nach der Auslieferung — Chromium und
+WebKit kennen die Sicherheitszone nicht (Grund: Gerät). Eine Ist-Beschriftung,
+die breiter ist als ihre ganze Linie, bleibt einzeilig; in der App kommt das
+nicht vor (die schmalen Linien der Listen tragen kurze Texte), die
+Prüfung auf der Musterseite würde es zeigen.

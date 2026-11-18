@@ -16,6 +16,7 @@ import { timerAuftragErgebnis } from '@/lib/zeitsitzungSpeicher';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sendeergebnis, Sender, Sendung } from './ausgangsfach';
 import { istNetzfehler } from './netzfehler';
+import { eigeneAenderung } from '@/lib/db/eigeneAenderung';
 
 /**
  * PostgREST-Codes, die eine endgültige Ablehnung bedeuten.
@@ -373,7 +374,11 @@ async function senden(client: SupabaseClient, v: Sendung, signal: AbortSignal): 
         grund: `Kein Datensatz in ${v.tabelle} geändert — es gibt ihn nicht, oder er darf nicht geändert werden.`,
       };
     }
-    if (!error) return { art: 'ok' };
+    if (!error) {
+      // Angekommen: die Live-Listen der Tabelle gleichen ab, ohne auf den Kanal zu warten (E99).
+      eigeneAenderung(v.tabelle);
+      return { art: 'ok' };
+    }
     return einordnen(error, status);
   } catch (e) {
     // Wirft der Client selbst, ist praktisch immer das Netz schuld.

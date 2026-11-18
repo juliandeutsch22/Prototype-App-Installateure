@@ -39,7 +39,7 @@ import { InputField, FormGrid } from '@/components/Field';
 import Button from '@/components/Button';
 import { Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
-import { Hinweislinie, Stempel } from '@/components/Planlinie';
+import { Hinweislinie } from '@/components/Planlinie';
 import { STAND as ANGEBOT_STAND } from '@/features/quotes/stand';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
@@ -56,7 +56,9 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
-import KundenRechnungFenster from './KundenRechnungFenster';
+import AkteRechnungFenster from '@/features/invoices/AkteRechnungFenster';
+import { AktenBelegZeile } from '@/features/projects/AkteUeberblick';
+import Icon from '@/components/Icon';
 import KundenZusammenfuehren from './KundenZusammenfuehren';
 import useUidVies from './useUidVies';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
@@ -826,7 +828,7 @@ export default function KundenakteView() {
         </ul>
       </ConfirmDialog>
       {companyId && (
-        <KundenRechnungFenster
+        <AkteRechnungFenster
           inv={offeneRechnung && rechnungen.zustand === 'bereit' ? rechnungen.daten.find((r) => r.id === offeneRechnung) ?? null : null}
           companyId={companyId}
           company={company}
@@ -842,7 +844,7 @@ function BaustellenZeilen({ daten, sichtbar }: { daten: WithId<Project>[]; sicht
     const inhalt = <><span className="akten-zeile-nummer nr">{p.projectNumber}</span>
       <span className="akten-zeile-inhalt"><strong>{p.bezeichnung || p.address || 'ohne Adresse'}</strong>
         {p.bezeichnung && <span>{p.address || 'ohne Adresse'}</span>}</span>
-      <StatusBadge status={p.status} />{sichtbar && <span className="akten-zeile-pfeil" aria-hidden="true">→</span>}</>;
+      <StatusBadge status={p.status} />{sichtbar && <Icon name="weiter" size={16} className="zeile-pfeil" />}</>;
     return <li key={p.id}>{sichtbar ? <Link to={`/admin-projects/${p.id}`} className="akten-baustellenzeile min-h-touch">{inhalt}</Link>
       : <div className="akten-baustellenzeile min-h-touch">{inhalt}</div>}</li>;
   })}</ul>;
@@ -855,11 +857,11 @@ function BelegeVorschau({ rechnungen, angebote, onRechnung }: {
   /** Eine Rechnung öffnet sich im Fenster der Akte, ein Angebot in seiner eigenen Akte. */
   onRechnung: (id: string) => void;
 }) {
-  const zeilen: { key: string; nummer: string; datum: string; art: string; betrag: number; einheit: string; stand: React.ReactNode; to?: string; oeffnen?: () => void }[] = [
+  const zeilen: { key: string; nummer: string; datum: string; art: string; betrag: number; einheit: 'brutto' | 'netto'; stand: React.ReactNode; to?: string; oeffnen?: () => void }[] = [
     ...(rechnungen?.zustand === 'bereit' ? rechnungen.daten.map((r) => ({ key: `r-${r.id}`, nummer: r.invoiceNumber, datum: r.invoiceDate ?? '',
-      art: 'Rechnung', betrag: r.totalBrutto, einheit: 'brutto', stand: <StatusBadge status={r.paymentStatus} />, oeffnen: () => onRechnung(r.id) })) : []),
+      art: 'Rechnung', betrag: r.totalBrutto, einheit: 'brutto' as const, stand: <StatusBadge status={r.paymentStatus} />, oeffnen: () => onRechnung(r.id) })) : []),
     ...(angebote?.zustand === 'bereit' ? angebote.daten.map((q) => ({ key: `a-${q.id}`, nummer: q.quoteNumber, datum: q.quoteDate ?? '',
-      art: 'Angebot', betrag: q.totalNetto, einheit: 'netto', stand: <Zustand stand={ANGEBOT_STAND[q.status]}>{q.status}</Zustand>, to: `/quotes/${q.id}` })) : []),
+      art: 'Angebot', betrag: q.totalNetto, einheit: 'netto' as const, stand: <Zustand stand={ANGEBOT_STAND[q.status]}>{q.status}</Zustand>, to: `/quotes/${q.id}` })) : []),
   ].sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 3);
   const laedt = rechnungen?.zustand === 'laedt' || angebote?.zustand === 'laedt';
   const fehler = rechnungen?.zustand === 'fehler' || angebote?.zustand === 'fehler';
@@ -867,14 +869,9 @@ function BelegeVorschau({ rechnungen, angebote, onRechnung }: {
     {rechnungen?.zustand === 'fehler' && <TeilFehler was="die Rechnungen" />}
     {angebote?.zustand === 'fehler' && <TeilFehler was="die Angebote" />}
     {!laedt && !fehler && zeilen.length === 0 && <EmptyState>Noch keine Belege.</EmptyState>}
-    <ul className="akten-belege">{zeilen.map((z) => {
-      /* Nummer als Stempel, Stand mit Statuszeichen (Planlinie B10, B3) — wie in den Listen der Belege. */
-      const inhalt = <><span className="akten-zeile-inhalt"><span>{z.art} · {fmtDatum(z.datum)}</span><span><Stempel>{z.nummer}</Stempel></span></span>
-        <span className="akten-belegstand">{z.stand}</span><span className="akten-belegbetrag">{euro(z.betrag)} <small>{z.einheit}</small></span></>;
-      return <li key={z.key}>{z.oeffnen
-        ? <button type="button" className="akten-belegzeile" onClick={z.oeffnen}>{inhalt}</button>
-        : <Link className="akten-belegzeile" to={z.to!}>{inhalt}</Link>}</li>;
-    })}</ul></>;
+    {/* Dieselbe Zeile wie in der Baustellenakte (E99), mit dem Pfeil am Ende. */}
+    <ul className="akten-belege">{zeilen.map((z) => <AktenBelegZeile key={z.key} art={z.art} datum={z.datum} nummer={z.nummer}
+      stand={z.stand} betrag={z.betrag} einheit={z.einheit} to={z.to} onOeffnen={z.oeffnen} />)}</ul></>;
 }
 
 /** Die Felder, die die Akte bearbeitet — dieselben, die das Anlegen kennt. */

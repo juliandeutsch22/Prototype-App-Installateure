@@ -215,16 +215,18 @@ export default function BaustellenPlaene({
         if (neu.length > 0) dazu(neu);
       }}
     >
-      <p className="flex flex-wrap items-center text-meta text-ink-muted">
-        Pläne, Fotos und Unterlagen dieser Baustelle
-        <InfoHint about="Pläne und Dokumente">
-          PDF, Bilder, Word, Excel und E-Mails bis 25 MB. Sichtbar für das Büro und für die
-          Monteure, die im Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden
-          sie unter „Meine Baustellen“ und im Einsatzplan. Was „Nur Büro“ trägt, sehen die
-          Monteure nicht; umstellen lässt es sich jederzeit. Pläne aus einem CAD-Programm bitte
-          als PDF exportieren. Dateien lassen sich auch direkt hierher ziehen.
-        </InfoHint>
-      </p>
+      {/*
+        Kein Satz „Pläne, Fotos und Unterlagen dieser Baustelle“ mehr unter dem
+        Titel (E99): er wiederholte „Pläne und Dokumente“ und den Leersatz.
+        Die Erklärung steht unter „Hilfe zu dieser Seite“.
+      */}
+      <InfoHint about="Pläne und Dokumente">
+        PDF, Bilder, Word, Excel und E-Mails bis 25 MB. Sichtbar für das Büro und für die
+        Monteure, die im Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden
+        sie unter „Meine Baustellen“ und im Einsatzplan. Was „Nur Büro“ trägt, sehen die
+        Monteure nicht; umstellen lässt es sich jederzeit. Pläne aus einem CAD-Programm bitte
+        als PDF exportieren. Dateien lassen sich auch direkt hierher ziehen.
+      </InfoHint>
 
       {stand.zustand === 'laedt' ? (
         <SkeletonList rows={1} />

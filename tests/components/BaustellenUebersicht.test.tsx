@@ -95,6 +95,43 @@ it('Planlinie B2 · über dem Budget läuft die Maßlinie rot über die Marke, m
   expect(screen.queryByText(/verbleibend/)).toBeNull();
 });
 
+/*
+  E99 — DAS BUDGET STEHT IN DER AKTE NUR NOCH HIER. Vorher zeigte die Akte
+  es als Angabe UND in der Maßlinie, sobald gebucht war; ohne Buchung nur als
+  Angabe. Gegenprobe: vor E99 stand kompakt ohne Buchung nur der Satz „noch
+  keine Stunde“ — ohne Budget, und beim Ladefehler fehlte es ganz.
+*/
+describe('kompakt: das Budget genau einmal (E99)', () => {
+  it('ohne Buchung mit Budget: die Maßlinie bei 0 h, ohne „Stunden nach Person“', async () => {
+    bestand = [];
+    render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+    expect(await screen.findByRole('img', { name: '0,0 h gebucht von 40 h Budget (0 %), 40,0 h verbleibend' })).toHaveClass('masslinie');
+    // Ohne Buchung wäre „40,0 h verbleibend“ nur das Budget noch einmal.
+    expect(screen.getByText('Budget 40 h')).toBeInTheDocument();
+    expect(screen.queryByText(/verbleibend/)).toBeNull();
+    expect(screen.queryByText('Stunden nach Person')).toBeNull();
+  });
+
+  it('ohne Buchung und ohne Budget: ein Satz, der beides sagt', async () => {
+    bestand = [];
+    render(<BaustellenUebersicht companyId="perl" projekt={projekt({ estimatedHours: undefined })} kompakt />);
+    expect(await screen.findByText('Noch keine Stunde gebucht · kein Stundenbudget hinterlegt.')).toBeInTheDocument();
+  });
+
+  it('laden die Stunden nicht, bleibt das Budget lesbar', async () => {
+    faellt = true;
+    render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+    expect(await screen.findByText(/konnte(n)? nicht geladen werden/)).toBeInTheDocument();
+    expect(document.querySelector('p.baustelle-summe')).toHaveTextContent('Stundenbudget 40 h');
+  });
+
+  it('gleich geblieben: die ausführliche Fassung sagt ohne Buchung weiter „noch keine Stunde“', async () => {
+    bestand = [];
+    zeige();
+    expect(await screen.findByText('Auf diese Baustelle ist noch keine Stunde gebucht.')).toBeInTheDocument();
+  });
+});
+
 describe('Baustellenübersicht', () => {
   it('zeigt die Summe gegen das Budget und fragt nach genau dieser Baustelle', async () => {
     bestand = [summe({ minuten: 960 })];

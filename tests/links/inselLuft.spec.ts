@@ -71,3 +71,39 @@ test('die Zone kommt aus dem Gerät, nicht aus einer festen Zahl', () => {
   expect(css).toMatch(/--sicher-unten: env\(safe-area-inset-bottom, 0px\);/);
   expect(css).toMatch(/\.unten \{[^}]*bottom: max\(0\.5rem, var\(--sicher-unten\) - 0\.8125rem\);/);
 });
+
+/*
+  E99 (18.11.2026) — DIE STATUSLEISTE IST DECKEND. Gemeldet mit zwei
+  Bildschirmfotos vom iPhone: unter Uhrzeit und Akku lief der Inhalt durch.
+  Nachgestellt wie oben, über `--sicher-oben` (47 px, iPhone hochkant): nach
+  dem Rollen trifft ein Punkt in der Zone den Grund der Seite (die Fläche
+  von `.huelle`), keinen Inhalt. Ohne Zone ist die Fläche 0 hoch.
+  Gegenprobe: ohne die Regel trifft derselbe Punkt eine Karte.
+*/
+async function inDerZone(page: Page) {
+  return page.evaluate(() => {
+    // Links neben der Insel des Kopfs (sie hält 8 px Abstand zum Rand): dort lag der Inhalt frei.
+    const el = document.elementFromPoint(4, 20);
+    const flaeche = getComputedStyle(document.querySelector('.huelle')!, '::before');
+    return { trifft: el?.className ?? '', hoehe: flaeche.height, grund: flaeche.backgroundColor, seite: getComputedStyle(document.body).backgroundColor };
+  });
+}
+
+test('iPhone (47 px Zone oben): nach dem Rollen läuft kein Inhalt unter der Statusleiste', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./?pfad=%2Fadmin-projects%2Fp1&rolle=Administrator');
+  await expect(page.getByRole('heading', { name: 'Auftrag' })).toBeVisible({ timeout: 20_000 });
+  await page.addStyleTag({ content: ':root { --sicher-oben: 47px !important; }' });
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect.poll(async () => (await inDerZone(page)).trifft).toBe('huelle');
+  const z = await inDerZone(page);
+  expect(z.hoehe).toBe('47px');
+  expect(z.grund).toBe(z.seite);
+});
+
+test('ohne Zone oben (Android, Browser): keine Fläche', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./?pfad=%2Fadmin-projects%2Fp1&rolle=Administrator');
+  await expect(page.getByRole('heading', { name: 'Auftrag' })).toBeVisible({ timeout: 20_000 });
+  expect((await inDerZone(page)).hoehe).toBe('0px');
+});

@@ -63,8 +63,17 @@ test.describe('Mitarbeiterübersicht', () => {
   });
   test.afterAll(ritaEntfernen);
 
-  test('Tag ohne Buchung → Seitenfenster → Zeit erfassen → der Tag ist gebucht', async ({ page }) => {
+  /*
+    AUCH OHNE LIVE-KANAL (E99, 18.11.2026): in der CI war die Buchung
+    gespeichert, die Meldung des Kanals kam aber nicht, und der Tag blieb
+    „ohne Buchung“. Draußen dasselbe, wo ein Netz Websockets sperrt. Jetzt
+    gleicht die Liste nach eigenem Schreiben selbst ab (`eigeneAenderung.ts`);
+    der Weg läuft deshalb einmal mit und einmal ohne Kanal. Gegenprobe: ohne
+    den Abgleich ist der Weg ohne Kanal rot (21 statt 20 Tage), wie in der CI.
+  */
+  for (const ohneKanal of [false, true]) test(`Tag ohne Buchung → Seitenfenster → Zeit erfassen → der Tag ist gebucht${ohneKanal ? ' (ohne Live-Kanal)' : ''}`, async ({ page }) => {
     test.setTimeout(120_000);
+    if (ohneKanal) await page.routeWebSocket(/realtime/, () => { /* nie verbunden */ });
     await anmelden(page, CHEFIN.email);
     await page.goto(`/accounting?monat=${vormonat()}`);
     // Der neue Einstieg bleibt ein Personenvergleich; der Kalender ergänzt den Nachweis auf dem Telefon.

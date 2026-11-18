@@ -289,7 +289,9 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     // Die Abrechnung steht seit der Planlinie im Schriftfeld des Kopfes (B1), nicht mehr in den Angaben.
     const kopf = document.querySelector('.akten-kopf') as HTMLElement;
     expect(within(kopf).getByText('Abrechnung').closest('.schriftfeld')).toHaveTextContent('Pauschal');
-    expect(angabe('Stundenbudget')).toBeInTheDocument();
+    // E99: das Stundenbudget steht nur noch in seiner Maßlinie (Stundenauswertung), nicht zusätzlich als Angabe.
+    expect(await screen.findByText('Stundenauswertung')).toBeInTheDocument();
+    expect(screen.queryAllByText('Stundenbudget').filter((e) => e.tagName === 'DT')).toHaveLength(0);
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
 
@@ -597,9 +599,11 @@ describe('Was die Akte sonst noch zeigt', () => {
     expect(await screen.findByText('Stundenauswertung')).toBeInTheDocument();
   });
 
-  it('verweist auf die Kundenakte', async () => {
+  it('verweist auf die Kundenakte: der Name als Verweis wie in der Angebotsakte (E99)', async () => {
     zeige();
-    expect(await screen.findByRole('link', { name: /Zur Kundenakte/ })).toHaveAttribute(
+    const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
+    expect(within(kontext).queryByText(/Zur Kundenakte/)).toBeNull();
+    expect(within(kontext).getByRole('link', { name: BAUSTELLE.customerName })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -608,7 +612,7 @@ describe('Was die Akte sonst noch zeigt', () => {
   it('gibt den Links unter „Weiter“ die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
     // Alleinstehende Links waren nur so hoch wie ihre Zeile (24 px).
     zeige();
-    expect((await screen.findByRole('link', { name: /Zur Kundenakte/ })).className)
+    expect((await screen.findByRole('link', { name: BAUSTELLE.customerName })).className)
       .toMatch(/\bmin-h-touch\b/);
     expect((await screen.findByRole('link', { name: 'Schein schreiben' })).className).toMatch(/\bmin-h-touch\b/);
   });
@@ -695,12 +699,14 @@ describe('Was die Akte sonst noch zeigt', () => {
 */
 describe('Das Angebot hinter der Baustelle', () => {
   it('ist von der Akte aus verlinkt', async () => {
-    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', quoteDate: '2026-09-01', status: 'Angenommen', totalNetto: 18400 }];
     zeige();
-    expect(await screen.findByRole('link', { name: 'Angebot AN-2026-0007' })).toHaveAttribute(
-      'href',
-      '/quotes/q7',
-    );
+    // E99: als Belegzeile in der Karte „Angebote“ — Datum, Nummer, Stand, Betrag netto, Pfeil.
+    const zeile = await screen.findByRole('link', { name: /^Angebot · 01\.09\.2026\s*AN-2026-0007/ });
+    expect(zeile).toHaveAttribute('href', '/quotes/q7');
+    expect(zeile).toHaveTextContent(/Angenommen€\s18\s400,00 netto/);
+    expect(zeile.querySelector('.zeile-pfeil')).not.toBeNull();
+    expect(zeile.closest('section.karte')).toHaveTextContent(/^Angebote/);
     // Über die Kennung gesucht, nicht über die änderbare Nummer.
     expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
   });
@@ -713,9 +719,12 @@ describe('Das Angebot hinter der Baustelle', () => {
       { id: 'q11', quoteNumber: 'AN-2026-0011', status: 'Entwurf', positions: [] },
     ];
     zeige();
-    expect(await screen.findByRole('link', { name: 'Nachtrag AN-2026-0009' })).toHaveAttribute('href', '/quotes/q9');
-    expect(screen.getByRole('link', { name: 'Angebot AN-2026-0011 (Entwurf)' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(await screen.findByRole('link', { name: /^Nachtrag\s*AN-2026-0009/ })).toHaveAttribute('href', '/quotes/q9');
+    expect(screen.getByRole('link', { name: /^Angebot\s*AN-2026-0011\s*Entwurf/ })).toBeInTheDocument();
+    // „Nachtrag anlegen“ steht im Kopf der Karte, wie „Handwerksschein schreiben“ bei den Scheinen.
+    const anlegen = screen.getByRole('link', { name: 'Nachtrag anlegen' });
+    expect(anlegen).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(anlegen.closest('.karte-kopf')).not.toBeNull();
   });
 
   it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
@@ -725,7 +734,16 @@ describe('Das Angebot hinter der Baustelle', () => {
     zeige();
     await screen.findByText('Stundenauswertung');
     expect(listQuotesForProject).not.toHaveBeenCalled();
-    expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Angebot/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Angebote' })).toBeNull();
+  });
+
+  it('ohne Angebot sagt die Karte es — und erst, wenn geladen ist (E99)', async () => {
+    angebote = [];
+    zeige();
+    const karte = (await screen.findByRole('heading', { name: 'Angebote' })).closest('section.karte') as HTMLElement;
+    expect(karte).toHaveTextContent('Zu dieser Baustelle gibt es kein Angebot.');
+    expect(listQuotesForProject).toHaveBeenCalled();
   });
 
   it('sagt bei Pauschal, woher der Preis kommt: aus dem angenommenen Angebot (M14)', async () => {
@@ -754,7 +772,12 @@ describe('Das Angebot hinter der Baustelle', () => {
   it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {
     angeboteScheitern = true;
     zeige();
-    expect(await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toBeInTheDocument();
+    const satz = await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/);
+    // E99: in der Karte „Angebote“, einmal; „Nachtrag anlegen“ bleibt erreichbar wie vorher der Verweis.
+    expect(satz.closest('section.karte')).toHaveTextContent(/^Angebote/);
+    expect(screen.getAllByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
+    expect(screen.queryByText('Zu dieser Baustelle gibt es kein Angebot.')).toBeNull();
   });
 });
 
@@ -768,6 +791,8 @@ describe('Der Eingang hinter der Baustelle (M02b)', () => {
     ausEingang = { id: 'e1', nummer: 'EG-2026-0003' };
     zeige();
     expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0003' })).toHaveAttribute('href', '/eingaenge/e1');
+    // E99: als Angabe „Herkunft“ wie in der Angebotsakte, kein loser Verweis.
+    expect(angabe('Herkunft')).toHaveTextContent('Aus Eingang EG-2026-0003');
     expect(getEingangZu).toHaveBeenCalledWith('perl', { projectId: BAUSTELLE.id });
   });
 
@@ -918,32 +943,30 @@ describe('Die Baustellenakte in der Linie „Lot“', () => {
     expect(document.getElementById('b-termine')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Termin anlegen' })).toBeNull();
   });
-  it('zeigt den Verlauf als Lot: Beginn, heute als Ring, das überschrittene Ende', async () => {
+  /*
+    E99 (Auftrag: „was könnte man weglassen“): der „Verlauf der Baustelle“
+    entfällt — jeder seiner Punkte steht schon woanders. Geprüft wird, dass
+    es dort steht: Beginn, Ende mit „überschritten“ und Stand im Schriftfeld,
+    das Angebot mit Datum und Stand in seiner Karte. Gegenprobe: vor E99 gab
+    es den aufklappbaren Verlauf (rot).
+  */
+  it('kein „Verlauf der Baustelle“ mehr — seine Punkte stehen im Schriftfeld und bei den Angeboten (E99)', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', quoteDate: '2026-02-20', status: 'Angenommen', totalNetto: 100 }];
     try {
       zeige();
-      await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
-    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
-      const punkte = within(lot).getAllByRole('listitem');
-      expect(punkte.map((p) => p.querySelector('.lot-titel')?.textContent)).toEqual([
-        'Beginn', 'Ende geplant', 'Heute · Aktiv',
-      ]);
-      expect(punkte[2]).toHaveAttribute('aria-current', 'step');
-      expect(within(punkte[1]).getByText('überschritten')).toBeInTheDocument();
+      await screen.findByText('2026-101', { selector: '.stempel' });
+      const feld = within(document.querySelector('.akten-kopf') as HTMLElement).getByRole('list', { name: 'Eckdaten der Baustelle' });
+      expect(feld).toHaveTextContent('Beginn 02.03.2026');
+      expect(feld).toHaveTextContent(/Ende geplant\s*30\.04\.2026\s*überschritten/);
+      expect(feld).toHaveTextContent('Aktiv');
+      expect(await screen.findByRole('link', { name: /^Angebot · 20\.02\.2026\s*AN-2026-0007\s*Angenommen/ })).toBeInTheDocument();
+      expect(screen.queryByText('Verlauf der Baustelle')).toBeNull();
+      expect(screen.queryByRole('list', { name: 'Verlauf der Baustelle' })).toBeNull();
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('Gegenprobe: eine abgeschlossene Baustelle hat keinen „heute“-Ring und nichts überschritten', async () => {
-    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
-    zeige();
-    await userEvent.click(await screen.findByText('Verlauf der Baustelle', { selector: 'summary' }));
-    const lot = await screen.findByRole('list', { name: 'Verlauf der Baustelle' });
-    expect(within(lot).queryByText(/Heute/)).toBeNull();
-    expect(within(lot).queryByText('überschritten')).toBeNull();
-    expect(within(lot).getByText('Ende')).toBeInTheDocument();
   });
 
   it('zeigt die bisherigen Formularfelder im Bearbeitungsfenster offen', async () => {
@@ -1005,6 +1028,26 @@ describe('Die Handwerksscheine der Baustelle', () => {
     expect(karte.getByText(/unterschrieben von Frau Huber/)).toBeInTheDocument();
     expect(karte.getAllByText('04:00 Std').length).toBe(2);
     expect(listWorkSheetsForProject).toHaveBeenCalledWith('perl', '2026-101', 20);
+  });
+
+  /*
+    E99: jede Zeile trägt den Pfeil, und die Spalte der Stunden steht auch
+    beim Schein ohne Zeiten — sonst rückte sein Stand eine Spalte nach rechts.
+    Gegenprobe: vor E99 fehlten Pfeil und leere Spalte.
+  */
+  it('Pfeil am Ende und die Spalte der Stunden auch ohne Zeiten (E99)', async () => {
+    scheine = [SCHEIN('s2', { datum: '2026-10-07', abrechnung: 'Pauschal', zeiten: [] }), SCHEIN('s1')];
+    zeige();
+    const karte = await scheinKarte();
+    await within(karte).findAllByRole('link', { name: /07\.10\.2026|05\.10\.2026/ });
+    const zeilen = [...karte.querySelectorAll('li.zeile')];
+    expect(zeilen).toHaveLength(2);
+    for (const z of zeilen) {
+      expect(z.querySelector('.zeile-pfeil')).not.toBeNull();
+      expect(z.querySelector('.zeile-wert .schein-dauer')).not.toBeNull();
+    }
+    expect(zeilen[0].querySelector('.schein-dauer')).toHaveTextContent(/^$/);
+    expect(zeilen[1].querySelector('.schein-dauer')).toHaveTextContent('04:00 Std');
   });
 
   it('nennt „verrechnet“, wer Rechnungen sieht — und fragt sonst gar nicht', async () => {
@@ -1136,6 +1179,29 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
       const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage, Ende seit 15 Tagen überschritten$/ });
       expect(linie.querySelector('.masslinie-marke-rot')).not.toBeNull();
       expect(within(linie).getByText('+15 Tage')).toBeInTheDocument();
+      // E99: die Daten stehen im Schriftfeld; an der Linie Dauer und Ende, das Ende nur einmal.
+      expect(within(linie).getByText('60 Tage geplant')).toBeInTheDocument();
+      expect(within(linie).getByText('Ende 30.04.')).toBeInTheDocument();
+      expect(linie).not.toHaveTextContent('02.03.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+    E99: eine abgeschlossene Baustelle zählt nicht weiter — dieselbe Regel
+    wie „Ende überschritten“. Gegenprobe: vor E99 wuchs ihr roter Überhang
+    jeden Tag (hier +15 Tage).
+  */
+  it('abgeschlossen: kein Überhang, auch lange nach dem Ende (E99)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
+    try {
+      zeige();
+      const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage$/ });
+      expect(linie.querySelector('.masslinie-ueber')).toBeNull();
+      expect(linie).not.toHaveTextContent('+');
     } finally {
       vi.useRealTimers();
     }
@@ -1148,6 +1214,7 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
       const { unmount } = zeige();
       const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage$/ });
       expect(linie.querySelector('.masslinie-ueber')).toBeNull();
+      expect(within(linie).getByText('Tag 15 von 60')).toBeInTheDocument();
       unmount();
       baustellen = [{ ...BAUSTELLE, endDate: undefined }];
       zeige();
@@ -1216,8 +1283,27 @@ describe('Übersicht: Einsätze, Material, Rechnungen (E84)', () => {
     expect(karte).toHaveTextContent(/Gestellt€\s2\s400,00 brutto · 2 Rechnungen/);
     expect(karte).toHaveTextContent(/Offen€\s1\s200,00/);
     expect(within(karte).queryByText('RE-2026-3')).toBeNull();
-    expect(within(karte).getByRole('link', { name: /RE-2026-2/ })).toHaveAttribute('href', '/invoices?oeffnen=2');
     expect(within(karte).getByRole('link', { name: 'Alle Rechnungen' })).toHaveAttribute('href', '/invoices?suche=2026-101');
+  });
+
+  /*
+    E99, gemeldet: die Rechnungen der Baustellenakte waren „verlinkt ohne
+    sichtbaren Button“ und sprangen auf die Rechnungsseite. Jetzt wie in der
+    Kundenakte: ein Knopf mit Pfeil, die Rechnung öffnet sich im Fenster.
+    Gegenprobe: vor E99 war die Zeile ein Verweis auf `/invoices?oeffnen=…`.
+  */
+  it('eine Rechnung öffnet sich im Fenster der Akte, die Zeile trägt den Pfeil (E99)', async () => {
+    rechnungen = [RECHNUNG('2', { invoiceDate: '2026-10-10' })];
+    zeige();
+    const karte = await block('Rechnungen');
+    const zeile = await within(karte).findByRole('button', { name: /RE-2026-2/ });
+    expect(within(karte).queryByRole('link', { name: /RE-2026-2/ })).toBeNull();
+    expect(zeile.querySelector('.zeile-pfeil')).not.toBeNull();
+    await userEvent.click(zeile);
+    const fenster = await screen.findByRole('dialog');
+    expect(within(fenster).getByText('RE-2026-2')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('Gegenprobe: die Verwaltung sieht das Material, aber keine Rechnungen — und lädt sie nicht', async () => {

@@ -3,7 +3,9 @@ import KnopfLink from '@/components/KnopfLink';
 import { einsaetzeDerBaustelle } from '@/lib/db/assignments';
 import type { Assignment } from '@/types';
 import { akteHauptaktion } from './akteHauptaktion';
-import { EinsaetzeListe, EinsaetzeVorschau, MaterialVorschau, RechnungenVorschau } from './AkteUeberblick';
+import { AktenBelegZeile, EinsaetzeListe, EinsaetzeVorschau, MaterialVorschau, RechnungenVorschau } from './AkteUeberblick';
+import AkteRechnungFenster from '@/features/invoices/AkteRechnungFenster';
+import { STAND as ANGEBOT_STAND } from '@/features/quotes/stand';
 import { baustelleMaterialstand, type Materialstand } from '@/lib/db/projects';
 import { listInvoicesForProject } from '@/lib/db/invoices';
 import type { Invoice } from '@/types';
@@ -45,7 +47,6 @@ import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTe
 import TermineKarte from '@/features/termine/TermineKarte';
 import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
-import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
 import { endeVorbei } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
@@ -62,7 +63,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { fmtStunden, todayStr } from '@/lib/time';
+import { todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -112,6 +113,10 @@ export default function BaustellenakteView() {
   */
   const angeboteSichtbar = user ? canAccess(user.role, '/quotes', company?.modules) : false;
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
+  // Für die Karte „Angebote“ (E99): lädt, geladen oder nicht geladen — nie dasselbe wie „keines“.
+  const [angeboteStand, setAngeboteStand] = useState<'laedt' | 'bereit' | 'fehler'>('laedt');
+  // Die Rechnung, deren Fenster offen ist (E99) — wie in der Kundenakte.
+  const [offeneRechnung, setOffeneRechnung] = useState<string | null>(null);
   /** Der Auftragseingang, aus dem die Baustelle entstand (M02b) — nur mit der Unterfähigkeit. */
   const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
   const [ausEingang, setAusEingang] = useState<{ id: string; nummer: string } | null>(null);
@@ -286,12 +291,14 @@ export default function BaustellenakteView() {
   useEffect(() => {
     if (!companyId || !baustellenId || !angeboteSichtbar) return;
     let weg = false;
+    setAngeboteStand('laedt');
     void (async () => {
       try {
         const q = await listQuotesForProject(companyId, baustellenId);
-        if (!weg) setAngebote(q);
+        if (!weg) { setAngebote(q); setAngeboteStand('bereit'); }
       } catch {
-        if (!weg) setNebenFehler('Das Angebot zu dieser Baustelle');
+        // In der Karte „Angebote“ (E99); oben nicht noch einmal.
+        if (!weg) setAngeboteStand('fehler');
       }
     })();
     return () => {
@@ -505,41 +512,66 @@ export default function BaustellenakteView() {
     );
   }
 
-  const verlauf = verlaufPunkte(b, angebote, todayStr());
   const auftrag = (
     <Card title="Auftrag" id="b-ueberblick">
       <AktenAngaben>
         <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{auftragsumfangZeigen(b.description, ausEingang?.nummer ?? null) || 'nicht hinterlegt'}</span></AktenAngabe>
-        {/* Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld des Aktenkopfs. */}
-        <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
+        {/*
+          Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld
+          des Aktenkopfs, das Stundenbudget seit E99 nur in seiner Maßlinie
+          darunter (vorher hier noch einmal als Angabe).
+        */}
         {/* A8: aus dem Eingang — direkt oder über das Angebot. */}
         {b.dringlichkeit && b.dringlichkeit !== 'normal' && <AktenAngabe wort="Dringlichkeit">{DRINGLICHKEIT_TEXT[b.dringlichkeit]}</AktenAngabe>}
         {b.wunschtermin && <AktenAngabe wort="Wunschtermin">{fmtDatum(b.wunschtermin)}</AktenAngabe>}
+        {/* Die Herkunft wie in der Angebotsakte (E99): eine Angabe, kein loser Verweis unter der Maßlinie. */}
+        {ausEingang && <AktenAngabe wort="Herkunft"><Link to={`/eingaenge/${ausEingang.id}`} className="link inline-flex min-h-touch items-center">Aus Eingang {ausEingang.nummer}</Link></AktenAngabe>}
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
         <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} baustelleId={darfAendern ? b.id : undefined} />}
       {user && <Suspense fallback={<p className="text-fliess text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
-      <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
-      <div className="flex flex-wrap items-center gap-x-4">
-        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">{q.nachtrag ? 'Nachtrag' : 'Angebot'} {q.quoteNumber}{q.status && q.status !== 'Angenommen' ? ` (${q.status})` : ''}</Link>)}
-        {/* A3, F6: ein Nachtrag bleibt beim Auftrag — das Angebot gehört von Anfang an zu dieser Baustelle. */}
-        {angeboteSichtbar && darfAendern && b.status !== 'Abgeschlossen' && <Link to={`/quotes?baustelle=${b.id}`} className="link akten-verweis">Nachtrag anlegen</Link>}
-        {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
-      </div>
-      {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
-        <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
-      </details>}
+      <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} laeuft={endeVorbei(b, todayStr())} />
+      {/*
+        KEIN „VERLAUF DER BAUSTELLE“ MEHR (E99, Auftrag: „welche Informationen
+        … haben wirklich Mehrwert und was könnte man weglassen“). Er zeigte
+        Angebot mit Datum und Stand, Beginn, heute mit dem Stand und das
+        geplante Ende samt „überschritten“ — alles steht schon im Schriftfeld,
+        in der Karte „Angebote“ und im Leistungszeitraum.
+      */}
       {/* Wer was wann an der Baustelle geändert hat (M01b) — neben ihrem Verlauf, ebenso auf Klick. */}
       {companyId && verlaufSichtbar(user?.role, 'baustelle', !!einblick) &&
         <ObjektVerlauf companyId={companyId} objektart="baustelle" objektId={b.id} stil="akte" name={(u) => namen.get(u)} />}
     </Card>
   );
+  /*
+    DIE ANGEBOTE DER BAUSTELLE ALS BELEGE (E99). Vorher standen sie als lose
+    Verweise unter der Maßlinie, am Handy je einer pro Zeile mit großen
+    Lücken, und sahen anders aus als die Rechnungen darunter. Jetzt dieselbe
+    Zeile wie in der Kundenakte (Datum, Nummer, Stand, Betrag netto, Pfeil);
+    „Nachtrag anlegen“ ist der nächste Schritt im Kopf der Karte wie
+    „Handwerksschein schreiben“ bei den Scheinen (A3, F6: ein Nachtrag bleibt
+    beim Auftrag). Lädt das Angebot nicht, sagt es die Karte — der Knopf
+    bleibt, wie vorher der Verweis.
+  */
+  const angeboteKarte = angeboteSichtbar ? (
+    <Card title="Angebote" id="b-angebote"
+      action={darfAendern && b.status !== 'Abgeschlossen'
+        ? <KnopfLink to={`/quotes?baustelle=${b.id}`} variant="secondary" groesse="klein">Nachtrag anlegen</KnopfLink> : undefined}>
+      {angeboteStand === 'fehler' ? <TeilFehler was="Das Angebot zu dieser Baustelle" />
+        : angeboteStand === 'laedt' ? <SkeletonList rows={1} />
+        : angebote.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es kein Angebot.</EmptyState>
+        : <ul className="akten-belege">{angebote.map((q) => <AktenBelegZeile key={q.id} art={q.nachtrag ? 'Nachtrag' : 'Angebot'}
+          datum={q.quoteDate} nummer={q.quoteNumber} stand={q.status ? <Zustand stand={ANGEBOT_STAND[q.status]}>{q.status}</Zustand> : null}
+          betrag={q.totalNetto} einheit="netto" to={`/quotes/${q.id}`} />)}</ul>}
+    </Card>
+  ) : null;
   const kundeOrt = <Card title="Kunde und Ort" id="b-daten">
     <AktenAngaben>
       <AktenAngabe wort="Kunde" breit>{b.customerId
-        ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName} · Zur Kundenakte</Link>
+        /* Der Name als Verweis wie in der Angebotsakte (E99); „· Zur Kundenakte“ dahinter sagte nur noch einmal, wohin er führt. */
+        ? <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">{b.customerName}</Link>
         : <span className="text-warning">Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".</span>}</AktenAngabe>
       <AktenAngabe wort="Ansprechpartner vor Ort">{b.contactName}</AktenAngabe>
       <AktenAngabe wort="Baustellenadresse" breit>{b.address?.trim() ? <AdresseLink adresse={b.address} /> : null}</AktenAngabe>
@@ -705,11 +737,12 @@ export default function BaustellenakteView() {
           <div className="akten-spalte">
             <Card title="Angaben" buendig className="akten-angaben-handy"><div className="schriftfeld schriftfeld-blatt">{eckdaten}</div></Card>
             {auftrag}
+            {angeboteKarte}
             {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
             {einsatzAn && <EinsaetzeVorschau lage={einsatzLage} namen={(uid) => namen.get(uid)} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
             {materialSichtbar && <MaterialVorschau stand={materialLage} projectNumber={b.projectNumber} />}
-            {rechnungenSichtbar && <RechnungenVorschau rechnungen={rechnungLage} projectNumber={b.projectNumber} />}
+            {rechnungenSichtbar && <RechnungenVorschau rechnungen={rechnungLage} projectNumber={b.projectNumber} onOeffnen={setOffeneRechnung} />}
             {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine</AktenVerweis>}>
               {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />
                 : scheinStand.scheine.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
@@ -737,6 +770,14 @@ export default function BaustellenakteView() {
           bezug={['Baustelle:', `${b.projectNumber}${b.bezeichnung?.trim() ? ` · ${b.bezeichnung.trim()}` : ''}`]}
           angaben={[['Kunde:', b.customerName ?? ''], ['Anschrift:', b.address ?? '']]}
           dateiBezug={b.projectNumber}
+        />
+      )}
+      {companyId && rechnungenSichtbar && (
+        <AkteRechnungFenster
+          inv={offeneRechnung && Array.isArray(rechnungLage) ? rechnungLage.find((r) => r.id === offeneRechnung) ?? null : null}
+          companyId={companyId}
+          company={company}
+          onClose={() => setOffeneRechnung(null)}
         />
       )}
       <BaustelleAbschliessen
@@ -792,69 +833,38 @@ function tageZwischen(a: string, b: string): number {
 /**
  * DER LEISTUNGSZEITRAUM ALS MASSLINIE (Planlinie B2): Beginn bis geplantes
  * Ende, die Strecke bis heute. Liegt heute hinter dem Ende, läuft der
- * Überhang rot über die Marke — dieselbe Regel wie „Ende überschritten“.
+ * Überhang rot über die Marke — dieselbe Regel wie „Ende überschritten“
+ * (`laeuft` = `endeVorbei`): eine abgeschlossene oder pausierte Baustelle
+ * zählt nicht weiter, vorher wuchs ihr Überhang Tag für Tag.
  * Ohne beide Daten keine Linie.
+ *
+ * DIE DATEN STEHEN EINMAL (E99): Beginn und Ende stehen im Schriftfeld des
+ * Kopfs; die Linie sagt, wie weit es ist („Tag 16 von 29“) und wann sie
+ * endet. Vorher stand das Ende zweimal an derselben Linie
+ * („03.08. bis 31.08.2026 · 29 Tage“ und „geplantes Ende 31.08.“).
  */
-function Leistungszeitraum({ beginn, ende, heute }: { beginn?: string | null; ende?: string | null; heute: string }) {
+function Leistungszeitraum({ beginn, ende, heute, laeuft }: { beginn?: string | null; ende?: string | null; heute: string; laeuft: boolean }) {
   if (!beginn || !ende || ende < beginn) return null;
   const gesamt = tageZwischen(beginn, ende) + 1;
   const bisHeute = heute < beginn ? 0 : tageZwischen(beginn, heute) + 1;
-  const ueber = Math.max(0, tageZwischen(ende, heute));
+  const ueber = laeuft ? Math.max(0, tageZwischen(ende, heute)) : 0;
   const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  const tage = (n: number) => `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
+  const istText = heute < beginn ? `beginnt ${kurz(beginn)} · ${tage(gesamt)}`
+    : bisHeute <= gesamt ? `Tag ${bisHeute} von ${gesamt}`
+    : `${tage(gesamt)} geplant`;
   return (
     <MasslinieZeile name="Leistungszeitraum">
       <Masslinie
         ist={Math.min(bisHeute, gesamt + ueber)}
         soll={gesamt}
-        istText={`${kurz(beginn)} bis ${fmtDatum(ende)} · ${gesamt} ${gesamt === 1 ? 'Tag' : 'Tage'}`}
-        sollText={ende === heute ? 'geplantes Ende heute' : `geplantes Ende ${kurz(ende)}`}
-        ueberText={`+${ueber} ${ueber === 1 ? 'Tag' : 'Tage'}`}
+        istText={istText}
+        sollText={ende === heute ? 'Ende heute' : `Ende ${kurz(ende)}`}
+        ueberText={`+${tage(ueber)}`}
         name={`Leistungszeitraum ${fmtDatum(beginn)} bis ${fmtDatum(ende)}, ${gesamt} Tage${ueber > 0 ? `, Ende seit ${ueber} ${ueber === 1 ? 'Tag' : 'Tagen'} überschritten` : ''}`}
       />
     </MasslinieZeile>
   );
-}
-
-/**
- * DER VERLAUF DER BAUSTELLE als Lot — nur aus dem, was die Akte schon lädt:
- * die Angebote (sofern die Rolle sie lesen darf), Beginn, heute und das
- * geplante Ende. Kein Punkt wird erfunden: fehlt ein Datum, fehlt der Punkt.
- * „Heute“ ist der Ring, solange die Baustelle nicht abgeschlossen ist.
- */
-function verlaufPunkte(b: Project, angebote: Quote[], heute: string): LotPunkt[] {
-  const punkte: (LotPunkt & { datum: string })[] = [];
-  for (const q of angebote) {
-    punkte.push({
-      titel: `Angebot ${q.quoteNumber}`,
-      zeit: fmtDatum(q.quoteDate) || undefined,
-      text: q.status,
-      datum: q.quoteDate ?? '',
-    });
-  }
-  if (b.startDate) {
-    punkte.push({
-      titel: b.startDate > heute ? 'Beginn geplant' : 'Beginn',
-      zeit: fmtDatum(b.startDate),
-      datum: b.startDate,
-    });
-  }
-  if (b.status !== 'Abgeschlossen') {
-    punkte.push({ titel: `Heute · ${b.status}`, zeit: fmtDatum(heute), jetzt: true, datum: heute });
-  }
-  if (b.endDate) {
-    punkte.push({
-      titel: b.status === 'Abgeschlossen' ? 'Ende' : 'Ende geplant',
-      zeit: fmtDatum(b.endDate),
-      // Dieselbe Regel wie der Filter „Ende überschritten“ der Startseite.
-      text: endeVorbei(b, heute) ? <Zustand stand="achtung">überschritten</Zustand> : undefined,
-      datum: b.endDate,
-    });
-  }
-  // Am selben Tag bleibt die Reihenfolge oben stehen (Angebot, Beginn, heute, Ende).
-  return punkte
-    .map((p, i) => ({ p, i }))
-    .sort((x, y) => x.p.datum.localeCompare(y.p.datum) || x.i - y.i)
-    .map(({ p }) => ({ titel: p.titel, zeit: p.zeit, text: p.text, jetzt: p.jetzt }));
 }
 
 /**

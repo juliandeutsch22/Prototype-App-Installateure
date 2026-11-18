@@ -112,12 +112,26 @@ export default function BaustellenUebersicht({
     return <p className="text-fliess text-ink-muted">Stunden werden geladen …</p>;
   }
   if (stand.art === 'fehler') {
-    return <TeilFehler was="die Stunden dieser Baustelle" onRetry={() => setVersuch((v) => v + 1)} />;
+    const fehler = <TeilFehler was="die Stunden dieser Baustelle" onRetry={() => setVersuch((v) => v + 1)} />;
+    // Kompakt steht das Budget nur hier (E99) — es bleibt lesbar, auch wenn die Stunden fehlen.
+    return kompakt && projekt.estimatedHours
+      ? <div className="akten-stunden"><p className="baustelle-summe">Stundenbudget <span className="akten-stunden-zahl">{fmtStunden(projekt.estimatedHours)} h</span></p>{fehler}</div>
+      : fehler;
   }
 
   const budget = calcBudgetState(stand.fachMin, projekt.estimatedHours);
+  const nochNichts = stand.fachMin === 0 && stand.helperMin === 0 && stand.lehrlingMin === 0;
 
-  if (stand.fachMin === 0 && stand.helperMin === 0 && stand.lehrlingMin === 0) {
+  /*
+    KOMPAKT OHNE BUCHUNG (E99): die Akte nannte das Budget als Angabe UND,
+    sobald gebucht war, in der Maßlinie darunter — zweimal „Stundenbudget“.
+    Jetzt steht es nur hier: mit Budget die Linie bei 0 h, ohne Budget ein Satz.
+  */
+  if (kompakt && nochNichts && !projekt.estimatedHours) {
+    return <p className="text-fliess text-ink-muted">Noch keine Stunde gebucht · kein Stundenbudget hinterlegt.</p>;
+  }
+
+  if (!kompakt && nochNichts) {
     return (
       <p className="text-fliess text-ink-muted">
         Auf diese Baustelle ist noch keine Stunde gebucht.
@@ -139,7 +153,8 @@ export default function BaustellenUebersicht({
           soll={projekt.estimatedHours}
           achtung={budget.tone === 'warning'}
           istText={`${fmtStd(stand.fachMin)} h gebucht${davonLehrling(stand.lehrlingImBudgetMin)}`}
-          sollText={budget.over ? `Budget ${fmtStunden(projekt.estimatedHours)} h` : `Budget ${fmtStunden(projekt.estimatedHours)} h · ${fmtStd(restMin)} h verbleibend`}
+          // Ohne Buchung ist „verbleibend“ das Budget selbst — einmal genügt (E99).
+          sollText={budget.over || nochNichts ? `Budget ${fmtStunden(projekt.estimatedHours)} h` : `Budget ${fmtStunden(projekt.estimatedHours)} h · ${fmtStd(restMin)} h verbleibend`}
           ueberText={`+${fmtStd(restMin)} h über Budget`}
           name={`${fmtStd(stand.fachMin)} h gebucht von ${fmtStunden(projekt.estimatedHours)} h Budget (${budget.pct} %), ${fmtStd(restMin)} h ${budget.over ? 'über Budget' : 'verbleibend'}`}
         />
@@ -151,7 +166,7 @@ export default function BaustellenUebersicht({
     {stand.helperMin > 0 && <p className="text-meta text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
     {stand.lehrlingMin > 0 && <p className="text-meta text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
     {/* Stunden nach Person als Stückliste (Planlinie B6): Pos, Person, Stunden, Summe über der Doppellinie. */}
-    <details><summary className="weiteres-kopf">Stunden nach Person</summary>
+    {!nochNichts && <details><summary className="weiteres-kopf">Stunden nach Person</summary>
       <div className="overflow-x-auto">
         <table className="tabelle tabelle-eng">
           <thead><tr><th scope="col">Pos</th><th scope="col">Person</th><th scope="col" className="r">Stunden</th></tr></thead>
@@ -167,7 +182,7 @@ export default function BaustellenUebersicht({
           </tbody>
         </table>
       </div>
-      {stand.zuletzt && <p className="text-meta text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>
+      {stand.zuletzt && <p className="text-meta text-ink-muted">Zuletzt gebucht am {fmtDatum(stand.zuletzt)}.</p>}</details>}
   </div>;
 
   return (
