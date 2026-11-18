@@ -131,8 +131,8 @@ export default async function aufbau(): Promise<void> {
   // Abräumen in der Reihenfolge der Abhängigkeiten: die Fremdschlüssel halten
   // sonst fest, was weg soll.
   for (const t of [
-    'work_sheet_zeiten', 'work_sheet_material', 'work_sheet_fotos', 'work_sheets',
-    'invoice_positions', 'invoices', 'material_orders', 'time_entries',
+    'work_sheet_material', 'work_sheets',
+    'invoices', 'material_orders', 'time_entries',
     // M06b: die freien Zeitfelder — ein liegengebliebenes Pflichtfeld ließe jede Buchung eines Durchklicks scheitern.
     'zeitbuchung_feldwerte', 'zeitfeld_fassungen', 'zeitfeld_definitionen',
     // Sonderurlaub (Plan 10.3): hängt an der Person; bliebe er stehen, ließe
@@ -148,12 +148,23 @@ export default async function aufbau(): Promise<void> {
     'angebot_links', 'quotes',
     // M04b: die Posten der Einkaufsliste vor den Artikeln, auf die sie zeigen.
     'einkauf_posten',
+    // Lager je Ort (T-16): Bewegungen und Bestände hängen am Artikel.
+    'lagerbewegungen', 'lagerbestaende',
     'rabattsaetze', 'materials', 'projects',
     // Liegenschaften (M02c): nach den Baustellen, die auf sie zeigen; Tops und Beteiligte gehen mit.
     'liegenschaften',
     'customers', 'suppliers',
   ]) {
-    await admin.from(t).delete().eq('company_id', BETRIEB);
+    /*
+      SCHEITERT DAS ABRÄUMEN, BRICHT DER AUFBAU AB (18.11.2026). Vorher lief
+      er still weiter: die Lagerbewegungen fehlten in der Liste, der Artikel
+      ließ sich nicht löschen, und jeder Lauf legte „Kupferrohr 15mm“ ein
+      weiteres Mal an — nach vierzehn Läufen scheiterten 24 Wege an
+      Dubletten, weit weg von der Ursache. Ebenso stand hier eine Tabelle,
+      die es längst nicht mehr gab.
+    */
+    const { error } = await admin.from(t).delete().eq('company_id', BETRIEB);
+    if (error) throw new Error(`Abräumen von „${t}“ gescheitert: ${error.message}`);
   }
 
   await konto(MONTEUR.email, MONTEUR.name, 'Mitarbeiter');

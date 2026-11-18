@@ -4225,3 +4225,97 @@ rund 60 freie Zwischenwerte.
   Abbild ohne `inert`, Austausch mit Abbild, neue Zeile bleibt halb
   durchsichtig, Leersatz ohne Rand, verzögerter Rechtstext gegen die alte
   Fassung) ist jede rot.
+
+**E98 — Arbeitskarten der Rechnungen zugeklappt, Leersätze auf der Flucht, Einsatz-Vorschau auf der Startseite, gleiche Luft der Handy-Inseln (18.11.2026).**
+Auftrag: „bei rechnungen: nicht verrechnet und mahnlauf sollten einklappbar
+bzw. standardmäßig eingeklappt sein … auf dem desktop könnten sie zum
+beispiel auch einfach nebeneinander stehen … bei baustellen < scheine: hier
+klebt der platzhalter text auch noch am rand“; dazu: „wenn man im dashboard
+auf die einsätze klickt, sollte sich ein modal mit den einsatzdetails
+öffnen“ und „mobil auf dem iphone schwebt die nav unten höher über dem rand
+als der header oben. die abstände sollten einheitlich sein“.
+
+- **Nicht verrechnete Leistung und Mahnlauf beginnen zugeklappt.** Der Kopf
+  jeder Karte ist ein Knopf mit Pfeil und der Zahl im Titel (`Card` mit
+  `klappe`), darunter steht zugeklappt die Summenzeile — „davon 2 über 4
+  Wochen“, „1.250,00 € offen · 40,00 € Mahnspesen“ bzw. „Heute ist nichts
+  zu mahnen.“ —, beim Mahnlauf zusätzlich
+  „N Forderungen brauchen eine Entscheidung“, wenn eine ausgereizt ist: was
+  Handeln verlangt, verschwindet nicht hinter dem Pfeil. Auf- und Zuklappen
+  merkt sich die Seite je Person und Gerät (`arbeitKlappe.ts`, wie die
+  Ablage in E96). Ab 1.200 px stehen beide nebeneinander, darunter
+  untereinander. Der Weg von der Startseite („Stunden nicht verrechnet“)
+  öffnet die Karte (`/invoices?zeige=unverrechnet`) und rollt zu ihr.
+- **Leersätze stehen auf der Flucht des Kartentitels.** Drei Ursachen:
+  in den Scheinen der Baustellenakte stand der Leersatz in einem eigenen
+  Rahmen statt direkt in der bündigen Karte; rund 25 Karten legten ihren
+  Zustand in einen Rahmen mit `p-4`/`px-4` (16 px statt der 24 px des
+  Blattrands am Schreibtisch) — jetzt richtet eine Regel jeden solchen
+  Rahmen mit Leer-, Lade- oder Hinweissatz auf den Blattrand aus; die
+  Ersteinrichtung stand am Handy 8 px eingerückt. Gemessen über alle Rollen,
+  jede Seite und jede Akte mit jedem Reiter, 390 und 1.440 px
+  (`flucht.spec.ts`): auf `main` 5 Befunde, jetzt keiner.
+- **Ein Einsatz der „Mannschaft heute“ öffnet seine Vorschau.** Bis dahin
+  führte jede Zeile auf den Tag der Planung, und dort stand nicht, um welchen
+  Einsatz es ging. Jetzt öffnet sie dasselbe Fenster wie ein Balken im Monat
+  (`MonatsVorschau`): Zeit, Adresse, Eingeteilte, Aufgabe, Rüstliste, wer
+  fehlt, „Baustelle öffnen“ — am Schreibtisch und Tablet an der Zeile, am
+  Handy als Blatt im Schleier. Geladen wird beim Öffnen frisch über dieselben
+  Abfragen wie im Monat; die Rüstlisten-Rechnung steht für beide an einer
+  Stelle (`vorschauDaten.ts`). Geplant wird im Fenster nicht: „Bearbeiten“
+  führt in die Tagesplanung mit Tag und Baustelle gewählt (derselbe Weg wie
+  aus der Woche), im Support-Einblick fehlt es. Blättern gibt es hier nicht
+  — die Startseite zeigt heute. Die Abwesenden führen weiter auf den Tag.
+- **Die untere Insel steht 8 px über dem Home-Balken.** Der Kopf hat oben
+  8 px Luft unter der Statusleiste. Unten hielt die Insel Abstand zur ganzen
+  Sicherheitszone des iPhones (34 px), obwohl der Home-Balken darin nur die
+  untersten 13 px belegt — sie schwebte rund 20 px höher als der Kopf.
+  Jetzt `bottom: max(0.5rem, Zone − 13 px)`: 8 px über dem Home-Balken wie
+  die schwebenden Leisten von iOS selbst, 21 px über der Kante; ohne
+  Home-Balken 8 px wie oben. Timer-Leiste, Aktionsleisten und der Platz am
+  Seitenende messen die Insel und gehen mit. Quer gibt es die Insel nicht
+  (jedes iPhone mit Home-Balken ist quer breiter als 760 px).
+- **Browserläufe ohne ERR_INSUFFICIENT_RESOURCES** (Auftrag: „die meldung
+  … kam jetzt jedes mal bei den letzten läufen, kannst du das nicht generell
+  einmal fixen?“). Ursache gemessen: der Entwicklungsserver liefert rund 750
+  Einzeldateien je Aufruf mit eingebetteter Quellkarte; der
+  HTTP-Zwischenspeicher eines Playwright-Kontexts liegt im Arbeitsspeicher
+  und ist nach rund 5.000 Antworten voll — danach verweigert Chromium jede
+  Anfrage (weiße Seite, „page crashed“). Ohne Zwischenspeicher: 40 Aufrufe,
+  30.703 Anfragen, kein Fehler; `--disable-http-cache` und ein
+  abgeschalteter Zurück-Speicher helfen nicht. Jetzt antwortet der Server im
+  Testlauf mit `Cache-Control: no-store` (`vite.testlauf.ts`, Schalter
+  `ZWISCHENSPEICHER_AUS=1` aus beiden Playwright-Konfigurationen); beim
+  Entwickeln bleibt `no-cache`. Die acht Wege, die lokal so abbrachen, laufen
+  durch. An der App ändert sich nichts.
+- **Testaufbau räumt vollständig ab — oder bricht ab.** Der Aufbau der
+  Browserwege (`tests/durchklick/aufbau.ts`) löschte die Daten des
+  Testbetriebs, ohne auf Fehler zu achten. Seit dem Lager je Ort (T-16)
+  hingen Lagerbewegungen und -bestände am Artikel; das Löschen scheiterte
+  still, und jeder Lauf legte „Kupferrohr 15mm“ ein weiteres Mal an — nach
+  vierzehn Läufen scheiterten 24 Wege an Dubletten. Jetzt stehen beide
+  Tabellen in der Liste, drei längst entfernte Tabellen nicht mehr, und
+  jeder Löschfehler bricht den Aufbau mit dem Namen der Tabelle ab: eine
+  künftig fehlende Tabelle fällt beim ersten Lauf auf, nicht vierzehn Läufe
+  später. In der CI (frische Datenbank je Lauf) trat das nie auf.
+- **Browserwege ohne feste Tage, die ablaufen.** Sonderurlaub (16.–18.11.2026)
+  scheiterte im vollen Lauf, einzeln nie. Ursache, aus der Spur gelesen: die
+  Datenbank wies die Bestätigung ab („Vor dem Eintritt am 18.11.2026 lässt
+  sich nicht buchen“). Der Weg „Aktenprüfung“ (`akten.spec.ts`) ändert vorher
+  den Namen des Monteurs in seiner Akte, und das Formular füllt einen leeren
+  Eintritt mit heute. Sonderurlaub, Sonderurlaub mit Nachweis und
+  Arztbesuch rechnen ihre Tage jetzt als Werktage einer kommenden Woche
+  ohne Feiertag (`werktageVoraus` in `helfer.ts`) statt mit festen Daten,
+  die früher oder später vor dem Eintritt liegen. Der Sonderurlaub-Weg nennt
+  bei einem Fehlschlag die tatsächliche Meldung (sie steht nur 3,5 s).
+  Gegenprobe mit Eintritt heute: der alte Weg rot, der neue grün.
+- **Prüfungen:** `InvoicesView.test.tsx` (5, zugeklappt, Summenzeile,
+  Entscheidung sichtbar, gemerkt je Person, Adresse öffnet), im Browser
+  „zugeklappt, nebeneinander, untereinander“ (1.440/834/390 px) und
+  „Zustand im Rahmen auf der Flucht“ (`interaktionen.spec.ts`),
+  `HeuteLeitung.test.tsx` (6) und `startEinsatz.spec.ts` (3, gegen den
+  örtlichen Stapel), `inselLuft.spec.ts` (3, iPhone über `--sicher-unten`
+  nachgestellt), `flucht.spec.ts` (9), `testlaufZwischenspeicher.test.ts`
+  (2). Gegenproben: ohne die Änderungen
+  5 (Rechnungen), 5 (Startseite), 2 (Insel), 5 (Flucht) rot; was gleich
+  bleiben muss (Abwesende als Verweis, ohne Zone 8 px), grün.

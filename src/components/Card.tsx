@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
+import Icon from './Icon';
 import { InfoButton, InfoPanel } from './InfoHint';
 import { useSeitenHilfe } from './SeitenHilfe';
 
@@ -23,6 +24,13 @@ interface CardProps {
    * Trennlinien reichen von Kante zu Kante (Designlinie „Fassung 3").
    */
   buendig?: boolean;
+  /**
+   * AUFKLAPPBAR (E98, 18.11.2026): der Titel wird zum Knopf, der Inhalt
+   * steht nur da, solange `offen`. `kurz` bleibt auch zugeklappt stehen —
+   * eine Zeile mit dem Wichtigsten, damit die Karte nicht stumm wird. Der
+   * Titel bleibt Text (für die Seitenhilfe); `offen` führt die Seite.
+   */
+  klappe?: { offen: boolean; onUmschalten: () => void; kurz?: ReactNode };
 }
 
 /**
@@ -47,9 +55,11 @@ export default function Card({
   footer,
   id,
   buendig = false,
+  klappe,
 }: CardProps) {
   const [hinweisOffen, setHinweisOffen] = useState(false);
   const hinweisId = useId();
+  const koerperId = useId();
   /* Auf einer Seite wandert die Erklärung in „Hilfe zu dieser Seite“ (Regel 11). */
   const inSeitenhilfe = useSeitenHilfe(title ?? '', title ? hint : undefined);
   const eigenesI = !!hint && !inSeitenhilfe;
@@ -80,8 +90,25 @@ export default function Card({
           <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
             {/* Das „i" gehört zum Titel, nicht zu den Aktionen — deshalb
                 steht es in derselben Zeile links. */}
-            <h2 className="titel-karte">
-              {title}
+            <h2 className={klappe ? 'titel-karte karte-klappe' : 'titel-karte'}>
+              {klappe ? (
+                /*
+                  Nach dem Muster der WAI-ARIA-Akkordeons: der Knopf IN der
+                  Überschrift, nicht um sie herum. Er nimmt die ganze Breite
+                  neben der Aktion — die Zeile ist antippbar, nicht nur das
+                  Wort; das Zeichen rechts zeigt, in welche Richtung sie geht.
+                */
+                <button
+                  type="button"
+                  className="karte-klappe-knopf"
+                  aria-expanded={klappe.offen}
+                  aria-controls={koerperId}
+                  onClick={klappe.onUmschalten}
+                >
+                  <span className="min-w-0">{title}</span>
+                  <Icon name="chevron" size={16} className={`shrink-0 text-ink-placeholder transition-transform ${klappe.offen ? 'rotate-180' : ''}`} />
+                </button>
+              ) : title}
               {eigenesI && (
                 <InfoButton
                   about={title}
@@ -103,7 +130,10 @@ export default function Card({
           )}
         </header>
       )}
-      <div className={koerper}>{children}</div>
+      {/* Zugeklappt steht nur `kurz` da; die Kennung trägt der Körper, weil die Kinder einer bündigen Karte direkt in ihm stehen müssen (Rand des Blatts, index.css). */}
+      <div id={klappe ? koerperId : undefined} className={koerper}>
+        {klappe ? <>{klappe.kurz}{klappe.offen && children}</> : children}
+      </div>
       {footer && <footer className="karte-fuss">{footer}</footer>}
     </section>
   );

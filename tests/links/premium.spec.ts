@@ -38,7 +38,18 @@ for (const width of [390, 834, 1440]) for (const reducedMotion of ['no-preferenc
       zu wenig Kontrast — axe maß in der CI genau dort (#dad7d2 auf #faf7f1).
       Geprüft wird, was stehen bleibt.
     */
-    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+    /*
+      BIS NICHTS MEHR LÄUFT, NICHT NUR EINMAL GEWARTET (CI 18.11.2026): das
+      Einblenden des Titels beginnt erst, wenn die Seite nach dem Rückzug der
+      Leiste gerückt ist — manchmal nach dem ersten Warten. Geprüft wird erst,
+      wenn nach zwei gezeichneten Bildern keine Animation mehr läuft.
+    */
+    await expect.poll(() => page.evaluate(async () => {
+      await new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig)));
+      const laufend = document.getAnimations().filter((a) => a.playState === 'running');
+      await Promise.all(laufend.map((a) => a.finished.catch(() => undefined)));
+      return laufend.length;
+    }), { intervals: [50] }).toBe(0);
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     expect(axe.violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

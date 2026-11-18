@@ -1,6 +1,9 @@
 import { test, expect } from './grund';
 import { admin, BETRIEB, BUERO, MONTEUR } from './aufbau';
-import { amHandy, anmelden, keineFehlermeldung } from './helfer';
+import { amHandy, anmelden, keineFehlermeldung, werktageVoraus } from './helfer';
+
+// Eine kommende Woche statt fester Tage (`werktageVoraus`).
+const W = werktageVoraus(4);
 
 /**
  * DER NACHWEIS ZUM SONDERURLAUB, VON ANFANG BIS ENDE (Testbericht Runde 3,
@@ -50,9 +53,9 @@ test('Sonderurlaub mit Nachweis: anhängen, beim Bestätigen ansehen, nach „ge
   if (amHandy(monteur)) await monteur.getByRole('button', { name: 'Antrag stellen' }).click();
   await monteur.getByLabel('Art').selectOption('dienstverhinderung');
   await monteur.getByLabel(/^Anlass/).selectOption('hochzeit');
-  await monteur.getByLabel('Tag des Ereignisses').fill('2026-12-16');
-  await monteur.getByLabel('Von').fill('2026-12-14');
-  await monteur.getByLabel('Bis (einschließlich)').fill('2026-12-16');
+  await monteur.getByLabel('Tag des Ereignisses').fill(W.mi);
+  await monteur.getByLabel('Von').fill(W.mo);
+  await monteur.getByLabel('Bis (einschließlich)').fill(W.mi);
   await monteur.getByLabel('Nachweis auswählen').setInputFiles({
     name: 'heiratsurkunde.pdf',
     mimeType: 'application/pdf',

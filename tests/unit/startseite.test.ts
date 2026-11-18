@@ -907,7 +907,8 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
     })]);
     const zwei = startseite({ offeneStunden: [stunden('2026-042', 60), stunden('2026-050', 5)] }, buch());
     expect(zwei.abschnitte.find((x) => x.key === 'verrechnen')!.zeilen[0]).toMatchObject({
-      titel: '2 Baustellen mit Stunden nicht verrechnet', detail: 'davon 1 über 4 Wochen', to: ZIEL.rechnungen,
+      // E98: zu den Rechnungen mit aufgeklappter Karte — sie beginnt sonst zugeklappt.
+      titel: '2 Baustellen mit Stunden nicht verrechnet', detail: 'davon 1 über 4 Wochen', to: '/invoices?zeige=unverrechnet',
     });
   });
 
@@ -936,7 +937,7 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
     });
     const zwei = alleZeilen(startseite({ offeneStunden: [stunden('2026-042', 40), stunden('2026-050', 30)] }, leitung()));
     expect(zwei.find((z) => z.key === 'stunden')).toMatchObject({
-      titel: '2 Baustellen mit Stunden nicht verrechnet', to: ZIEL.rechnungen,
+      titel: '2 Baustellen mit Stunden nicht verrechnet', to: '/invoices?zeige=unverrechnet',
     });
   });
 

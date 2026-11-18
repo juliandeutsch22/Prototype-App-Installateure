@@ -199,6 +199,12 @@ export interface StartDaten {
   /** Eingeplante Wartungen, die erledigt aussehen (A9) — nur für die Führung gefüllt. */
   wartungVorschlaege?: WartungErledigtVorschlag[];
   heuteBetrieb?: TagesBaustelle[];
+  /**
+   * Die Namen der Belegschaft — für die Vorschau eines Einsatzes aus „Die
+   * Mannschaft heute“ (E98): dieselben Namen wie in der Planung, nicht die
+   * beim Einteilen mitgeschriebenen.
+   */
+  belegschaftNamen?: { uid: string; name: string }[];
   /** Seit dem letzten Ansehen unterschriebene Scheine, neueste zuerst (V9). */
   neueScheine?: { id: string; customerName: string; erstelltVonName: string }[];
   /** Einsätze mit ganztags Fehlenden, heute (teilweise) und morgen (V1). */
@@ -739,6 +745,7 @@ export async function leitung(
   const nameVon = new Map(alle.map((u) => [u.uid, u.name]));
 
   if (was.einsatzplanung) {
+    out.belegschaftNamen = alle.map((u) => ({ uid: u.uid, name: u.name }));
     const nachBaustelle = new Map<string, typeof einsaetzeHeute>();
     for (const a of einsaetzeHeute) {
       const liste = nachBaustelle.get(a.projectNumber) ?? [];

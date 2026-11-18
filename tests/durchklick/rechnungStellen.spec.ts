@@ -421,6 +421,9 @@ test('Ein Schein nur mit Stunden steht einmal da und ist nach der Rechnung verre
     await page.getByRole('link', { name: 'Rechnungen' }).first().click();
     // A2: Schein und Stunden derselben Baustelle als eine Zeile.
     await expect(page.getByText(/^Nicht verrechnete Leistung \(1\)/)).toBeVisible();
+    // Seit E98 zugeklappt: der Titel öffnet die Karte, die Zeile mit dem Alter steht schon.
+    await expect(page.getByText('davon 1 über 4 Wochen')).toBeVisible();
+    await page.getByRole('button', { name: /^Nicht verrechnete Leistung \(1\)/ }).click();
     await expect(page.getByText(/Schein vom 01\.09\.2026 · 08:30 Std gebucht seit 01\.09\.2026 · Regie/)).toBeVisible();
     await page.getByRole('button', { name: 'Baustelle wählen' }).click();
     await expect(page.locator('#invproj')).toHaveValue(BAUSTELLE.nummer);

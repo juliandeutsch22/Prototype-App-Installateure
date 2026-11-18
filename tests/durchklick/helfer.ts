@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { getAustrianHolidayName } from '../../shared/feiertage';
 import { PASSWORT } from './aufbau';
 
 /**
@@ -140,4 +141,32 @@ export async function seitenAktion(page: Page, name: string): Promise<Locator> {
   const menue = page.getByRole('menu');
   await expect(menue).toBeVisible();
   return menue.getByRole('menuitem', { name, exact: true });
+}
+
+/**
+ * WERKTAGE EINER KOMMENDEN WOCHE, NICHT FESTE DATEN (18.11.2026).
+ *
+ * Der Aufbau legt den Monteur bei jedem Lauf neu an, und die Datenbank setzt
+ * seinen Eintritt auf den Tag der Anlage — also heute. Feste Daten liefen
+ * damit ab: Sonderurlaub am 16.–18.11.2026 schlug am 18.11. fehl („Vor dem
+ * Eintritt … lässt sich nicht buchen“), der Arztbesuch am 25.11. wäre eine
+ * Woche später gefolgt, der Nachweis im Dezember. Jetzt rechnet jeder Weg
+ * Montag bis Freitag einer Woche `wochenVoraus` Wochen nach der laufenden;
+ * eine Woche mit Feiertag wird übersprungen. Verschiedene Wege nehmen
+ * verschiedene Wochen und kommen sich nicht in die Quere.
+ */
+export function werktageVoraus(wochenVoraus: number): { mo: string; di: string; mi: string; do: string; fr: string } {
+  const [j, m, t] = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }).split('-').map(Number);
+  const heute = new Date(j, m - 1, t);
+  const montag = new Date(heute);
+  montag.setDate(heute.getDate() - ((heute.getDay() + 6) % 7) + 7 * wochenVoraus);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  for (;;) {
+    const tage = [0, 1, 2, 3, 4].map((i) => { const d = new Date(montag); d.setDate(montag.getDate() + i); return d; });
+    if (tage.every((d) => !getAustrianHolidayName(d))) {
+      const [mo, di, mi, dO, fr] = tage.map(iso);
+      return { mo, di, mi, do: dO, fr };
+    }
+    montag.setDate(montag.getDate() + 7);
+  }
 }

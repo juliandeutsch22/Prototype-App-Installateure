@@ -176,6 +176,7 @@ import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 import Schalter from '@/components/Schalter';
+import { arbeitOffenLesen, arbeitOffenMerken, zeigeAusAdresse, type ArbeitsKarte } from './arbeitKlappe';
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
@@ -542,6 +543,22 @@ export default function InvoicesView() {
     Rechnung hierher, mit ihrer Nummer als Suchbegriff.
   */
   const [rechnungSuche, setRechnungSuche] = useState(() => suchparameter.get('suche') ?? '');
+  /*
+    „Nicht verrechnete Leistung“ und „Mahnlauf“ beginnen zugeklappt (E98,
+    `arbeitKlappe.ts`); ein Weg von außen mit `?zeige=…` öffnet genau seine
+    Karte — wer auf der Startseite „Baustellen mit Stunden nicht verrechnet“
+    antippt, will die Liste sehen, nicht ihren Titel.
+  */
+  const zeige = zeigeAusAdresse(suchparameter.get('zeige'));
+  const klappeUid = user?.uid ?? '';
+  const [arbeitOffen, setArbeitOffen] = useState<Record<ArbeitsKarte, boolean>>(() => ({
+    unverrechnet: zeige === 'unverrechnet' || arbeitOffenLesen('unverrechnet', klappeUid),
+    mahnlauf: zeige === 'mahnlauf' || arbeitOffenLesen('mahnlauf', klappeUid),
+  }));
+  const arbeitUmschalten = (karte: ArbeitsKarte) => setArbeitOffen((alt) => {
+    arbeitOffenMerken(karte, klappeUid, !alt[karte]);
+    return { ...alt, [karte]: !alt[karte] };
+  });
   // Auch auf der offenen Seite: „Suchen oder springen“ führt von hier hierher (E91).
   useAdressSuche(setRechnungSuche);
   function sucheAendern(text: string) {
@@ -2961,6 +2978,21 @@ export default function InvoicesView() {
     return nichtVerrechnetJeBaustelle(scheine, stunden);
   }, [abdeckungFehler, unverrechnetDB, offeneLeistung, offeneStunden, company?.modules]);
 
+  const zeigtUnverrechnet = !nurLesen && nichtVerrechnet.length > 0;
+  const zeigtMahnlauf = !nurLesen && !forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0);
+  /*
+    Ein Weg von außen (`?zeige=…`) landet bei seiner Karte, nicht oben über
+    der Liste — einmal, sobald sie da ist; danach rollt die Seite nicht mehr
+    von selbst.
+  */
+  const gezeigt = useRef(false);
+  const zeigeDa = zeige === 'unverrechnet' ? zeigtUnverrechnet : zeige === 'mahnlauf' ? zeigtMahnlauf : false;
+  useEffect(() => {
+    if (!zeige || !zeigeDa || gezeigt.current) return;
+    gezeigt.current = true;
+    document.getElementById(zeige === 'unverrechnet' ? 'nicht-verrechnet' : 'mahnlauf')?.scrollIntoView({ block: 'start' });
+  }, [zeige, zeigeDa]);
+
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
    *
@@ -3752,8 +3784,15 @@ export default function InvoicesView() {
         </Hinweiszeile>
       )}
 
-      {!nurLesen && nichtVerrechnet.length > 0 && (
+      {/*
+        NEBENEINANDER AM SCHREIBTISCH (E98): zwei zugeklappte Karten über die
+        ganze Breite untereinander waren zwei Streifen mit je einer Zeile.
+        Nur wenn beide da sind — eine allein bleibt so breit wie die Liste.
+      */}
+      {(zeigtUnverrechnet || zeigtMahnlauf) && <div className={zeigtUnverrechnet && zeigtMahnlauf ? 'rechnungen-arbeit rechnungen-arbeit-zwei' : 'rechnungen-arbeit'}>
+      {zeigtUnverrechnet && (
         <Card
+          id="nicht-verrechnet"
           title={`Nicht verrechnete Leistung (${nichtVerrechnet.length})`}
           hint={
             'Baustellen mit unterschriebenen Handwerksscheinen, die auf keiner gültigen Rechnung ' +
@@ -3767,15 +3806,19 @@ export default function InvoicesView() {
             'steht die Leistung wieder offen.'
           }
           buendig
+          klappe={{
+            offen: arbeitOffen.unverrechnet,
+            onUmschalten: () => arbeitUmschalten('unverrechnet'),
+            kurz: (() => {
+              const alt = auffaellige(nichtVerrechnet).length;
+              return (
+                <p className={arbeitOffen.unverrechnet ? 'rechnungen-summe' : 'rechnungen-summe rechnungen-summe-allein'}>
+                  {alt > 0 ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen'}
+                </p>
+              );
+            })(),
+          }}
         >
-          {(() => {
-            const alt = auffaellige(nichtVerrechnet).length;
-            return (
-              <p className="rechnungen-summe">
-                {alt > 0 ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen'}
-              </p>
-            );
-          })()}
           <GekuerzteListe
             eintraege={nichtVerrechnet}
             zeile={(baustelle) => {
@@ -3836,8 +3879,9 @@ export default function InvoicesView() {
         </Card>
       )}
 
-      {!nurLesen && !forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
+      {zeigtMahnlauf && (
         <Card
+          id="mahnlauf"
           title={`Mahnlauf (${lauf.zeilen.length})`}
           hint={
             'Was heute gemahnt werden kann — die weit fortgeschrittenen Forderungen oben, denn ' +
@@ -3848,13 +3892,37 @@ export default function InvoicesView() {
             'dem Basiszinssatz des laufenden Halbjahres — fehlt er, sagt es der Dialog.'
           }
           buendig
-        >
-          {lauf.zeilen.length > 0 ? (
-            <>
-              <p className="rechnungen-summe">
-                <strong>{euro(lauf.summeOffen)}</strong> offen
-                {lauf.summeSpesen > 0 ? ` · ${euro(lauf.summeSpesen)} Mahnspesen` : ''}
+          klappe={{
+            offen: arbeitOffen.mahnlauf,
+            onUmschalten: () => arbeitUmschalten('mahnlauf'),
+            /*
+              Zugeklappt bleibt stehen, was zählt: wie viel offen ist — und
+              dass Forderungen nach der dritten Mahnung eine Entscheidung
+              brauchen. Die dürfen nicht unsichtbar werden (siehe unten).
+            */
+            kurz: (
+              <p className={arbeitOffen.mahnlauf ? 'rechnungen-summe' : 'rechnungen-summe rechnungen-summe-allein'}>
+                {lauf.zeilen.length > 0 ? (
+                  <>
+                    <strong>{euro(lauf.summeOffen)}</strong> offen
+                    {lauf.summeSpesen > 0 ? ` · ${euro(lauf.summeSpesen)} Mahnspesen` : ''}
+                  </>
+                ) : 'Heute ist nichts zu mahnen.'}
+                {!arbeitOffen.mahnlauf && lauf.ausgereizt.length > 0 && (
+                  <>
+                    {' · '}
+                    <Warnung stufe="achtung">
+                      {lauf.ausgereizt.length}{' '}
+                      {lauf.ausgereizt.length === 1 ? 'Forderung braucht' : 'Forderungen brauchen'} eine Entscheidung
+                    </Warnung>
+                  </>
+                )}
               </p>
+            ),
+          }}
+        >
+          {lauf.zeilen.length > 0 && (
+            <>
               <GekuerzteListe
                 eintraege={lauf.zeilen}
                 zeile={(z) => (
@@ -3898,8 +3966,6 @@ export default function InvoicesView() {
                 )}
               />
             </>
-          ) : (
-            <p className="leer">Heute ist nichts zu mahnen.</p>
           )}
 
           {/*
@@ -3925,6 +3991,7 @@ export default function InvoicesView() {
           )}
         </Card>
       )}
+      </div>}
       </>)}
 
       {/*

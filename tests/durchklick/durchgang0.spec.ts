@@ -112,6 +112,8 @@ test('Mahnung: aus dem Mahnlauf am Handy erzeugt — PDF, Stufe 1, neue Frist', 
     await page.setViewportSize({ width: 390, height: 844 });
     await anmelden(page, CHEFIN.email);
     await page.goto('/invoices');
+    // Seit E98 beginnt der Mahnlauf zugeklappt: der Titel ist der Knopf dorthin.
+    await page.getByRole('button', { name: /^Mahnlauf/ }).click();
     const zeile = page.getByRole('region', { name: /Mahnlauf/ }).or(page.locator('section', { hasText: 'Mahnlauf' })).first();
     await expect(zeile.getByText(NR)).toBeVisible({ timeout: 15_000 });
     await zeile.getByRole('button', { name: 'Mahnen' }).first().click();

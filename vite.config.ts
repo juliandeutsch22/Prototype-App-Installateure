@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import { ohneZwischenspeicherImTestlauf } from './vite.testlauf';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -663,7 +664,7 @@ export function bausteinSchnitt(id: string, meta?: SchnittMeta): string | undefi
 const KENNUNG = fassungsKennung();
 
 export default defineConfig({
-  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit(), startStil(), leistungswaechter()],
+  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit(), startStil(), leistungswaechter(), ohneZwischenspeicherImTestlauf()],
   define: {
     __FASSUNG__: JSON.stringify(KENNUNG),
   },

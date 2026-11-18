@@ -48,5 +48,7 @@ export default defineConfig({
     url: ORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Ohne Zwischenspeicher im Browser (`vite.testlauf.ts`).
+    env: { ZWISCHENSPEICHER_AUS: '1' },
   },
 });

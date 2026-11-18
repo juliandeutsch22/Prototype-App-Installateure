@@ -33,7 +33,9 @@ const DATEN = {
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   // Buchungstage je Person (Start, „Die Mannschaft“): eine Liste; als NOOP stand „Nicht geladen“ (14.11.2026).
   // Die eigenen Buchungen sind im gewachsenen Bestand weiter die der Beispiele (L11): die Attrappe kennt die Person nicht.
-  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', beobachteUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
+  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', beobachteUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]',
+    // E98: unverrechnete Regie-Stunden, damit „Nicht verrechnete Leistung“ neben dem Mahnlauf zu sehen ist.
+    unverrechneteStunden: "[{ projectNumber: 'B-2026-0147', kunde: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', minuten: 1622, aeltester: '2026-09-15', juengster: '2026-11-12' }]" },
   // Auftragseingang: eine Seite und die Zählung — als NOOP stand dort nur ein Ladefehler (14.11.2026).
   auftragseingaenge: { listEingaenge: '{ zeilen: [], weiter: null }', zaehleOffeneEingaenge: '{ offen: 0, dringend: 0, notfall: 0 }' },
   projects: { '*': 'D.baustellen' },

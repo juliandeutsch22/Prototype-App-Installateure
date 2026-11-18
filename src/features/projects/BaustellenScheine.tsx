@@ -95,8 +95,14 @@ export default function BaustellenScheine({
   }
   if (!scheine) return <SkeletonList rows={2} />;
 
+  /*
+    OHNE EIGENEN RAHMEN (E98, 18.11.2026): Leersatz und Liste stehen direkt
+    in der bündigen Karte. In einem `<div>` fiel der Leersatz durch die Regel,
+    die ihm den Rand des Blatts gibt — „Zu dieser Baustelle gibt es noch
+    keinen Handwerksschein.“ klebte am Rand.
+  */
   return (
-    <div>
+    <>
       {scheine.length === 0 ? (
         <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
       ) : (
@@ -112,7 +118,7 @@ export default function BaustellenScheine({
         einheit="Handwerksscheine"
         sucheImBrowser={false}
       />
-    </div>
+    </>
   );
 }
 

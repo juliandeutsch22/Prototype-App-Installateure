@@ -159,6 +159,7 @@ export default defineConfig({
     // jeder Lauf auf einem Rechner, an dem gerade entwickelt wird.
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: STAPEL,
+    // Ohne Zwischenspeicher im Browser (`vite.testlauf.ts`): sonst brechen lange Wege mit ERR_INSUFFICIENT_RESOURCES ab.
+    env: { ...STAPEL, ZWISCHENSPEICHER_AUS: '1' },
   },
 });
