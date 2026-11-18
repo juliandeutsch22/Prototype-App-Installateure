@@ -462,6 +462,17 @@ vi.mock('@/lib/db/belegMail', () => ({
   listBelegVersand: (...a: unknown[]) => versandListe(...a),
 }));
 
+/*
+  „Nicht verrechnete Leistung“ und „Mahnlauf“ beginnen zugeklappt (E98). Die
+  Prüfungen ihres Inhalts setzen voraus, dass die Person sie aufgeklappt hat —
+  gemerkt je Person auf dem Gerät, genau wie in der App. Wie sie zugeklappt
+  beginnen, prüft „E98: zugeklappt“.
+*/
+function kartenAufgeklappt() {
+  window.localStorage.setItem('senklot.rechnungen.offen.unverrechnet.gf', '1');
+  window.localStorage.setItem('senklot.rechnungen.offen.mahnlauf.gf', '1');
+}
+
 function zeige(adresse = '/invoices') {
   return render(
     <MemoryRouter initialEntries={[adresse]}>
@@ -1292,6 +1303,7 @@ describe('Erneute PDF-Ausgabe', () => {
  * aussteht, und führte das Mahnen selbst im Kopf.
  */
 describe('Eine überfällige Rechnung mahnen', () => {
+  beforeEach(kartenAufgeklappt);
   const UEBERFAELLIG = {
     id: 'r1',
     invoiceNumber: 'RE-2026-0009',
@@ -1914,6 +1926,7 @@ describe('Über der 10.000-Euro-Grenze', () => {
  * Schreiben, sondern am Zusammenstellen, das sich immer verschieben lässt.
  */
 describe('Der Mahnlauf', () => {
+  beforeEach(kartenAufgeklappt);
   /*
     GESETZT WIRD `offene`, NICHT `rechnungen` — und das ist der Punkt der
     Änderung vom 08.09.2026. Der Lauf rechnete vorher über die geladene
@@ -2117,6 +2130,7 @@ describe('Der Mahnlauf', () => {
  * später sieht, sondern Geld, das nie eingefordert wird.
  */
 describe('Nicht verrechnete Leistung', () => {
+  beforeEach(kartenAufgeklappt);
   const schein = (
     id: string,
     datum: string,
@@ -2493,6 +2507,7 @@ describe('Hinweise zum Material der Scheine', () => {
  * wenn niemand eine Rechnung schrieb. Jetzt stehen sie neben den Scheinen.
  */
 describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
+  beforeEach(kartenAufgeklappt);
   const ALT = { projectNumber: '2026-042', kunde: 'Familie Huber', minuten: 2550, aeltester: '2026-07-01', juengster: '2026-08-20' };
 
   it('meldet eine Regiebaustelle mit alten, nicht verrechneten Stunden', async () => {
@@ -5399,6 +5414,7 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
   });
 
   it('die Zeile im Mahnlauf öffnet die Rechnung, auch wenn sie in der Liste nicht steht', async () => {
+    kartenAufgeklappt();
     rechnungen = [];
     offene = [rechnung('0001', { dueDate: '2024-03-01', customerName: 'Altkunde' })];
     zeige();
@@ -6585,5 +6601,92 @@ describe('Rechnungen: der Beleg kommt beim Öffnen', () => {
     expect(within(fenster).queryByRole('button', { name: 'PDF laden' })).toBeNull();
     await userEvent.click(handlung({ name: 'Erneut versuchen' }, fenster));
     expect(await within(fenster).findByText('Facharbeit Heizraum')).toBeInTheDocument();
+  });
+});
+
+/*
+  E98 (18.11.2026): „Nicht verrechnet und Mahnlauf sollten einklappbar bzw.
+  standardmäßig eingeklappt sein — die nehmen extrem viel Platz weg.“
+  Zugeklappt bleibt je Karte die Zeile mit dem Wichtigsten; aufgeklappt wird
+  sie je Person gemerkt; ein Weg mit `?zeige=…` öffnet genau seine Karte.
+
+  Gegenprobe: auf dem Stand vor E98 sind beide Karten offen, ohne Knopf im
+  Titel — jede Prüfung hier ist rot.
+*/
+describe('E98: Nicht verrechnet und Mahnlauf beginnen zugeklappt', () => {
+  const offen = (id: string, p: Partial<Invoice> = {}): Invoice & { id: string } =>
+    ({
+      id, invoiceNumber: `RE-2026-${id}`, projectNumber: '2026-042', customerName: `Kunde ${id}`,
+      invoiceDate: '2026-07-01', dueDate: '2026-08-01', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+      vatRate: 0.2, paymentStatus: 'Offen', ...p,
+    }) as unknown as Invoice & { id: string };
+  const schein = (id: string, datum: string): WorkSheet & { id: string } =>
+    ({
+      id, companyId: 'perl', projectNumber: '2026-042', customerName: 'Baumeister Gruber', datum,
+      status: 'Unterschrieben', abrechnung: 'Regie', zeiten: [], material: [], erstelltVonUid: 'm1', erstelltVonName: 'Max',
+    }) as WorkSheet & { id: string };
+  const knopf = (name: RegExp) => screen.findByRole('button', { name });
+
+  it('zugeklappt: der Titel ist ein Knopf, die Zeile mit dem Wichtigsten steht, die Zeilen nicht', async () => {
+    offene = [offen('0001'), offen('0002', { totalBrutto: 300 })];
+    alleScheine = [schein('s1', '2026-06-01')];
+    zeige();
+    const mahnlauf = await knopf(/^Mahnlauf \(2\)/);
+    const leistung = await knopf(/^Nicht verrechnete Leistung \(1\)/);
+    expect(mahnlauf).toHaveAttribute('aria-expanded', 'false');
+    expect(leistung).toHaveAttribute('aria-expanded', 'false');
+    // Was offen ist und wie alt, steht auch zugeklappt da.
+    const karte = mahnlauf.closest('section')!;
+    expect(karte.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1500,00');
+    expect(screen.getByText('davon 1 über 4 Wochen')).toBeInTheDocument();
+    // Die Zeilen und ihre Knöpfe nicht.
+    expect(screen.queryByRole('button', { name: 'Mahnen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Baustelle wählen' })).not.toBeInTheDocument();
+    // Der Knopf sagt, was er auf- und zuklappt.
+    expect(document.getElementById(mahnlauf.getAttribute('aria-controls')!)).toBe(karte.querySelector('.karte-buendig'));
+  });
+
+  it('aufgeklappt: die Zeilen stehen da, und das bleibt so beim nächsten Öffnen', async () => {
+    offene = [offen('0001')];
+    alleScheine = [schein('s1', '2026-06-01')];
+    const { unmount } = zeige();
+    await userEvent.click(await knopf(/^Mahnlauf \(1\)/));
+    expect(await screen.findByRole('button', { name: 'Mahnen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Mahnlauf \(1\)/ })).toHaveAttribute('aria-expanded', 'true');
+    // Die andere Karte bleibt, wie sie war.
+    expect(screen.getByRole('button', { name: /^Nicht verrechnete Leistung/ })).toHaveAttribute('aria-expanded', 'false');
+    unmount();
+    zeige();
+    expect(await knopf(/^Mahnlauf \(1\)/)).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('button', { name: 'Mahnen' })).toBeInTheDocument();
+    // Wieder zu — und auch das bleibt.
+    await userEvent.click(screen.getByRole('button', { name: /^Mahnlauf \(1\)/ }));
+    expect(screen.queryByRole('button', { name: 'Mahnen' })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('senklot.rechnungen.offen.mahnlauf.gf')).toBeNull();
+  });
+
+  it('eine Forderung nach der dritten Mahnung bleibt auch zugeklappt sichtbar', async () => {
+    offene = [offen('0001', { mahnstufe: 3 })];
+    zeige();
+    expect(await knopf(/^Mahnlauf/)).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText(/1 Forderung braucht eine Entscheidung/)).toBeInTheDocument();
+    expect(screen.getByText(/Heute ist nichts zu mahnen\./)).toBeInTheDocument();
+  });
+
+  it('der Weg von der Startseite (`?zeige=unverrechnet`) öffnet genau diese Karte', async () => {
+    offene = [offen('0001')];
+    alleScheine = [schein('s1', '2026-06-01')];
+    zeige('/invoices?zeige=unverrechnet');
+    expect(await knopf(/^Nicht verrechnete Leistung/)).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('button', { name: 'Baustelle wählen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Mahnlauf/ })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('gleich geblieben: eine Karte ohne `klappe` hat keinen Knopf im Titel', async () => {
+    offene = [offen('0001')];
+    zeige();
+    await knopf(/^Mahnlauf/);
+    // Die Rechnungsliste selbst bleibt eine gewöhnliche Karte.
+    expect(document.querySelectorAll('.karte-klappe-knopf')).toHaveLength(1);
   });
 });

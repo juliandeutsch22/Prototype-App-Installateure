@@ -26,6 +26,11 @@ export interface Zeile {
   status?: { text: string; ton: Ton };
   /** Wohin die Zeile führt. */
   to?: string;
+  /**
+   * Statt wegzuführen ein Fenster an Ort und Stelle öffnen (E98: ein Einsatz
+   * der Mannschaft zeigt seine Vorschau). Geht vor `to`.
+   */
+  oeffnen?: (ausloeser: HTMLButtonElement, klickX: number | null) => void;
 }
 
 export interface Abschnitt {

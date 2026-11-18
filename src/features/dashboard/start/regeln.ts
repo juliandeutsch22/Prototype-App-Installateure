@@ -449,7 +449,7 @@ export function stundenZeile(alle: OffeneStundenZeile[], altAb: number): Zeile |
       ? `${eine.kunde || eine.projectNumber} · ${fmtDauer(eine.minuten)} seit ${datumAT(eine.aeltester)}`
       : alt ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen',
     status: { text: 'verrechnen', ton: alt ? 'warn' : 'leise' },
-    to: eine ? ZIEL.rechnungFuer(eine.projectNumber) : ZIEL.rechnungen,
+    to: eine ? ZIEL.rechnungFuer(eine.projectNumber) : ZIEL.rechnungenUnverrechnet,
   };
 }
 

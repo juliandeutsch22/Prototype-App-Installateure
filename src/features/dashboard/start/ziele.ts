@@ -36,6 +36,8 @@ export const ZIEL = {
   eingaenge: '/eingaenge',
   rechnungen: '/invoices',
   rechnungenUeberfaellig: `/invoices?status=${q('Überfällig')}`,
+  /** Die Rechnungen mit aufgeklappter „Nicht verrechnete Leistung“ — sie beginnt sonst zugeklappt (E98). */
+  rechnungenUnverrechnet: '/invoices?zeige=unverrechnet',
   rechnungenSicht: (sicht: RechnungsSicht) => `/invoices?sicht=${sicht}`,
   rechnung: (nummer: string) => `/invoices?suche=${q(nummer)}`,
   /** „Neue Rechnung“ mit dieser Baustelle (seit 23.10.2026). */

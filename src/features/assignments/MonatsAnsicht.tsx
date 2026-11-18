@@ -4,11 +4,10 @@ import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
 import { darfTermineSchreiben } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import { AB_TABLET } from '@/lib/breiten';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import type { WithId } from '@/lib/db/core';
-import type { AppUser, Assignment, Project, RuestPosition, Termin } from '@/types';
+import type { AppUser, Assignment, Project, Termin } from '@/types';
 import { bezugText } from '@/features/termine/terminText';
 import Card from '@/components/Card';
 import Icon from '@/components/Icon';
@@ -30,12 +29,12 @@ import {
   tagImBalken,
   type Balken,
 } from './monatsBalken';
-import type { EinsatzDeckung } from './materialDeckung';
-import { ruestZeile, vorschauInhalt, type ProjektKurz, type TagesDaten, type VorschauZiel } from './monatsVorschau';
+import { vorschauInhalt, type ProjektKurz, type TagesDaten, type VorschauZiel } from './monatsVorschau';
 import MonatsVorschau from './MonatsVorschau';
 import MonatsKalender from './MonatsKalender';
 import { GruppenAchse } from './PlanRaster';
 import { DB_QUELLE, type MonatsQuelle } from './monatsQuelle';
+import { useHandy, useRuestText } from './vorschauDaten';
 
 /** Gruppen höchstens 20 Zeilen, dann „und N weitere“ (Regel 4). */
 const SEITE = 20;
@@ -99,21 +98,6 @@ function tagPlus(iso: string, n: number): string {
   const d = new Date(`${iso}T00:00:00`);
   d.setDate(d.getDate() + n);
   return lokalesDatum(d);
-}
-
-/** Handy (unter 760 px)? Ohne `matchMedia` (Komponententests) gilt der Schreibtisch. */
-function useHandy(): boolean {
-  const frage = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && !window.matchMedia(AB_TABLET).matches;
-  const [handy, setHandy] = useState(frage);
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const m = window.matchMedia(AB_TABLET);
-    const neu = () => setHandy(!m.matches);
-    neu();
-    m.addEventListener?.('change', neu);
-    return () => m.removeEventListener?.('change', neu);
-  }, []);
-  return handy;
 }
 
 /** Ein nachgeladener Tag ausserhalb des Monats (← → über die Monatsgrenze). */
@@ -371,70 +355,8 @@ export default function MonatsAnsicht({
     };
   }, [betrieb, fehlendeSchluessel, quelle]);
 
-  /*
-    DIE RÜSTLISTE beim Öffnen über die bestehenden Abfragen: die Listen des
-    Tages (`listEinsatzMaterialForDate`) und ihre Deckung (`materialdeckung`,
-    dieselbe Rechnung wie Formular, Woche und Tag — M04b) — nur mit dem
-    Modul „Material“, wie im Seitenfenster. Bis dahin „…“.
-  */
-  const [ruest, setRuest] = useState<{ tag: string; listen: Map<string, RuestPosition[]> | 'fehler' } | null>(null);
-  /** Die Deckung der Rüstlisten eines Tages je Baustelle; `null` heisst: konnte nicht geladen werden. */
-  const [lager, setLager] = useState<{ tag: string; deckung: Map<string, EinsatzDeckung> | null } | undefined>(undefined);
-  const offen = !!vorschau;
-  useEffect(() => {
-    if (!offen) {
-      setRuest(null);
-      setLager(undefined);
-    }
-  }, [offen]);
-  // Erst wenn die Listen des Tages da sind und es überhaupt eine gibt.
-  useEffect(() => {
-    if (!offen || !materialAn || !ruest || ruest.listen === 'fehler' || lager?.tag === ruest.tag) return;
-    const fuer = ruest.tag;
-    if (ruest.listen.size === 0) {
-      setLager({ tag: fuer, deckung: new Map() });
-      return;
-    }
-    let weg = false;
-    Promise.resolve()
-      .then(() => quelle.deckung(fuer))
-      .then((k) => {
-        if (!weg) setLager({ tag: fuer, deckung: k });
-      })
-      .catch(() => {
-        if (!weg) setLager({ tag: fuer, deckung: null });
-      });
-    return () => {
-      weg = true;
-    };
-  }, [offen, materialAn, ruest, lager, quelle]);
-  useEffect(() => {
-    if (!tag || !materialAn || !betrieb) return;
-    let weg = false;
-    Promise.resolve()
-      .then(() => quelle.ruestlisten(betrieb, tag))
-      .then((listen) => {
-        if (weg) return;
-        const m = new Map<string, RuestPosition[]>();
-        for (const l of listen) if (l.date === tag) m.set(l.projectNumber, l.positionen ?? []);
-        setRuest({ tag, listen: m });
-      })
-      .catch(() => {
-        if (!weg) setRuest({ tag, listen: 'fehler' });
-      });
-    return () => {
-      weg = true;
-    };
-  }, [tag, materialAn, betrieb, quelle]);
-  const ruestText = useMemo(() => {
-    if (!materialAn || !tag) return undefined;
-    return (nummer: string) => {
-      if (!ruest || ruest.tag !== tag) return '…';
-      if (ruest.listen === 'fehler') return 'konnte nicht geladen werden';
-      if (lager?.tag !== tag) return '…';
-      return ruestZeile(ruest.listen.get(nummer), lager.deckung ? (lager.deckung.get(nummer) ?? null) : null);
-    };
-  }, [materialAn, tag, ruest, lager]);
+  // Dieselbe Rechnung wie auf der Startseite (E98, `vorschauDaten.ts`).
+  const ruestText = useRuestText(tag, materialAn, betrieb, quelle);
 
   const inhalt = useMemo(() => {
     if (!vorschau || !tagesDaten) return null;

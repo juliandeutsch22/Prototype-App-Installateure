@@ -303,7 +303,20 @@ export default function DashboardView() {
         <HeuteListe zusatz={seite.heute.zusatz} zeilen={seite.heute.zeilen} verweis={seite.heute.verweis} />
       )}
       {seite.heute?.art === 'leitung' && (
-        <HeuteLeitung heute={heute} abwesend={data.abwesendHeute ?? []} tag={data.heuteBetrieb ?? []} />
+        <HeuteLeitung
+          heute={heute}
+          abwesend={data.abwesendHeute ?? []}
+          tag={data.heuteBetrieb ?? []}
+          vorschau={user ? {
+            betrieb: user.companyId,
+            projekte: data.projekte ?? [],
+            namen: data.belegschaftNamen ?? [],
+            materialAn,
+            baustelleSichtbar: darf('/admin-projects'),
+            // Im Einblick des Supports nur lesen — wie in der Planung selbst.
+            darfBearbeiten: !einblick && darf(ZIEL.tag(heute)),
+          } : undefined}
+        />
       )}
     </>
   );

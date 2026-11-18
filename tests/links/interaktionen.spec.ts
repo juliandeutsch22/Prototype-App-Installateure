@@ -335,3 +335,78 @@ test('Bündige Karten: Leerzustände und Zeilen stehen auf der Flucht des Karten
   }
   expect(fehler).toEqual([]);
 });
+
+/*
+  DER RAHMEN UM LADEN, FEHLER UND LEER (E98, 18.11.2026). Gut zwanzig
+  Ansichten setzen diese Zustände in einer bündigen Karte in einen Rahmen mit
+  16 px Polster (`p-4`, `px-4`); der Rand des Blatts ist am Schreibtisch
+  24 px. Laden und Fehler sind im Durchklick kaum zu sehen — deshalb hier
+  derselbe Rahmen in einer echten bündigen Karte, gemessen gegen ihren Titel.
+  Gegenprobe: ohne die Regel in index.css steht der Text am Schreibtisch
+  8 px links vom Titel; am Handy (Rand 16 px) gleich.
+*/
+test('Ein Zustand im Rahmen einer bündigen Karte steht auf der Flucht des Titels', async ({ page }) => {
+  for (const breite of [390, 1440]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    await page.goto(`./?pfad=${encodeURIComponent('/settings/fahrzeuge')}&rolle=Administrator`);
+    await expect(page.locator('.inhalt .karte-buendig').first()).toBeVisible();
+    const abstaende = await page.evaluate(() => {
+      const koerper = document.querySelector<HTMLElement>('.inhalt .karte-buendig')!;
+      const titel = koerper.parentElement!.querySelector<HTMLElement>('.titel-karte')!;
+      const proben = [
+        ['px-4 pb-4', 'hinweiszeile', 'Probe Fehler'],
+        ['p-4', 'leer-satz', 'Probe leer'],
+        ['px-4 pb-4', 'lade-liste', 'Probe laden'],
+      ].map(([rahmen, zustand, text]) => {
+        const r = document.createElement('div');
+        r.className = rahmen;
+        r.innerHTML = `<div class="${zustand}"><p>${text}</p></div>`;
+        koerper.append(r);
+        return r.querySelector('p')!;
+      });
+      const flucht = titel.getBoundingClientRect().left;
+      return proben.map((p) => `${p.textContent} ${Math.round(p.getBoundingClientRect().left - flucht)}`);
+    });
+    for (const a of abstaende) expect(Number(a.split(' ').pop()), `${breite} px: ${a}`).toBeGreaterThanOrEqual(0);
+  }
+});
+
+/*
+  E98 (18.11.2026): „Nicht verrechnet und Mahnlauf … nehmen extrem viel
+  Platz weg. Auf dem Desktop könnten sie nebeneinander stehen.“ Zugeklappt
+  je eine Kopf- und eine Summenzeile; am Schreibtisch nebeneinander, gleich
+  hoch und auf derselben Linie, ab dem Tablet abwärts untereinander. Eine
+  aufgeklappte zieht die andere nicht mit.
+  Gegenprobe: vor E98 standen beide offen untereinander, ohne Knopf im Titel.
+*/
+test('Nicht verrechnet und Mahnlauf: zugeklappt, am Schreibtisch nebeneinander, darunter untereinander', async ({ page }) => {
+  for (const breite of [1440, 834, 390]) {
+    await page.setViewportSize({ width: breite, height: 1000 });
+    await page.goto(`./?pfad=${encodeURIComponent('/invoices')}&rolle=Buchhaltung`);
+    const knoepfe = page.locator('.rechnungen-arbeit .karte-klappe-knopf');
+    await expect(knoepfe).toHaveCount(2);
+    for (const k of await knoepfe.all()) await expect(k).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('button', { name: 'Mahnen' })).toHaveCount(0);
+    const lage = async () => page.locator('.rechnungen-arbeit > .karte').evaluateAll((ks) => ks.map((k) => {
+      const r = k.getBoundingClientRect();
+      return { top: Math.round(r.top), left: Math.round(r.left), hoehe: Math.round(r.height), breite: Math.round(r.width) };
+    }));
+    const [a, b] = await lage();
+    if (breite >= 1200) {
+      expect(a.top, `${breite}: auf einer Linie`).toBe(b.top);
+      expect(b.left, `${breite}: nebeneinander`).toBeGreaterThan(a.left + a.breite - 1);
+      expect(a.hoehe).toBe(b.hoehe);
+    } else {
+      expect(b.top, `${breite}: untereinander`).toBeGreaterThanOrEqual(a.top + a.hoehe);
+      expect(a.left).toBe(b.left);
+    }
+    // Zugeklappt höchstens so hoch wie Kopf, Summe und eine Zelle Takt.
+    expect(a.hoehe, `${breite}: zugeklappt`).toBeLessThanOrEqual(168);
+    // Aufgeklappt: die Zeilen erscheinen, die andere Karte bleibt, wie sie war.
+    await knoepfe.nth(1).click();
+    await expect(page.getByRole('button', { name: 'Mahnen' }).first()).toBeVisible();
+    const [a2] = await lage();
+    expect(a2.hoehe, `${breite}: die andere wächst nicht mit`).toBe(a.hoehe);
+    await knoepfe.nth(1).click();
+  }
+});

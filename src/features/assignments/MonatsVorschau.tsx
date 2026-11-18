@@ -62,7 +62,11 @@ export default function MonatsVorschau({
   baustelleSichtbar: boolean;
   /** `zurueck`: den Fokus an den Balken zurückgeben (Tastatur, „Schließen“, Esc). */
   onSchliessen: (zurueck: boolean) => void;
-  onBlaettern: (schritt: -1 | 1) => void;
+  /**
+   * Tageweise blättern (‹ › und ← →). Ohne steht die Vorschau für genau
+   * diesen Tag — so auf der Startseite (E98), die nur heute kennt.
+   */
+  onBlaettern?: (schritt: -1 | 1) => void;
   onEinsatz?: (start: FensterStart) => void;
   onTermin?: (t: Termin) => void;
   /**
@@ -166,7 +170,7 @@ export default function MonatsVorschau({
         onSchliessen(true);
         return;
       }
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (!onBlaettern || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
       const ziel = e.target as HTMLElement | null;
       if (ziel && (/^(INPUT|SELECT|TEXTAREA)$/.test(ziel.tagName) || ziel.isContentEditable)) return;
       e.preventDefault();
@@ -260,12 +264,16 @@ export default function MonatsVorschau({
             nebeneinander (E72) standen am Handy enger als der Titel daneben.
             Die Namen bleiben für Vorlesehilfe und Hinweis.
           */}
-          <IconButton label="Vorheriger Tag" onClick={() => onBlaettern(-1)}>
-            <Icon name="zurueck" size={22} />
-          </IconButton>
-          <IconButton label="Nächster Tag" onClick={() => onBlaettern(1)}>
-            <Icon name="weiter" size={22} />
-          </IconButton>
+          {onBlaettern && (
+            <>
+              <IconButton label="Vorheriger Tag" onClick={() => onBlaettern(-1)}>
+                <Icon name="zurueck" size={22} />
+              </IconButton>
+              <IconButton label="Nächster Tag" onClick={() => onBlaettern(1)}>
+                <Icon name="weiter" size={22} />
+              </IconButton>
+            </>
+          )}
           <button ref={zuRef} type="button" className="fenster-schliessen" aria-label="Vorschau schließen" title="Schließen" onClick={() => onSchliessen(true)}>
             <Icon name="schliessen" size={22} />
           </button>

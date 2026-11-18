@@ -27,6 +27,21 @@
   /* Mahnlauf: die Summe über den Zeilen, der Hinweis darunter. */
   .rechnungen-summe { padding: 0.75rem 1rem; font-size: var(--groesse-begleit); color: var(--text); border-bottom: 1px solid var(--border); }
   .rechnungen-fuss { padding: 1rem; border-top: 1px solid var(--border); }
+  /*
+    ZUGEKLAPPT (E98): die Summe ist dann die letzte Zeile der Karte — ihre
+    Linie nach unten läge doppelt auf der Kante des Blatts.
+  */
+  .rechnungen-summe-allein { border-bottom: 0; }
+  /*
+    „NICHT VERRECHNETE LEISTUNG“ UND „MAHNLAUF“ (E98): untereinander mit dem
+    Abstand der Seite, am Schreibtisch nebeneinander — jede so hoch wie ihr
+    Inhalt, damit eine aufgeklappte die andere nicht mitzieht.
+  */
+  .rechnungen-arbeit { display: grid; gap: 0.75rem; }
+  @media (min-width: 1200px) {
+    .rechnungen-arbeit { gap: 1.25rem; }
+    .rechnungen-arbeit-zwei { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  }
   /* Ein Hinweis unter einem Feld — eine Zeile, der Rest hinter dem „i“. */
   /* Rabatt, Bestellnummer und Rücklass: ein Abschnitt mit Linie darüber, keine Karte in der Karte. */
   .rechnung-abschnitt { display: flex; flex-direction: column; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }

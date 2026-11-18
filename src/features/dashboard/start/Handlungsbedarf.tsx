@@ -42,12 +42,28 @@ function EintragZeile({ z }: { z: Zeile }) {
         )}
       </span>
       {status && <span className="start-status-rechts shrink-0">{status}</span>}
-      {z.to && <Icon name="weiter" size={16} className="zeile-pfeil shrink-0" />}
+      {(z.to || z.oeffnen) && <Icon name="weiter" size={16} className="zeile-pfeil shrink-0" />}
     </>
   );
   return (
     <li className="border-t border-line first:border-t-0">
-      {z.to ? (
+      {z.oeffnen ? (
+        /*
+          EIN KNOPF, KEIN VERWEIS (E98): die Zeile öffnet ein Fenster und
+          bleibt auf der Seite. `data-vorschau-ausloeser`: ein Klick auf eine
+          andere Zeile wechselt die offene Vorschau, statt sie erst zu
+          schließen (wie die Balken im Monat).
+        */
+        <button
+          type="button"
+          data-vorschau-ausloeser=""
+          aria-haspopup="dialog"
+          onClick={(e) => z.oeffnen?.(e.currentTarget, e.detail > 0 ? e.clientX : null)}
+          className="start-zeile flex min-h-touch w-full items-center gap-3 text-left hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent-deep"
+        >
+          {inhalt}
+        </button>
+      ) : z.to ? (
         <Link to={z.to} className="start-zeile flex min-h-touch items-center gap-3 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent-deep">
           {inhalt}
         </Link>
