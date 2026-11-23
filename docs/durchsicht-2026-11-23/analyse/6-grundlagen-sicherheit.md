@@ -14,7 +14,10 @@ Aufruf dort mit nachgestellten Ansprüchen (`request.jwt.claims`) in einer verwo
 gelaufen. Die Datenbank ist wieder entfernt; die Skripte liegen im Arbeitsverzeichnis der
 Durchsicht (`…/scratchpad/audit/S/`, nicht im Repository). Nicht nachgestellt sind Anmeldedienst,
 Realtime, Speicher-Schnittstelle, Edge-Runtime und FCM — dort steht „Code“. Es lief keine
-Testdatei.
+Testdatei. Jede Aussage über eine Datenbankfunktion stammt aus diesem Endstand; die genannten
+Migrationsdateien sind mit einer Suche ohne Rücksicht auf Groß-/Kleinschreibung nachgeprüft
+(`grep -lin "function <schema>.<name>"`), weil einige Migrationen `CREATE OR REPLACE FUNCTION`
+großschreiben.
 
 ---
 
@@ -414,8 +417,8 @@ Geheimnis (die JWTs in Tests und Skripten sind die öffentlichen Schlüssel des 
 - Beleg: `tests/supabase/supportAnsehenListen.test.ts` (111 Zeilen, ein einziger `rpc`-Aufruf);
   `mandantenTrennung.test.ts` prüft für den Support, dass er **nichts Fremdes** sieht, nicht, dass er
   das Freigegebene sieht. Im Endstand bestimmen 58 für Konten ausführbare Funktionen mit
-  Eigentümerrechten den Betrieb allein über `app.betrieb()` (Liste im Arbeitsverzeichnis); die
-  meisten zu Recht (Zeiten, Urlaub, Nachrichten sind dem Support verschlossen), vier zu Unrecht.
+  Eigentümerrechten den Betrieb allein über `app.betrieb()`; die meisten zu Recht (Zeiten, Urlaub,
+  Nachrichten sind dem Support verschlossen), einige zu Unrecht — Funktion für Funktion in S-13.
 - Vorschlag: Ein Wächter in `tests/supabase`: jede Funktion aus `LESENDE_FUNKTIONEN`
   (`src/lib/netzFrist.ts`) steht in genau einer von zwei Listen — „läuft im Einblick“ (wird mit
   einer Freigabe „ansehen“ aufgerufen und darf nicht 42501 antworten) oder „dem Support
@@ -483,6 +486,76 @@ Geheimnis (die JWTs in Tests und Skripten sind die öffentlichen Schlüssel des 
   - Risiko: der Textersatz-Stil der letzten Migrationen — die Funktion diesmal als Ganzes neu
     schreiben und gegen den heutigen Bericht vergleichen (alle bisherigen Einträge unverändert).
 - Aufwand: klein bis mittel
+
+### S-13 Woher die seit dem 15.11. angelegten oder geänderten Funktionen den Betrieb nehmen — und wo das für den Supportzugang falsch ist
+
+- Art: Unstimmigkeit (Übersicht zu S-1; drei weitere kleine Fehler und drei Rückfälle für
+  „Mitarbeiten“)
+- Schwere: niedrig bis mittel — betrifft nur den Supportzugang; der eigene Betrieb merkt nichts.
+- Wie geprüft: Aus den 88 Migrationen ab `20261116…` die Namen aller Funktionen in `public`
+  genommen, die dort angelegt oder nachgezogen werden und für Konten ausführbar sind (122, ohne
+  Rücksicht auf Groß-/Kleinschreibung gesucht; Auslöserfunktionen ausgenommen). Für jede den
+  **Endstand** des Rumpfs gelesen und alle 122 als Plattformkonto im Einblick aufgerufen — einmal
+  mit Freigabe „ansehen“, einmal mit „mitarbeiten“ (Angaben leer; gewertet ist nur, ob die Prüfung
+  des Zugriffs abweist, bevor die Angaben geprüft werden).
+- Das Muster: `app.betrieb()` liest den Betrieb aus dem Token, `app.lesebetrieb()` tut dasselbe für
+  ein aktives Konto. Beide sind für das Plattformkonto **leer**. Den Support kennen nur
+  `app.supportbetrieb()` (lesen, beide Stufen), `app.arbeitsbetrieb()` (schreiben, nur
+  „mitarbeiten“), `app.verrechnung_betrieb()` und die Prüfungen `app.darf(x)`,
+  `app.support_liest(x)`, `app.support_schreibt(x)` — letztere aber nur, wenn `x` nicht selbst aus
+  dem Token kommt. `app.betriebsmitglied(x)` ist für den Support immer falsch.
+- Ergebnis nach der Quelle des Betriebs: 50 Funktionen nehmen ihn nur aus dem Token
+  (`app.betrieb()` 40, `app.lesebetrieb()` 10); 16 kennen daneben den Support; 16 nehmen
+  `app.arbeitsbetrieb()` oder `app.verrechnung_betrieb()`; 40 nennen keine der Funktionen und
+  prüfen über eine Hilfsfunktion oder an der Zeile.
+
+| Gruppe | Funktionen | Betrieb aus | Im Einblick (gemessen) | Richtig? |
+|---|---|---|---|---|
+| Listen der Supportansicht | `baustellen_liste`, `lager_liste`, `anforderungen_laufend`, `wartungen_faellig_stand` | Token, danach `app.darf` | Fehler „Kein Zugriff …“ in beiden Stufen | **falsch** — S-1 |
+| Verrechnungsstand eines Scheins | `schein_verrechnung` (`20261116010200`) | `coalesce(app.arbeitsbetrieb(), app.lesebetrieb())` | „ansehen“: abgewiesen; „mitarbeiten“: geht | **falsch für „ansehen“** — die Schwesterfunktionen `scheine_unverrechnet_stand`/`_baustellen` nehmen `app.verrechnung_betrieb()` und gehen |
+| Rahmen einer Rückgabe | `retoure_rahmen` (`20261116060500`) | Token, `app.betriebsmitglied` | „Nicht angemeldet“ in beiden Stufen | **falsch für „mitarbeiten“** — `retoure_anlegen` lässt den Support zu (`app.support_schreibt`), das Fenster davor (`RetoureFenster.tsx:144`) scheitert |
+| Lagerführung am Artikel | `kommissionsartikel_im_lager` (`20261116060200`) | `app.arbeitsbetrieb()`, dann `app.betriebsmitglied(betrieb)` | „mitarbeiten“: abgewiesen | **falsch** — der Betrieb ist für den Support gewählt, die Prüfung danach schließt ihn aus |
+| Anforderung ausgeben, zurückziehen, Rückgabe annehmen | `anforderung_aus_lager`, `anforderung_zurueckziehen` (`20261116060300_teilmengen.sql:201`, `:319`), `retoure_annehmen` (`20261116060500_retoure_annahme.sql:362`) | Zeile gegen `app.lesebetrieb()`, Rolle über `app.ist_fuehrung()` | nach Code für den Support „gibt es nicht“ (mit leeren Angaben nicht messbar) | **Rückfall für „mitarbeiten“** — vor M5/M7 war das ein Schreiben an `material_orders`, dessen Regel `app.supportbetrieb()` kennt; die Rollenprüfung meint den Support ausdrücklich mit |
+| Freier und knapper Bestand (älter, am 16.11. geändert) | `lager_frei`, `lager_knapp` | Token | 0 Zeilen statt Fehler | fraglich — „Material anfordern“ zeigt im Einblick keinen freien Bestand (`OrderView.tsx:153`); mit S-1 gleich mitziehen |
+| Vorschläge „Wartung erledigt“ | `wartung_erledigt_vorschlaege` | `app.lesebetrieb()` | 0 Zeilen | vertretbar — ein Vorschlag zu einer Handlung, keine Auskunft |
+| Budgetstand | `baustellen_budget_lage` | Token | abgewiesen; die Ansicht fängt es ab (`AdminProjectsView.tsx:576–578`) | richtig — benannte Grenze „kein Budgetstand, keine Buchungen“ |
+| Materialbereitschaft | `materialdeckung` | Token | abgewiesen; der Aufrufer fragt im Einblick nicht (`DashboardView.tsx`, `!einblick`) | richtig — im Code begründet |
+| Zeit, Urlaub, Krankenstand, Sonderurlaub, Austritt | `urlaub_eintragen`, `urlaub_entscheiden`, `urlaub_kuerzen`, `urlaubstage_je_person`, `wochenplan_abwesend`, `krankmeldung_speichern`, `freistellung_beantragen`, `freistellung_entscheiden`, `arztbesuch_vorschlag`, `berufsschule_eintragen`, `zeit_monat_abschliessen`, `zeit_monat_oeffnen`, `zeitsitzung_beenden_fuer`, `austritt_folgen`, dazu `arbeitszeit_aendern`, `urlaubsanspruch_aendern` (je mit `…_entfernen`), `zeit_korrektur_entscheiden` | Token bzw. `app.arbeitszeit_person` | abgewiesen oder leer | richtig — Zusage beider Stufen |
+| Umplanen von Einsätzen | `einsatz_umplanen`, `einsatz_folgetage`, `einsatz_folgetage_entfernen` | `app.arbeitsbetrieb()` | „mitarbeiten“: abgewiesen mit „… die Abwesenheiten sieht nur der Betrieb selbst“ | richtig, mit Grund im Text — **steht aber nicht in der Grenzen-Übersicht** |
+| Konto, Auskunft, Sicherung | `person_auskunft`, `person_auskunft_start`, `person_loeschen`, `betrieb_auszug_start`, `auszug_teil`, `passwort_anfrage_verwerfen`, `zwei_faktor_ohne_faktor`, `zweiter_faktor_von`, `zweiter_faktor_zuruecksetzen` | Token | abgewiesen | richtig — Datenschutz und Sicherheit, nur der Betrieb selbst |
+| Rechnungen, Zahlungen, Belege per Mail | `rechnung_anlegen`, `rechnung_ausstellen`, `stornorechnung_ausstellen`, `rechnung_ersetzen`, `rechnung_versuch_klaeren`, `guthaben_umbuchen`, `kontoauszug_verbuchen`, `kontoauszug_schon_verbucht`, `beleg_versand_vorbereiten`, `ausgegebenes_material` | Token | abgewiesen (`kontoauszug_schon_verbucht`: 0 Zeilen) | richtig — „Rechnungen gehen im Supportzugang nicht“ steht in der Funktion und in `supportArbeitetMit.test.ts:178`; „Support sendet nicht“ ist benannt |
+| Angebote (lesen) | `angebot_links_stand` | Token | abgewiesen | richtig — Angebote sind in „ansehen“ verschlossen |
+| Scheine schreiben | `schein_speichern`, `schein_vorbereiten`, `scheine_gesehen`, `scheine_neu`, `schein_verbrauch_buchen`, `schein_verbrauch_vorschlag`, `schein_einkaufspreise` | Token | abgewiesen oder leer | **offen** — die Tabellenregel `work_sheets_anlegen` lässt den Support zu, die Funktionen nicht; ob der Support Scheine schreiben soll, ist nirgends entschieden |
+| Angebot annehmen, Baustelle abschließen, Wartung eintragen, Inventur, Einkauf, Kunden einspielen, Katalog | `angebot_annehmen_mit_ziel`, `angebot_annahme_zuruecknehmen`, `baustelle_abschliessen`, `baustelle_abschluss_lage`, `baustelle_verwendung`, `wartung_erledigt_eintragen`, `wartung_tag_berichtigen`, `inventur_*`, `einkauf_stornieren`, `einkauf_teillieferung`, `kunden_einspielen`, `katalog_*`, `baustellen_ohne_einsatz`, `einsatz_tage` | `app.arbeitsbetrieb()` bzw. Token **und** Support | „ansehen“: Lesendes geht, Schreibendes abgewiesen; „mitarbeiten“: kommt bis zur Prüfung der Angaben | richtig |
+
+- Dazu, älter als der 15.11. und deshalb nur als Hinweis: `eingang_zu_angebot`,
+  `eingang_zu_baustelle`, `eingang_ablehnen` prüfen die Rolle über `app.hat_rolle(…)` statt
+  `app.ist_fuehrung()` — der Support mit „Mitarbeiten“ kann Auftragseingänge nicht bearbeiten
+  (gemessen), obwohl die Zusage nur Zeit, Urlaub, Krankenstand und Scheinfotos ausnimmt.
+- Vorschlag (eine Migration, zusammen mit S-1):
+  - `schein_verrechnung`: Betrieb über `app.verrechnung_betrieb()` wie die Schwesterfunktionen.
+  - `retoure_rahmen`: `coalesce(app.betrieb(), app.arbeitsbetrieb())` und
+    `app.betriebsmitglied(betrieb) or app.support_schreibt(betrieb)`.
+  - `kommissionsartikel_im_lager`: `app.betriebsmitglied(betrieb) or app.support_schreibt(betrieb)`.
+  - `anforderung_aus_lager`, `anforderung_zurueckziehen`, `retoure_annehmen`: die Zeile gegen
+    `coalesce(app.lesebetrieb(), app.arbeitsbetrieb())` prüfen.
+  - `lager_frei`, `lager_knapp`: wie S-1.
+  - Entscheidung einholen: Scheine und Auftragseingänge im Supportzugang — entweder öffnen oder als
+    Ausnahme in den Text von `SupportzugangView.tsx:207` und `:230` und in die Grenzen-Übersicht
+    aufnehmen; ebenso „Umplanen geht im Einblick nicht“.
+  - Prüfung: `supportArbeitetMit.test.ts` je Funktion ein Fall mit echter Zeile (Anforderung aus
+    dem Lager ausgeben, Rückgabe annehmen, Lagerführung umstellen), `supportAnsehenListen.test.ts`
+    für `schein_verrechnung`. Gegenprobe: ohne die Migration je rot. Der Wächter aus S-10 hält die
+    Tabelle oben künftig fest (lesende Funktionen); für schreibende dieselbe Zuordnung „geht mit
+    Mitarbeiten“ / „bleibt dem Betrieb, weil …“.
+  - Was gleich bleiben muss: jede Zeile „richtig“ der Tabelle — vor allem, dass der Support weder
+    Zeiten, Urlaube und Krankenstände sieht noch Rechnungen ausstellt
+    (`supportzugang.test.ts`, `supportArbeitetMit.test.ts:178`, `:200`, `mandantenTrennung`);
+    für Konten des Betriebs ändert sich kein Ergebnis.
+  - Risiko: `app.support_schreibt` gilt nur für „mitarbeiten“ — wird an einer Stelle versehentlich
+    `app.support_liest` genommen, schriebe auch „ansehen“. Die Gegenprüfung „mit ‚ansehen‘ — weder
+    Einsatz noch Nummer noch Preis“ (`:200`) um die neuen Funktionen erweitern.
+- Aufwand: klein (ohne die offene Entscheidung zu Scheinen und Eingängen)
 
 ---
 
