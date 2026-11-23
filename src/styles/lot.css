@@ -508,7 +508,7 @@
   */
   .logo-vorschauen { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem 1.5rem; }
   .logo-vorschau { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; flex: 0 1 23.375rem; }
-  .logo-vorschau:first-child:not(:last-child) { flex: 0 0 auto; }
+  .logo-vorschau-beleg { flex: 0 0 auto; }
   .marke-probe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; padding: 0.125rem 0.375rem 0.125rem 0.875rem; background: var(--surface-2); border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); }
   .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); animation: kopf-titel-ein 180ms ease-out; }
   @keyframes kopf-titel-ein { from { opacity: 0; transform: translateY(0.375rem); } }

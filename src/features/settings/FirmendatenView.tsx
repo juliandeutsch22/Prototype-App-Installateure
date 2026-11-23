@@ -391,7 +391,7 @@ export default function FirmendatenView() {
           */}
           <div className="logo-vorschauen">
             {istZeichenbar(logoUrl) && (
-              <figure className="logo-vorschau">
+              <figure className="logo-vorschau logo-vorschau-beleg">
                 <figcaption className="text-meta text-ink-muted">Auf den Belegen</figcaption>
                 {/* Auf hellem Grund und im Seitenverhältnis des Briefkopfs: so sieht man vorher, was auf dem Beleg landet. */}
                 <div className="inline-flex items-center justify-center self-start rounded border border-line bg-white p-2">
