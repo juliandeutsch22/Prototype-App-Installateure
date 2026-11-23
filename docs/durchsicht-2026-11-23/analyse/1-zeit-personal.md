@@ -11,7 +11,9 @@ Zusätzlich zum Lesen, alles außerhalb des Repositorys (Ordner `scratchpad/audi
   Repository, siehe Z-2.
 
 Nichts lief gegen eine Datenbank. Wo ein Befund an einer Datenbankfunktion hängt, ist er an der **letzten** Fassung
-gelesen; bei Funktionen, die per Textersatz geändert werden, sind alle späteren Migrationen mitgelesen.
+gelesen; bei Funktionen, die per Textersatz geändert werden, sind alle späteren Migrationen mitgelesen. Die letzte
+Fassung jeder zitierten Funktion ist ohne Rücksicht auf Groß- und Kleinschreibung gesucht (`grep -lin`); für die 26
+zitierten Funktionen ergibt das dieselbe Datei wie die Suche mit Kleinschreibung.
 
 ## 1. Angesehen
 
@@ -57,7 +59,8 @@ nach zwei Jahren (`time.ts:144`); die Einordnung der Serverantworten im Ausgangs
   - `supabase/migrations/20260926101000_rechnung_nur_ueber_funktionen.sql:246–249` (Storno) und
     `20261106300000_wartung_abdeckung.sql:778–781` (Storno aufheben) schreiben dieselben zwei Spalten;
     `20261012200000_verlaeufe.sql:594` (`baustelle_umnummern`) schreibt `project_number` an allen Buchungen der
-    Baustelle.
+    Baustelle. „Storno und neu ausstellen“ ruft das Storno auf (`20261116050700_rechnung_ersetzen.sql:81`) und
+    scheitert damit ebenso.
   - Der Wächter zum Austritt macht es vor: er lässt eine Änderung durch, solange Tag und Person bleiben
     (`20261113100000_austritt.sql:45–48`).
   - `tests/supabase/monatsabschluss.test.ts:37–103` — neun Prüfungen, keine mit einer Rechnung.
@@ -288,7 +291,7 @@ nach zwei Jahren (`time.ts:144`); die Einordnung der Serverantworten im Ausgangs
   zu niedrig, oder das Büro trägt erfundene Arbeitszeit ein.
 - Beleg: „Krank“ ist nur ganztägig (`shared/arbeitszeit.ts:79–84`) und entsteht nur über die Krankmeldung; die legt
   an Tagen mit einer Buchung nichts an (`20261110140100_krank_im_urlaub.sql:263–269`), und ein ganztägiger Stand
-  duldet keine Arbeit daneben (`20260926115000_ganzer_tag_allein.sql:51–65`).
+  duldet keine Arbeit daneben (`20261027100000_arbeit_am_schultag.sql:51–65`, letzte Fassung von `app.ganzer_tag_allein`).
 - Auswirkung: Der Monteur arbeitet von 7 bis 11 Uhr und geht krank heim. Der Tag steht mit 4 Stunden Arbeit und
   4 Stunden Minus da; für die restlichen Stunden besteht Entgeltfortzahlung. Die Meldung „bis morgen“ überspringt den
   heutigen Tag still („1 Tag übersprungen“).
