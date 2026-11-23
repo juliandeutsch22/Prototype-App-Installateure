@@ -12,7 +12,10 @@ Stand des Codes: `main` fa6e740. Nur gelesen, dazu gebaut und gemessen:
   `l15-*.txt`). Kein Docker, kein Supabase-Stapel, kein voller Testlauf, kein Browserlauf.
 
 Alle Datenbankaussagen stammen aus dem Lesen der jeweils **letzten** Definition in
-`supabase/migrations/`; gemessen wurde an der Datenbank nichts.
+`supabase/migrations/`, gesucht ohne Rücksicht auf Groß- und Kleinschreibung (für die neun
+zitierten Funktionen mit `grep -li` nachgeprüft: dieselbe Datei wie ohne `-i`; spätere
+Änderungen per Textersatz an `ausgegebenes_material_gesamt` und `schein_einkaufspreise` gibt es
+nicht). Gemessen wurde an der Datenbank nichts.
 
 ---
 
