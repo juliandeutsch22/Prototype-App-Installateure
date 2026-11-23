@@ -105,8 +105,8 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
   wird sie erst im gewachsenen Betrieb.
 - Beleg: `tests/unit/abfragegrenzen.test.ts` („Die Wachstumsbremse“) prüft nur Tabellenabfragen
   der Datenschicht, `tests/supabase/zeilengrenze.test.ts` nur `abfragen`. Der Suchlauf über alle
-  `.rpc(`-Aufrufe (Scratchpad `audit/L/rpc.py`) findet 46 Aufrufe von Funktionen, die laut
-  letzter SQL-Definition `setof` oder `table` zurückgeben; neun blättern, die übrigen nicht.
+  `.rpc(`-Aufrufe (Scratchpad `audit/L/rpc.py`) findet 47 Aufrufe von Funktionen, die laut
+  letzter SQL-Definition `setof` oder `table` zurückgeben; zehn blättern, 37 nicht.
   Davon wachsen mit dem Bestand: `ausgegebenes_material_gesamt`, `schein_einkaufspreise` (L-1),
   `ausgegebenes_material` (`materialOrders.ts:473`), `scheine_verrechnet`
   (`invoices.ts:516`, siehe Verdacht V-2). Unkritisch, weil je Person, je Tag oder im SQL
@@ -397,8 +397,9 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
   | `appZeichen.test.ts:124` (`icon-512.png`) | 2,18 s | Rund 250.000 einzelne `expect(...)` in der Schleife über jedes Pixel (Zeile 135–138), dazu zwei weitere volle Durchläufe. |
   | `infoHintUmbruch.test.ts` | 1,26 s | Liest jede `.tsx` unter `src/` und baut je Datei einen Syntaxbaum; anders als die übrigen Wächter dieser Art (`bedienregeln`, `schalterRegel`, `warnzeichen`: `60_000`) trägt sie keine eigene Frist. |
 
-  Unter Last (alle Kerne belegt, 586 Dateien) verdrei- bis vervierfachen sich diese Zeiten und
-  erreichen die 5 s.
+  Der volle Lauf umfasst 579 Prüfdateien auf allen Kernen; schon eine Verdoppelung bis
+  Verdreifachung dieser Zeiten erreicht die 5 s. Unter Last nachgestellt habe ich das nicht —
+  die Ursachen folgen aus dem Prüfcode und den Einzelzeiten.
 - Vorschlag: (a) `kundeWaehlen`: den Namen mit einem Ereignis setzen (`fireEvent.change`) statt
   zu tippen, und den Suchverzug in den Ansichtsprüfungen über eine exportierte Konstante auf 0
   stellen (in `tests/components/setup.ts`); eine eigene Prüfung in `KundenAuswahl.test.tsx` hält

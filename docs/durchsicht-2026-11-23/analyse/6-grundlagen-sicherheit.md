@@ -55,14 +55,18 @@ die 88 Migrationen seit `20261116…`, `tests/supabase/supportAnsehenListen.test
 
 **Ohne Befund geprüft (zur Einordnung):** keine Funktion mit Eigentümerrechten ohne leeren
 Suchpfad; keine Tabelle in `public` ohne Zeilenschutz; `anon` hat auf keiner Tabelle ein Lese- oder
-Schreibrecht; `authenticated` hat nirgends TRUNCATE/TRIGGER/REFERENCES (K11 hält); alle zwölf seit
-dem 15.11. neuen Tabellen haben Regeln nach `CLAUDE.md` (`company_id = (select app.lesebetrieb())`,
-Support über `app.supportbetrieb()`) oder sind ganz zu; die 46 für Konten ausführbaren Funktionen
-ohne sichtbare Betriebsprüfung im eigenen Rumpf prüfen alle über eine Hilfsfunktion
-(`app.arbeitszeit_person`, `app.inventur_recht`, `app.verrechnung_betrieb`, …); jede neue Tabelle
-mit Personenbezug steht in Auskunft und Löschung (`zeit_monatsabschluesse`, `bank_buchungen`,
-`beleg_versand`, `passwort_anfragen`, `zwei_faktor_ruecksetzungen`, `inventuren`,
-`inventur_zeilen`, `app.zeitkonto_monatsstand`); `kalender_abruf` liefert nach Deaktivierung,
+Schreibrecht; `authenticated` hat nirgends TRUNCATE/TRIGGER/REFERENCES (K11 hält); die zehn seit
+dem 15.11. neuen Tabellen in `public` haben Regeln nach `CLAUDE.md`
+(`company_id = (select app.lesebetrieb())`, Support über `app.supportbetrieb()`) oder sind ganz zu
+(`rechnungsversuche_ohne_beleg`); von den 46 für Konten ausführbaren Funktionen mit
+Eigentümerrechten, deren Rumpf keine Betriebs- oder Rollenprüfung beim Namen nennt, habe ich 17
+gelesen — jede prüft über eine Hilfsfunktion (`app.arbeitszeit_person`, `app.inventur_recht`,
+`app.verrechnung_betrieb`, …) oder an der Zeile (`auth.uid()` und `app.betriebsmitglied`); die
+übrigen 29 stehen im Prüfnetz `OHNE_EIGENE_PRUEFUNG` und sind hier nicht einzeln gelesen; jede
+seit dem 15.11. neue Tabelle mit Personenbezug steht in Auskunft und Löschung
+(`zeit_monatsabschluesse`, `bank_buchungen`, `beleg_versand`, `passwort_anfragen`,
+`zwei_faktor_ruecksetzungen`, `inventuren`, `inventur_zeilen`, `app.zeitkonto_monatsstand`) — für
+ältere Tabellen siehe S-12; `kalender_abruf` liefert nach Deaktivierung,
 ruhendem Betrieb oder ausgeschaltetem Abo nichts mehr; alle Edge Functions prüfen Token, zweiten
 Faktor und Rolle aus der Tabelle bzw. den Dienstschlüssel; im Repository liegt kein echtes
 Geheimnis (die JWTs in Tests und Skripten sind die öffentlichen Schlüssel des lokalen Stapels).
@@ -268,8 +272,9 @@ Geheimnis (die JWTs in Tests und Skripten sind die öffentlichen Schlüssel des 
   - `VerloreneBuchung`: für `material_orders` Artikelname, Menge, Baustelle aus `vorgaenge[0].daten`
     und den Grund des Servers nennen; „Erneut anfordern“ öffnet die Anforderung mit diesen Angaben
     vorbelegt (der Warenkorb hat dafür schon seinen Speicher `senklot.warenkorb:`).
-  - Nachricht: der abgelehnte Text bleibt als Entwurf im Eingabefeld dieses Gesprächs (der Entwurf
-    je Gespräch wird schon gemerkt), die Meldung springt hin.
+  - Nachricht: der abgelehnte Text wird ins Eingabefeld dieses Gesprächs zurückgelegt (ein kleiner
+    Merker je Gespräch auf dem Gerät — den gibt es heute nicht, `Gespraech.tsx` hält den Text nur im
+    Zustand der Ansicht), die Meldung springt hin.
   - Schein bleibt, wie er ist (benannte Grenze E49: der Server-Stand gilt, die Meldung nennt den
     Grund schon).
   - Prüfung: `VerloreneBuchung.test.tsx` je Tabelle (Text enthält Artikel und Grund; Knopf belegt
@@ -437,6 +442,47 @@ Geheimnis (die JWTs in Tests und Skripten sind die öffentlichen Schlüssel des 
   muss unverändert durchlaufen. Risiko: örtlicher Stapel und Vorschau nutzen andere Hosts — die
   Vorlage braucht dafür den Wert aus der Umgebung, sonst bleibt die App dort ohne Verbindung.
 - Aufwand: klein
+
+### S-12 Der Bericht nach „Person löschen“ nennt die Handwerksscheine des Monteurs und weitere Spuren als Bearbeiter nicht — die Auskunft zählt sie
+
+- Art: Lücke (dieselbe Art wie K9 und K12, dort je für eine Tabelle behoben)
+- Schwere: niedrig — kein Datenverlust; aber der Betrieb sagt der ausgeschiedenen Person „das
+  bleibt, mit Frist und Grund“ anhand einer Liste, die nicht vollständig ist (Grundsatz 3,
+  Rechenschaft nach Art. 5 Abs. 2 DSGVO).
+- Beleg (Endstand, beide Funktionen ausgelesen): `person_auskunft` führt für ein Konto der
+  Belegschaft die eigenen Scheine (`work_sheets` über `erstellt_von_uid`, mit Unterschrift) und im
+  Abschnitt „als Bearbeiter“ unter anderem `mahnungen_ausgestellt`, `plaene_hochgeladen`,
+  `lieferantenartikel_zugeordnet`, `zeitfeld_definitionen_geaendert`, `annahme_links_erzeugt`,
+  `auftragseingaenge_erfasst`. Der Zweig „Mitarbeiter“ von `person_loeschen` nennt
+  `work_sheets`, `mahnungen`, `project_documents`, `lieferantenartikel`,
+  `zeitfeld_definitionen`, `wartung_ausfuehrungen`, `quotes`, `auftragseingaenge` und
+  `angebot_links` an keiner Stelle — weder unter „sofort“ noch unter „aufbewahren“. Sein Name bleibt
+  dort stehen (`work_sheets.erstellt_von_name`, `unterschrift_monteur`, `mahnungen.gemahnt_von_name`,
+  `project_documents.hochgeladen_von_name`, `lieferantenartikel.bestaetigt_von_name`,
+  `zeitfeld_definitionen.geaendert_von_name`). Zuletzt ersetzt in
+  `20261117040000`/`041000`/`033000` (Textersatz); die Liste „aufbewahren“ umfasst 17 Einträge.
+- Auswirkung: Ein Monteur scheidet aus und verlangt Löschung. Der Bericht nennt Zeitbuchungen,
+  Urlaube, Materialanforderungen … mit Frist — nicht aber die 240 unterschriebenen Scheine mit
+  seiner Unterschrift (§ 132 BAO, sieben Jahre) und nicht, dass sein Name an Plänen und
+  Katalogzuordnungen stehen bleibt, für die es keine Aufbewahrungspflicht gibt.
+- Vorschlag:
+  - `person_loeschen` (Zweig Mitarbeiter): „Handwerksscheine mit Unterschrift“, „Mahnungen“,
+    „Angebote und Annahme-Links“, „Auftragseingänge“, „Wartungsdurchgänge“ unter „aufbewahren“ mit
+    Frist und Grund (wie die Materialanforderungen); bei `project_documents`,
+    `lieferantenartikel`, `zeitfeld_definitionen` den Namen sofort entfernen und unter „sofort“
+    zählen (wie bei `beleg_versand` und `bank_buchungen`) — dort gibt es keinen Grund, ihn zu
+    behalten.
+  - Wächter: jeder Schlüssel, den `person_auskunft` für die Belegschaft liefert, steht in einer
+    Zuordnung „geht sofort“ / „wird aufbewahrt“ / „bleibt, weil …“; ein neuer Schlüssel ohne
+    Zuordnung macht `personLoeschen.test.ts` rot. Gegenprobe: die heutige Funktion scheitert an den
+    genannten Schlüsseln.
+  - Was gleich bleiben muss: nichts Aufbewahrungspflichtiges wird gelöscht oder verändert
+    (unterschriebene Scheine sind eingefroren — der Name dort bleibt); der Probelauf fasst weiter
+    nichts an; `personLoeschen.test.ts`, `kontoUmstellungenLoeschen.test.ts`,
+    `loeschBezeichnungen.test.ts`.
+  - Risiko: der Textersatz-Stil der letzten Migrationen — die Funktion diesmal als Ganzes neu
+    schreiben und gegen den heutigen Bericht vergleichen (alle bisherigen Einträge unverändert).
+- Aufwand: klein bis mittel
 
 ---
 
