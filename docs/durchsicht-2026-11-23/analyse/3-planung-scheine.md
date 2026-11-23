@@ -83,7 +83,7 @@ Abläufe, von Anfang bis Ende verfolgt:
     c) Zweiter Ersatzschein zum selben stornierten Schein
        (`20261116010200_schein_ersatz_verrechnet.sql:71`, 23505).
     d) Rolle gewechselt (Monteur → Verwaltung): `app.schein_schreibt`
-       (`20260926112500_schein_schreiben_wer_darf.sql:42–48`), 42501.
+       (`20260926112500_schein_schreiben_wer_darf.sql:41–47`), 42501.
 - Auswirkung: Der Monteur öffnet am Vormittag einen Entwurf, fährt in den Keller, trägt
   Material nach, der Kunde unterschreibt, „ohne Verbindung gespeichert, wird automatisch
   gesendet“. Im Büro hat inzwischen jemand den Entwurf als Dublette verworfen. Beim nächsten
@@ -223,8 +223,8 @@ Abläufe, von Anfang bis Ende verfolgt:
 - Beleg:
   - Live ist nur die Liste der Einsätze (`useWochenDaten.ts:136–154`). Abwesenheiten laden
     einmal je Zeitraum (`:167–192`), Betriebsurlaub ebenso (`:226–251`), Termine einmal und
-    nach eigenem Speichern (`:200–223`), Belegschaft und Baustellen einmal je Anmeldung
-    (`:118–134`). Weder „Jetzt aktualisieren“ (`src/lib/aktualisieren.ts`) noch die Rückkehr
+    nach eigenem Speichern (`:200–223`), Belegschaft und Baustellen einmal je Besuch der
+    Seite (`:118–134`). Weder „Jetzt aktualisieren“ (`src/lib/aktualisieren.ts`) noch die Rückkehr
     in den Vordergrund holen sie nach; in `useWochenDaten.ts` kommt keine der beiden
     Anmeldungen vor. Dasselbe in der Tagesplanung (`AssignmentsView.tsx:172–184`, `:200–224`).
   - Der Wächter merkt es nicht: `tests/unit/aktualisierenRegel.test.ts` prüft Seiten und
@@ -435,8 +435,9 @@ Abläufe, von Anfang bis Ende verfolgt:
 
 ### P-10 Beim Abschließen einer Baustelle zählt „unterschriebene Scheine nicht verrechnet“ nach einer anderen Regel als Startseite, Rechnungen und Scheinliste
 - Art: Unstimmigkeit (dieselbe Regel in der Datenbank zweimal verschieden)
-- Schwere: mittel — die falsche Warnung erscheint genau dann, wenn die App das Abschließen
-  selbst anbietet (nach bezahlter Schlussrechnung).
+- Schwere: niedrig bis mittel — die falsche Warnung erscheint genau dann, wenn die App das
+  Abschließen selbst anbietet (nach bezahlter Schlussrechnung); betroffen sind die drei
+  unten genannten Fälle, nicht jede Baustelle.
 - Beleg: `supabase/migrations/20261116044000_baustelle_abschliessen.sql:59–64`
   (`unverrechnete_scheine`: unterschrieben und keine Zeile `invoice_coverage` der Art
   `work_sheet` auf gültiger Rechnung). Der gemeinsame Kern
@@ -444,10 +445,18 @@ Abläufe, von Anfang bis Ende verfolgt:
   dazu als verrechnet: Ersatzscheine verrechneter Scheine, alle Scheine einer Pauschal-
   oder Einheitspreis-Baustelle mit gültiger Rechnung und Scheine ohne Material im
   abgerechneten Zeitraum. Anzeige: `src/features/projects/abschlussPunkte.ts:33–36`.
-- Auswirkung: Regiebaustelle, drei Scheine nur mit Stunden, alles auf der Schlussrechnung,
-  bezahlt. Startseite und Rechnungen: nichts offen. Der Abschluss-Dialog: „3
-  unterschriebene Scheine sind nicht verrechnet — trotzdem abschließen?“ Wer das dreimal
-  gesehen hat, liest die Warnung nicht mehr, auch wenn sie einmal stimmt.
+  Neue Rechnungen verknüpfen seit dem 12.11.2026 jeden Schein, den sie abrechnen
+  (`src/features/invoices/assemble.ts:336–343`); die Abweichung bleibt deshalb in drei
+  Fällen: (1) Rechnungen von vor dem 12.11.2026 — Scheine nur mit Stunden wurden damals
+  nicht verknüpft, der Kern erkennt sie am Zeitraum, der Abschluss nicht; (2) ein
+  Ersatzschein nach Storno (P4) erbt im Kern die Verrechnung, im Abschluss nicht; (3) auf
+  einer Pauschal- oder Einheitspreis-Baustelle ein Schein, den die Rechnung nicht selbst
+  verknüpft hat (etwa nach der Schlussrechnung unterschrieben).
+- Auswirkung: Baustelle aus dem Oktober, drei Scheine nur mit Stunden, Schlussrechnung vom
+  30.10., bezahlt. Startseite und Rechnungen: nichts offen. Der Abschluss-Dialog: „3
+  unterschriebene Scheine sind nicht verrechnet — trotzdem abschließen?“ Dasselbe nach
+  jedem Storno mit Ersatzschein. Wer das einige Male gesehen hat, liest die Warnung nicht
+  mehr, auch wenn sie einmal stimmt.
 - Vorschlag: `app.baustelle_abschluss_zaehlen` zählt
   `unterschriebene Scheine der Baustelle, die nicht in app.scheine_verrechnet_kern(betrieb,
   ids) stehen` — neue Fassung der Funktion (unverändert `security definer`,
@@ -637,11 +646,11 @@ Fehlende Verknüpfungen und Funktionen, je mit Nutzen und Aufwand. Keine davon e
 | P3 „Nicht verrechnet“ über alle Scheine | `laden.ts:577–584`, Kern `20261116010200…sql:283–345` | hält; aber eine zweite Regel im Abschluss der Baustelle (P-10) |
 | P5 Zweiter Schein am selben Tag | `20261116010300_schein_vorbereiten_ohne_doppelte.sql:60–110`, `WorkSheetView.tsx:631–687`, `:934–967` | hält |
 | P6 „Zeit nachtragen“ ohne feste Zahl | `workSheets.ts:224–240`, `laden.ts:426–431` | hält; das Gegenstück im Büro nicht (P-9) |
-| P7 Je Person eigene Aufgabe und Uhrzeit | `EinsatzFormular.tsx:695–703`, `:732–756` | hält im Formular; die Zusammenfassungen zeigen nur die erste Uhrzeit (P-11) |
+| P7 Je Person eigene Aufgabe und Uhrzeit | `EinsatzFormular.tsx:698–703`, `:732–756` | hält im Formular; die Zusammenfassungen zeigen nur die erste Uhrzeit (P-11) |
 | P8 „Ohne Einsatz“ aus einer Funktion | `20261116010400…sql:30–55`, `laden.ts:733–735`, `20261118033000…sql:75` | hält |
 | P9 Abwesenheit an einer Stelle | `app.abwesenheiten`, `kalender_abruf`, `wochenTermine.ts:29–41`, `laden.ts:818–850` | hält für Kalender-Abo, Lieferung, Auslastung; hält nicht für „Mein Einsatzplan“ und die Startseite des Monteurs in zwei Fällen (P-2) |
 | V1 Betroffene Einsätze bei Abwesenheit | `EingeteiltHinweis.tsx`, `laden.ts:774–787` | hält für Einsätze; Termine fehlen (P-6) |
-| V8 Meldung bei Terminen | `20261116010800…sql:73–103` (Auslöser), `push_einsatz` | hält; Reichweite wie beim Einsatz (P-7) |
+| V8 Meldung bei Terminen | `20261116010800…sql:72–108` (Auslöser), `push_einsatz` | hält; Reichweite wie beim Einsatz (P-7) |
 | V9 „Neu eingegangen“ | `20261116010900…sql:40–90`, `WorkSheetsListView.tsx:750–757` | hält |
 | V12 Leitung einplanbar | `src/lib/permissions.ts:235–242`, `useWochenDaten.ts:280–287` | hält (nur App-Seite gelesen) |
 
