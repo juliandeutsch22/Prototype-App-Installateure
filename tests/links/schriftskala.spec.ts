@@ -46,6 +46,8 @@ const EIGEN = [
   '.leiste-zeichen', '.reaktion-zeichen', '.eingabe-at', '.mengen-schritt', '.plattform-zeilenpfeil',
   '.lot-avatar', '.postfach-kuerzel', '.chat-kuerzel',
   '.navi', 'nav', '.unten',
+  // Der Firmenname als Zeichen des Betriebs, auch in der Vorschau der Firmendaten (E100) — dort so groß wie im Kopf.
+  '.marke',
 ].join(',');
 
 async function befunde(page: Page): Promise<string[]> {
