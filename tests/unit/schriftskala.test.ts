@@ -53,6 +53,8 @@ const EIGENE_GROESSE: Record<string, string> = {
   '.vorschau-titel': 'Titel', '.ue-titel-gross': 'Titel', '.planung-titel': 'Titel', '.planung-ablage-titel': 'Titel',
   '.start-einsatz-titel': 'Titel', '.start-einsatz-erster .start-einsatz-titel': 'Titel', '.arbeitstag-start-titel': 'Titel',
   '.antrag-zeitraum': 'Titel', '.anmelde-buehne-satz': 'Titel',
+  // Der Name des Betriebs an Stelle des Logos (E100): so groß wie der Seitentitel, der beim Rollen an seinen Platz tritt.
+  '.marke-name': 'Titel',
   // Kennwerte und Uhr
   '.arbeitstag-uhr': 'Uhr', '.arbeitstag-uhr small': 'Uhr', '.timer-leiste-uhr': 'Uhr', '.akten-termin-tag': 'Kennwert',
   '.budget-prozent': 'Kennwert', '.nachkalk-db': 'Kennwert', '.fenster-zahl dd': 'Kennwert', '.pf-kennzahl-wert': 'Kennwert',

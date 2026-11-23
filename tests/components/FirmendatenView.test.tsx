@@ -189,7 +189,7 @@ describe('Das Logo', () => {
   it('sagt, dass ohne Logo nur der Name auf den Belegen steht', async () => {
     zeige();
     expect(
-      screen.getByText(/Noch kein Logo hinterlegt. Die Belege tragen dann nur den Firmennamen./),
+      screen.getByText(/Noch kein Logo hinterlegt. Die Belege und der Kopf der App tragen dann den Firmennamen./),
     ).toBeInTheDocument();
   });
 });
