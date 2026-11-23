@@ -31,8 +31,8 @@ Auftrag des Auftraggebers, in vier Teilen:
 | Bedienung: Befunde aus rund 30 durchgespielten Aufgaben | `analyse/9` bis `12` | **45** |
 | Ideen (intuitiver, hochwertiger, näher an Apple) | `analyse/9` bis `12` | **56** |
 | Zu viel Text, unnötige Auskunft | `analyse/9` bis `12`, je eigener Abschnitt | **88** |
-| Trennpunkte „·“ | `analyse/9` bis `12`, je eigener Abschnitt | **51 Muster** an rund 520 Stellen im Quelltext (161 Dateien) |
-| Vermessung über alle Seiten, Rollen, Breiten | `analyse/8` | siehe Abschnitt 4.1 |
+| Trennpunkte „·“ | `analyse/8` §4, `analyse/9` bis `12` je eigener Abschnitt | **51 Muster** an rund 510 Zeilen im Quelltext (rund 160 Dateien) |
+| Vermessung über alle Seiten, Rollen, Breiten (863 Zustände, 56.091 Textelemente) | `analyse/8` | **16 Fehler, 11 Unstimmigkeiten**, 16 fehlende Wächter (Abschnitt 4.1) |
 
 ### 1.2 Das Wichtigste zuerst
 
@@ -299,7 +299,50 @@ Das Grenzen-Dokument wird in Paket 24 auf diesen Stand gebracht.
 
 ### 4.1 Vermessung über alle Seiten (`analyse/8-oberflaeche-vermessung.md`)
 
-*(Ergebnis der maschinellen Zählung: siehe Nachtrag am Ende dieses Abschnitts.)*
+Gemessen wurden 65 Routen, 177 Paare Route × Rolle, 863 Zustände auf 390, 834 und
+1440 px: 56.091 Textelemente, 1.933 Blätter, 13.479 Bedienelemente; Kontrast im hellen
+und dunklen Satz an jedem Text.
+
+**Gesamtbild:** Die Bausteine halten die Linie fast lückenlos — Schriftstufen (E97),
+Radien, Seitenrand 16/24/40 px, kein seitlicher Überlauf, keine Pillen, keine Glas- oder
+Farbflächen, Schatten nur an Schwebendem, im dunklen Satz kein aktiver Text unter
+4,5 : 1. **Die Ausreißer sitzen dort, wo eine Seite eigene Klassen an den Bausteinen
+vorbei schreibt.**
+
+| Kürzel | Befund (gemessen) | Ursache | Paket |
+|---|---|---|---|
+| V-13 | Tastaturfokus setzt jeden Radius auf 8 px: runde Knöpfe werden eckig, ein per Enter geöffnetes Fenster fällt von 24 auf 8 px | `src/index.css:401–405` (`:focus-visible { border-radius … }`) | 5 |
+| V-3 | Blätter nebeneinander liegen neben dem Raster: `/invoices` 20 statt 24 px, `/assignments/tag` 36 px, `/worksheet` 8 px daneben | je Seite; `raster.spec.ts` deckt die Fälle nicht ab | 5 |
+| V-1, V-2 | Ab dem Tablet stehen `p.leer` 8 px und `.arbeitszeile` 4 px vor der Flucht (16 bzw. 20 statt 24 px) | beiden fehlt `--blatt-rand` | 5 |
+| V-5 | Sieben Bausteine am Handy unter 44 px Tastfläche, darunter das Suchfeld der Listenleiste (40 px, die Lupe nimmt den Tipp nicht an), „alle ausblenden“ (20 px), „Im Plan ansehen“ (17 px) | kein allgemeiner Tastflächen-Wächter | 5 |
+| V-6 | Einziger Kontrastbefund: Platzhalter der Personensuche in `/accounting` 2,54 : 1 | eigenes `input.ue-suche` | 5 |
+| V-8, V-9 | Tabelle der Mitarbeiterübersicht: Kopf 15 px statt 12 versal, Stunden in DM Sans; Rechnungsfenster und Einsatz-Vorschau: Beschriftungen 15 statt 13 px | handgebaut | 5 |
+| V-10 bis V-12, V-14, V-15 | Blatttitel der Rechtsseiten 16 statt 18 px; drei handgebaute Feldbeschriftungen; freie Tailwind-Stufe im Wartungsfenster; kleiner Knopf 8 px, Zeilenknopf 12 px Radius; Kopf der Akte 6 px neben dem Raster | je Stelle | 5 |
+| V-4 | Zweites ⋯ außerhalb des Seitenkopfs in der Angebotsakte (= A-17, D2-A10) | `AngebotView` | 13 |
+| V-7 | Fehlertafel steht außerhalb der Linie (= D4-A3) | — | 15 |
+| V-16 | Vorhandene Messung `vorschau:messen`: 35 Ansichten mit Meldungen, keine neue echte; fünf Falschmeldungen fehlen in der README | `tools/vorschau/messen.mjs` | 9 |
+
+**Ungeregelt, braucht je eine Entscheidung (neu, Abschnitt 8):**
+
+| Kürzel | Befund | Vorschlag |
+|---|---|---|
+| V-B1 | **Zeilenhöhe:** je Schriftstufe bis zu neun Werte (15 px: 22 / 22,5 / 24 / 20 …); sichtbar in derselben Zeile (Module: 13/24 über 13/18). E97 hat die Zeilenhöhen ausdrücklich offen gelassen | je Stufe eine Zeilenhöhe im Fließtext (12 → 16, 13 → 18, 15 → 22, 16 → 24) |
+| V-B2 | **Titel:** zwölf Größen zwischen 16 und 30 px ohne Stufen (Titel waren nicht Teil von E97) | Titelskala mit Rollen: Seite 30/28, Fenster 20, Blatt 18, Gruppe 16; 17/19/22 darauf abbilden. Vorbehalt: 17 px der Planung und des Arbeitstags stehen in engen Köpfen — vorher messen |
+| V-B3 | **Gemessenes nicht überall in Mono:** rund 330 Baustellennummern, 640 Zeiten, 190 Datumswerte stehen in Begleitzeilen in DM Sans | zuerst die Nummer (Baustein `Nummer`), dann Zeiten; ob ein Datum in einer Meta-Zeile Mono trägt, ist die Entscheidung |
+
+Weitere Unstimmigkeiten der Vermessung (V-B4 bis V-B11: drei Suchfelder, Abschnittskopf
+in zwei Formen, Verweise in vier Formen, kleine Radien neben der Skala, Monatsbalken mit
+3-px-Petrolstrich, Kennwerte im Seitenkopf, Tabelle im Blatt 16 px hinter der Flucht,
+Reiter der Akte am Handy zwei- und dreizeilig) decken sich mit 4.3 und gehören zu
+Paket 5 bzw. 12.
+
+**Was die Tests heute nicht erzwingen** (`analyse/8` §8, 16 Zeilen): Schrift außerhalb
+der Skala in Fenstern, Menüs und auf 19 Routen außerhalb der geprüften 46; freie
+Tailwind-Größen im Code; Rolle falsch trotz gültiger Stufe; handgebaute Tabellen,
+Beschriftungen, Suchfelder; Text rechts der Flucht; Blätter neben dem Raster;
+Tastflächen; Kontrast von Platzhaltern; Form unter Fokus; Radius außerhalb der Rollen;
+⋯ außerhalb des Seitenkopfs; Trennpunkte; lange Texte offen. Je ein Wächter ist
+vorgeschlagen; sie gehören zu den Paketen 5 bis 8.
 
 ### 4.2 Fehler gegen die Linie, je Bereich
 
@@ -426,6 +469,12 @@ Sie fallen in sieben Muster:
 | **6. Zeilen mit vier und mehr Angaben** | Baustellenliste am Handy: sieben Angaben, 282 px je Zeile; Wartung: Kette mit fünf Punkten; Eingang: Anliegen ungekürzt in fünf Zeilen; Plattform: Anlegedatum in jeder Zeile | zwei Zeilen; der Rest ins Fenster der Zeile (das es überall gibt) | D2-T (Listen), D2-C9, D1-T9, T25, D4-T17, T21 |
 | **7. Blätter, die meist nichts tragen, stehen vor dem Inhalt** | Einkauf: „Nichts vorzuschlagen …“ und „Material dazusetzen“ vor der Liste; Scheine: „Stunden ohne Buchung (0)“; „Kommen die Meldungen an?“; Benutzerakte: Blatt „Geburtsdatum“ mit nur einem Knopf | zugeklappt, wenn leer (`Card klappe`, wie E98 bei den Rechnungen); Einzelknöpfe als Zeile in das Nachbarblatt | D3-T16, D2-C10, D4-T16, D4-I9, I11 |
 
+**Gemessen (`analyse/8` §5, Grundzustand, Beispieldaten):** die textlastigsten Seiten
+sind `/time` (662 Wörter am Handy), `/settings/module` (630) und `/my-schedule/mein`
+(406). Elf Fließtexte über 20 Wörter stehen offen auf der Seite; kein Untertitel hat
+über 12 Wörter (sie sind kurz, aber sie wiederholen den Titel); in den Einstellungen
+steht der Seitentitel zusätzlich als aktiver Reiter.
+
 **Regel für `docs/design/v10/style.md` (entschieden, E-T):**
 
 1. Der Seitenkopf trägt einen Untertitel nur, wenn er eine Auskunft ist, die sich ändert
@@ -451,9 +500,13 @@ Auswahlfeld (E91).
 
 ## 6. Statt der Trennpunkte — Befund und Regel
 
-Im Quelltext steht „ · “ an rund 520 Stellen in 161 Dateien (am häufigsten Material,
-Planung, Zeit, Rechnungen), 113-mal über `join(' · ')`. Das runde „•“ kommt nicht vor.
-Im Bild steht meist ein Punkt je Zeile, höchstens fünf; die Menge entsteht durch
+Im Quelltext steht „ · “ an rund 510 Zeilen in rund 160 Dateien (am häufigsten Material,
+Planung, Zeit, Rechnungen), 113-mal über `join(' · ')`, ohne gemeinsamen Baustein. Das
+runde „•“ kommt weder im Quelltext noch im gerenderten Text vor.
+Gemessen im Grundzustand (`analyse/8` §4, mit wenigen Beispieldaten): 736 Punkte auf
+163 Seiten bei 390 px, davon 60 allein auf `/time`; am häufigsten getrennt werden
+„Datum · Zeitspanne“ (318-mal) und „Zeitspanne · Baustelle“ (246-mal). Meist steht ein
+oder zwei Punkte je Zeile, höchstens fünf (`/wartungen`); die Menge entsteht durch
 Wiederholung. 51 Muster sind gesammelt (`analyse/9` §7, `10` §7, `11` §8, `12` §8), je
 mit Skizze. Sie lassen sich mit sieben Formen ersetzen, die es in der Linie schon gibt:
 
@@ -602,7 +655,8 @@ Konto, beim Abmelden mit Rückfrage). **Aufwand:** 4–5 Tage.
 **Ziel:** Was auf vielen Seiten verschieden ist, wird am Baustein einmal richtig.
 **Punkte:** D1-B3, D1-B15, D1-C1, D1-A2, D2-A20, D2-A2, D2-A3, D3-4, D4-A2, D4-B7,
 D4-B8, D2-B3, D1-A1, D1-A3, D1-A19, D2-A8, D4-A11, D3-B16, D4-A6, D4-B2, D3-B11 bis
-B13, D1-B8, D4-B5, D3-B14, D3-B15, D2-A9, D4-B15, D2-A14, D2-A19, D2-A5.
+B13, D1-B8, D4-B5, D3-B14, D3-B15, D2-A9, D4-B15, D2-A14, D2-A19, D2-A5,
+V-1 bis V-3, V-5, V-6, V-8 bis V-15, V-B4 bis V-B7, V-B9, V-B10.
 
 | Schritt | Was | Bleibt gleich |
 |---|---|---|
@@ -611,6 +665,8 @@ B13, D1-B8, D4-B5, D3-B14, D3-B15, D2-A9, D4-B15, D2-A14, D2-A19, D2-A5.
 | 3 | **Zeile, die öffnet, trägt den Pfeil** (E99) — überall, wo ein Tipp ein Fenster oder eine Akte öffnet; Wächter in den Linkprüfungen | Zeilen ohne Ziel bleiben ohne Pfeil |
 | 4 | **Baustein-Fehler:** `.wisch-knopf` ohne Umbruch; `.blatt-inhalt` mit 16 px Polster; Seitenleiste rollt in sich; Speicherleiste im Fenster deckt bis zur Kante; Rechnungsfenster-Aktionen im Fuß; ein Fokusring; 24-px-Flucht an den vier gemessenen Stellen | Maße der Blätter, Wischgeste, Speicherleiste auf Seiten |
 | 5 | **Eine Form je Rolle:** Gruppenkopf, Abschnitt im Fenster, Tabellenkopf, Suche (`.suche` mit Lupe), Ort von Filter und Suche (`Listenleiste` im Blatt), „Neu in dieser Liste“ (nach Entscheidung E-N) | E97 (Schriftskala) |
+| 6 | **Ausreißer der Vermessung am Baustein:** `:focus-visible` ändert die Form nicht mehr (V-13); `p.leer` und `.arbeitszeile` mit `--blatt-rand` (V-1, V-2); Blätter nebeneinander im Raster (V-3); Tastflächen ≥ 44 px (V-5, die Lupe nimmt den Tipp an); Platzhalterkontrast (V-6); handgebaute Tabelle, Beschriftungen, Titel auf die Bausteine (V-8 bis V-12, V-14, V-15) | Fokusring selbst (Farbe, 2 px außen); Maße der Felder |
+| 7 | **Wächter aus `analyse/8` §8:** Tastfläche 44 px über jede Seite bei 390 px; Form unter Fokus gleich; `raster.spec.ts` über alle Seiten der Navigation mit aufgeklappten Karten; Rollenprüfung (`th` = 12, `dt` = 13, Blatttitel = 18) auch in Fenstern; Radius nur aus den Tokens; `<table>`/`<label>`/Suchfeld nur über die Bausteine | — |
 
 **Prüfungen:** Komponentenprüfungen der Bausteine; Linkprüfung „Fuß im Bild“ (jede
 Hauptaktion eines Fensters liegt beim Öffnen im sichtbaren Bereich, 390×844 und
@@ -634,6 +690,9 @@ D4-B3, D1-A15, D1-A16, D1-B14, D3-T22, D1-A22, D4-A4, D3-17, D1-C9, D1-B4, D3-B9
 - **Tastaturen:** `inputMode`, `autoComplete`, `enterKeyHint`, `autoCapitalize` an jedem
   Feld über `InputField` (Zahl, Dezimal, Telefon, Mail, Suche, Kennzeichen); Wächter.
 - Leer- und Zustandssätze 15 px; Maschinentexte in Fehlern durch Sätze ersetzen.
+- Nach Entscheidung E-V1 bis E-V3 (noch offen): feste Zeilenhöhe je Schriftstufe,
+  Titelskala nach Rollen, Nummern und Zeiten in Begleitzeilen in Mono (V-B1 bis V-B3) —
+  je ein eigener PR mit Bildvergleich aller Seiten, weil jede Seite betroffen ist.
 
 **Bleibt gleich:** Belege und Exporte (sie schreiben `euroBetrag`, Belegreferenz Byte
 für Byte gleich); gespeicherte Werte. **Risiko:** Texte ändern sich an vielen Stellen —
@@ -964,6 +1023,14 @@ E-G13 bleibt bis zum Gespräch mit der Kanzlei offen — so lautete die Empfehlu
 | E-Z3 | Auszahlung von Überstunden als Abgang im Zeitkonto bauen? | ja (größter Punkt in Zeit) |
 | E-Z11 | Arbeitsjahr je Person als Urlaubsjahr? | ja, als Einstellung je Betrieb |
 | E-Z14 | „Wegzeit zählt als Arbeitszeit“ als Einstellung je Betrieb? | ja |
+
+**Neu aus der Vermessung, noch offen** (nach den fünfzehn Entscheidungen dazugekommen):
+
+| Nr. | Frage | Empfehlung |
+|---|---|---|
+| E-V1 | Je Schriftstufe eine feste Zeilenhöhe im Fließtext (V-B1)? E97 hatte das offen gelassen | ja, als eigener Schritt in Paket 6 mit Bildvergleich aller Seiten |
+| E-V2 | Titelskala nach Rollen (V-B2): Seite 30/28, Fenster 20, Blatt 18, Gruppe 16? | ja; 17 px in Planung und Arbeitstag erst nach Messung |
+| E-V3 | Gemessenes in Begleitzeilen in Mono (V-B3): Nummern und Zeiten ja — Datum in Meta-Zeilen auch? | Nummern und Zeiten ja; Datum in Meta-Zeilen bleibt DM Sans |
 
 ## 9. Fragen an Kanzlei und Steuerberatung
 
