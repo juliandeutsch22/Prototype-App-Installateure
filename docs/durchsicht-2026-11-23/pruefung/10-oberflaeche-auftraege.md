@@ -1,6 +1,8 @@
 # Gegenprüfung: `analyse/10-oberflaeche-auftraege.md` (Büro — Aufträge, Oberfläche) — 23.11.2026
 
-Geprüft von einem unabhängigen Prüfer. Stand main fa6e740 (Arbeitsstand 663b684, danach nur Dokumente).
+Geprüft von einem unabhängigen Prüfer. Stand main fa6e740 (die Arbeitskopie steht auf 663b684; die
+jüngsten Commits darüber sind Dokumente dieser Durchsicht). `plan.md` wurde während der Prüfung um
+Abschnitt 4.1 ergänzt — verwiesen wird deshalb auf Abschnitte und Pakete, nicht auf Zeilen.
 
 **Womit geprüft:** Vorschau `http://localhost:5199/tools/vorschau/` mit eigenen Playwright-Skripten
 (Chromium 1243; 1440 × 900, 834 × 1112, 390 × 844 mit Touch, zusätzlich 375 × 812), gemessen mit
@@ -84,7 +86,7 @@ Je Gruppe: A 14 bestätigt / 6 teilweise · B 9 / 2 · C 13 / 1 · I 11 / 2 · T
 | D2-C4 | bestätigt (nachgestellt) | Übersicht: „Aktive Baustellen“, „Nächster Termin“, „Jüngste Belege“, keine Summe; Kontext „2 Wartungsvereinbarungen“. Strg+K setzt den Fokus ins Feld; die Suche filtert in der Vorschau nicht. | Siehe D2-I2 (Grenze 500, Rechte). |
 | D2-C5 | bestätigt (nachgestellt) | ⋯ → „Neue Baustelle“: Adresse mit der Anschrift des Kunden vorbelegt, Hinweis „Vom Kunden übernommen …“; Seite wechselt. | Die Regel „nach Kundenart“ greift nicht, solange die Kundenart fehlt („Kundenart prüfen“ an jeder Beispielzeile, nach einem Import die Regel). Verdacht geklärt, siehe 5. **Im Plan keinem Paket zugeordnet.** |
 | D2-C6 | bestätigt (nachgestellt) | Rückfrage „Baustelle für diese Wartung anlegen?“ mit Projektnummer; „einplanen“ kommt auf der Seite nicht vor; intern heißt der Weg `wartungEinplanen`. | Bleibt gleich ergänzen: `naechsterSchritt` prüft Rolle und Modul (ohne Einsatzplanung führt er zur Baustelle). |
-| D2-C7 | bestätigt (nachgestellt) | Strg+K → Fokus im Feld; Fenster: Fokus auf dem Fenster, dann „Schließen“, dann erstes Feld; Enter im Namen → „Kunde angelegt“; Escape → Fokus auf der Zeile; Tab-Folge: 24 Halte vor dem Inhalt. | Der Fokus auf dem Fenster ist gewollt (`BottomSheet.tsx:65–71`). **Im Plan nur über D2-I12 erfasst.** |
+| D2-C7 | bestätigt (nachgestellt) | Strg+K → Fokus im Feld; Fenster: Fokus auf dem Fenster, dann „Schließen“, dann erstes Feld; Enter im Namen → „Kunde angelegt“; Escape → Fokus auf der Zeile; Tab-Folge: mindestens 24 Halte (Sprungverweis, Suche, Navigation) vor dem Inhalt. | Der Fokus auf dem Fenster ist gewollt (`BottomSheet.tsx:65–71`). **Im Plan nur über D2-I12 erfasst.** |
 | D2-C8 | bestätigt (nachgestellt) | „Top 7 ändern“ → „Beteiligten an diesem Top eintragen“ ersetzt das Fenster; „Wartung ändern“ ersetzt das Lesefenster; nie mehr als Fenster + Rückfrage. | — |
 | D2-C9 | bestätigt (nachgestellt) | 390, großer Bestand: Baustellen 60 Zeilen, Seite 9.718 px, erste Zeile 282 px; Wartungen 7.318 px / 40; Angebote 7.798 px / 42; Eingang bis 240 px. | — |
 | D2-C10 | bestätigt (nachgestellt) | Erste Zeile bei y 683 (Papier: ≈ 730), davor Kennzahl und Karte. | Siehe D2-T6. |
