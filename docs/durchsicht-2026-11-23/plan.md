@@ -3,6 +3,8 @@
 Stand des Codes: `main` fa6e740 (nach E99). Diese Datei fasst zwölf Arbeitspapiere
 zusammen (`analyse/`, je mit Datei und Zeile bzw. Route, Rolle, Breite und Messwert).
 **Gebaut ist nichts.** Umgesetzt wird erst auf Ansage (Grundsatz 5), Paket für Paket.
+Die Entscheidungen aus Abschnitt 8 sind am 23.11.2026 getroffen (alle wie empfohlen);
+ein Startsignal gibt es noch nicht.
 
 Auftrag des Auftraggebers, in vier Teilen:
 
@@ -147,10 +149,10 @@ jeweiligen Papier. Schwere: **h** hoch, **m** mittel, **n** niedrig. Aufwand: **
 | Z-8 | „Krank ab Mittag“ lässt sich nicht abbilden | Lücke | m | m | 17 |
 | Z-9 | Sonderurlaub, Pflegefreistellung, unbezahlten Urlaub kann nur die Person selbst eintragen, nur neun Anlässe | Lücke | m | m | 17 |
 | Z-10 | Ändern sich die Arbeitstage je Woche, bleibt der Resturlaub in Tagen stehen | Lücke | m | m | 17 (Kanzlei) |
-| Z-11 | Urlaubsjahr für alle derselbe Tag; das Arbeitsjahr je Person fehlt | Grenze | m–h | g | 17 (Entscheidung) |
+| Z-11 | Urlaubsjahr für alle derselbe Tag; das Arbeitsjahr je Person fehlt | Grenze | m–h | g | 17 (entschieden) |
 | Z-12 | Urlaub verjährt ohne Vorwarnung | Lücke | m | m | 17 (Kanzlei) |
 | Z-13 | Lohn-Datei kennt Personen nur über den Namen, Zeitkontostand fehlt | Lücke | n–m | k | 17 |
-| Z-14 | „Wegzeit“ zählt nirgends als Arbeitszeit (unbenannte Annahme) | Grenze | n–m | k/m | 17 (Entscheidung) |
+| Z-14 | „Wegzeit“ zählt nirgends als Arbeitszeit (unbenannte Annahme) | Grenze | n–m | k/m | 17 (entschieden) |
 | Z-15 | Nichts verhindert, dass eine neu definierte Funktion einen früheren Textersatz verwirft | f. Prüfung | m | k | 1 |
 | Z-16 | Resturlaub des Monteurs hängt an einer Liste mit fester Obergrenze | Grenze | n | k | 25 |
 
@@ -170,7 +172,7 @@ jeweiligen Papier. Schwere: **h** hoch, **m** mittel, **n** niedrig. Aufwand: **
 | A-10 | Positionen des Angebots erreichen den Monteur nicht | Lücke | m | m | 18 |
 | A-11 | Vorschläge aus der Liegenschaft nur in „Neue Baustelle“, nicht in Eingang und Angebot | Lücke | m | k | 18 |
 | A-12 | Nach „Angenommen“ kein nächster Schritt; Eingang → Angebot landet auf der Akte statt im Formular | Lücke | n–m | k | 14 |
-| A-13 | Angebote schreibt nur die Führung; die Verwaltung sieht sie nicht | Grenze | m | m | 18 (Entscheidung) |
+| A-13 | Angebote schreibt nur die Führung; die Verwaltung sieht sie nicht | Grenze | m | m | 18 (entschieden) |
 | A-14 | Datenbank lässt „Angenommen“ ohne Rücknahme verlassen und die Baustelle umhängen | f. Prüfung | n | k | 18 |
 | A-15 | Dublettenfrage sucht nur in den ersten 50 Treffern | Fehler | n | k | 18 |
 | A-16 | Startseite kennt offene Angebote nicht (Bindefrist, liegen gebliebener Entwurf) | Lücke | n–m | m | 14 |
@@ -208,8 +210,8 @@ jeweiligen Papier. Schwere: **h** hoch, **m** mittel, **n** niedrig. Aufwand: **
 | G-9 | Exporte ohne Gedächtnis: übergebene Zeiträume still änderbar, Storno in zwei Exporten | Lücke | m | m–g | 20 |
 | G-10 | Kein Beleg für „weniger“ (Schlussrechnung mit Guthaben, Gutschrift) | Lücke | m | k/g | 20 |
 | G-11 | Zahlungsziel, Skonto, Nachlass nur je Betrieb oder Rechnung, nicht je Kunde | Lücke | m | m | 20 |
-| G-12 | Schema der Rechnungsnummer fest (Vorsatz, Jahr, ab 1001) | Grenze | n–m | m | 20 (Entscheidung) |
-| G-13 | Übergabe an die Steuerberatung setzt doppelte Buchführung, Sollbesteuerung, BMD voraus | Grenze | m | m | 20 (Entscheidung, Kanzlei) |
+| G-12 | Schema der Rechnungsnummer fest (Vorsatz, Jahr, ab 1001) | Grenze | n–m | m | 20 (entschieden) |
+| G-13 | Übergabe an die Steuerberatung setzt doppelte Buchführung, Sollbesteuerung, BMD voraus | Grenze | m | m | 20 (entschieden: erst nach der Kanzlei) |
 | G-14 | Abzug einer Anzahlung prüft den Steuersatz nicht | Grenze | n | k | 2 |
 | G-15 | Nachkalkulation sieht nur die 300 jüngsten Baustellen, rechnet alte Stunden mit dem heutigen Kostensatz | Grenze | n | m | 25 |
 | G-16 | Datenbank übernimmt die Summen einer Rechnung ungeprüft | f. Prüfung | n–m | k–m | 2 |
@@ -225,7 +227,7 @@ jeweiligen Papier. Schwere: **h** hoch, **m** mittel, **n** niedrig. Aufwand: **
 | M-4 | Eigener Einkaufsposten mit anderer Einheit als der Katalogartikel; „Geliefert“ bucht die Zahl roh | Fehler | m | k | 4 |
 | M-5 | Preisupdate des Großhändlers erreicht die Verkaufspreise nicht | Lücke | m | m | 21 |
 | M-6 | Verbrauch am Schein wird niemandem angeboten; Fahrzeuglager sinkt nur nach erneutem Öffnen | Lücke | m | m | 21 |
-| M-7 | Ein Fahrzeug hat genau einen Fahrer | Grenze | m | m | 21 (Entscheidung) |
+| M-7 | Ein Fahrzeug hat genau einen Fahrer | Grenze | m | m | 21 (entschieden) |
 | M-8 | Wareneingang findet nur Lagerartikel und nicht über die Nummer am Lieferschein | Lücke | n–m | k | 4 |
 | M-9 | Bestellung hinterlässt keinen Beleg (Nummer, Stand, Lieferort); nur `mailto` | Lücke | m | g | 21 |
 | M-10 | Einheit einer frei getippten Zeile geht beim Teilen und auf der Bestellung verloren | Fehler | n | k | 4 |
@@ -352,7 +354,7 @@ Befunde, die ein Paket begründen; die übrigen sind dem Paket in Abschnitt 7 zu
 |---|---|---|---|
 | D4-A1 ◆ | Tag-Planung am Handy: das Neu-Formular steht offen vor dem Bestand (Einsätze erst ab y 2.310), gegen U2 | Wächter erkennt den Titel „Einsatz planen — …“ nicht | 12 |
 | D4-A3 | „Kein Zugriff“ / „… ist ausgeschaltet“ außerhalb der Linie, ohne Weg weiter; unbekannte Adresse leitet still auf Start | `App.tsx:657` | 15 |
-| D4-A10 | Monatsansicht am Tablet: Tastflächen 18×51 px und 53×26 px | Monatsraster | 12 (Entscheidung) |
+| D4-A10 | Monatsansicht am Tablet: Tastflächen 18×51 px und 53×26 px | Monatsraster | 12 (entschieden) |
 | D4-A4 | Leer- und Zustandssätze in 13 px statt 15 px | je Seite | 6 |
 | D4-A6 | Drei Formen des Tastaturfokus | Stile | 5 |
 | D4-A2 | Fensterfuß „Einsatz bearbeiten“ bricht in zwei Zeilen | Fenster | 5 |
@@ -367,7 +369,7 @@ dunkle Satz (kein Text unter 4,5 : 1 in den gemessenen Ansichten).
 |---|---|---|
 | **Fuß von Fenster und Blatt** in vier Formen (gestreckt, kompakt rechts, volle Breite, `Fensteraktionen`); klebt oder rollt; Unumkehrbares als Knopf im Körper statt im ⋯ | D1-B3, D1-B15, D4-B7, D4-B8, D2-A20 | 5 |
 | **Ungespeicherte Eingaben** in drei Verhalten (Akte fragt, „Neuer Kunde“ behält still, „Neuer Eingang“ verwirft bei Escape) | D2-B3 | 5 |
-| **Speichern in zwei Modellen** mit demselben Schalter (sofort gegen „Speichern“); Speicherleiste je Seite gegen je Blatt | D4-B1 | 16 (Entscheidung) |
+| **Speichern in zwei Modellen** mit demselben Schalter (sofort gegen „Speichern“); Speicherleiste je Seite gegen je Blatt | D4-B1 | 16 (entschieden) |
 | **Zahlen- und Zeitformen:** Dauer in drei Schreibweisen („337:30“, „8:00“, „240,0 h“), Datum in fünf Längen, Wochentag mit und ohne Punkt, „€“ vor und hinter der Zahl, Menge in vier Formen, Betrag in Mono oder DM Sans | D1-B5, D1-B6, D3-B1 bis B4, D4-B10, D2-A11 | 6 |
 | **Wörter:** neun Wörter für den Knopf, der speichert; fünf für PDF; „Anforderungen“/„Bestellungen“; „Inventur“ für zwei Dinge; „ganztags“/„ganzer Tag“; „(freiwillig)“/„(optional)“; „Einstellungen › Betrieb“ für eine Seite, die Firmendaten heißt; drei Namen für „Mein Konto“; Anrede „Ihrer“ neben „dir“ | D2-B4 bis B6, D3-B6 bis B10, D3-T22, D4-B10, D1-B14 | 6 |
 | **Verweiszeichen** „→“ neben „›“ | D4-B3, D1-A15, D3-B10 | 6 |
@@ -377,7 +379,7 @@ dunkle Satz (kein Text unter 4,5 : 1 in den gemessenen Ansichten).
 | **Vier Kalender** (Tag-Planung, Monat am Handy, Urlaub im Monat, Personenkalender) | D4-B4, D1-B7 | 12 |
 | **Derselbe Einsatz in zwei Anordnungen** (Startseite dreigeteilte Leiste, Einsatzplan zwei Knöpfe plus Verweise) | D1-B1 | 10 |
 | **Akten:** Kunde, Baustelle, Benutzer gleich gebaut; die Liegenschaftsakte nicht (kein `AktenKopf`, keine Kontextspalte, h1 28 statt 24 px); die Kundenakte als einzige ohne Kennwerte | D2-B1 | 15 |
-| **„Neu in dieser Liste“:** `NeuKnopf` (runder Kreis, E76) neben „+ Material“ gerahmt, „+ Steuersatz“; im Fenster neben der gefüllten Hauptaktion (gegen U4) | D3-B15, D4-B15, D2-A9 | 5 (Entscheidung) |
+| **„Neu in dieser Liste“:** `NeuKnopf` (runder Kreis, E76) neben „+ Material“ gerahmt, „+ Steuersatz“; im Fenster neben der gefüllten Hauptaktion (gegen U4) | D3-B15, D4-B15, D2-A9 | 5 (entschieden) |
 | **Anmeldeweg** in drei Gestalten (Anmeldung, zweiter Faktor, Willkommen) | D4-B12 | 15 |
 | **Knöpfe in Listenzeilen** (bis zu zwei Knöpfe, Stift und ⋯) statt Zeile öffnet, Aktionen im Fenster | D2-C12, D3-B20 | 7/13 |
 
@@ -424,7 +426,7 @@ Sie fallen in sieben Muster:
 | **6. Zeilen mit vier und mehr Angaben** | Baustellenliste am Handy: sieben Angaben, 282 px je Zeile; Wartung: Kette mit fünf Punkten; Eingang: Anliegen ungekürzt in fünf Zeilen; Plattform: Anlegedatum in jeder Zeile | zwei Zeilen; der Rest ins Fenster der Zeile (das es überall gibt) | D2-T (Listen), D2-C9, D1-T9, T25, D4-T17, T21 |
 | **7. Blätter, die meist nichts tragen, stehen vor dem Inhalt** | Einkauf: „Nichts vorzuschlagen …“ und „Material dazusetzen“ vor der Liste; Scheine: „Stunden ohne Buchung (0)“; „Kommen die Meldungen an?“; Benutzerakte: Blatt „Geburtsdatum“ mit nur einem Knopf | zugeklappt, wenn leer (`Card klappe`, wie E98 bei den Rechnungen); Einzelknöpfe als Zeile in das Nachbarblatt | D3-T16, D2-C10, D4-T16, D4-I9, I11 |
 
-**Regel für `docs/design/v10/style.md` (Vorschlag, Entscheidung E-T):**
+**Regel für `docs/design/v10/style.md` (entschieden, E-T):**
 
 1. Der Seitenkopf trägt einen Untertitel nur, wenn er eine Auskunft ist, die sich ändert
    (Datum, Dateiname, Zahl) — nie eine Beschreibung der Seite.
@@ -466,7 +468,7 @@ mit Skizze. Sie lassen sich mit sieben Formen ersetzen, die es in der Linie scho
 | **Feste Spalten** am Schreibtisch | Listen mit drei und mehr Angaben | Mahnlauf: „2026-0231 · € 22 104,60 · 71 Tage überfällig · Kundenart fehlt“ → Spalten Name, Stufe, Betrag, Tage; die Warnung als eigener Zustand | Tabelle/Spaltenraster der Listen |
 | **Zähler rechts im Kartenkopf** | „Dein Einsatz heute · 4 Einsätze“ | Titel links, „4“ leise rechts — eine Form für alle Karten | `Card` |
 
-**Regel für `style.md` (Vorschlag, Entscheidung E-P):**
+**Regel für `style.md` (entschieden, E-P):**
 
 1. Der Punkt trennt höchstens **zwei kurze, gleichrangige** Angaben in einer leisen
    Zeile. Nie mehr als ein Punkt je Zeile.
@@ -615,7 +617,7 @@ Hauptaktion eines Fensters liegt beim Öffnen im sichtbaren Bereich, 390×844 un
 1440×900 — heute rot an sieben Fenstern); Vorher/Nachher-Bilder aller Fenster.
 **Risiko:** Der Fuß berührt jedes Formular — deshalb in drei PRs (Baustein; Büro-Fenster;
 Handy-Blätter), je mit dem vollen Durchklick. **Aufwand:** 6–8 Tage.
-**Voraussetzung:** Entscheidung E-N.
+E-N ist entschieden.
 
 #### Paket 6 — Eine Schreibweise: Zahlen, Zeiten, Wörter, Anrede, Tastaturen
 **Punkte:** D1-B5, D1-B6, D3-B1 bis B10, D4-B10, D2-A11, D2-A17, D2-B4 bis B6,
@@ -636,13 +638,13 @@ D4-B3, D1-A15, D1-A16, D1-B14, D3-T22, D1-A22, D4-A4, D3-17, D1-C9, D1-B4, D3-B9
 **Bleibt gleich:** Belege und Exporte (sie schreiben `euroBetrag`, Belegreferenz Byte
 für Byte gleich); gespeicherte Werte. **Risiko:** Texte ändern sich an vielen Stellen —
 das Funktionsinventar führt umbenannte Knöpfe in `v10-entfernt.json` mit altem und
-neuem Namen. **Aufwand:** 5–6 Tage. **Voraussetzung:** E-D (Anrede).
+neuem Namen. **Aufwand:** 5–6 Tage. E-D (Anrede „du“) ist entschieden.
 
 #### Paket 7 — Statt der Punkte (Regel, Bausteine, Wächter)
 **Punkte:** alle 51 Muster (D1-P1 bis P17, D2-P1 bis P9, D3-P1 bis P13, D4-P1 bis P12),
 D1-B9, D4-P3, D1-A18, D1-B2, D3-B17.
 
-1. Regel in `style.md` (Abschnitt 6), nach Entscheidung E-P.
+1. Regel in `style.md` (Abschnitt 6) — entschieden (E-P).
 2. Bausteine: `ListRow` mit Wert rechts (Mono) und Stempel am Titel überall; Gruppenkopf
    „Tag“ für Listen; Datumsspalte der Termin-Zeile als Baustein; Zähler rechts im
    `Card`-Kopf; `Angaben` (Wertpaare) für Fenster- und Dialogköpfe.
@@ -658,13 +660,13 @@ derselben Reihenfolge (Prüfung wie G3 in `TimeView.test.tsx`).
 **Bleibt gleich:** jede Angabe bleibt sichtbar oder einen Tipp entfernt; Reihenfolge für
 die Vorlesehilfe; `kein-trennen` an Nummern; die vier Fälle, in denen der Punkt bleibt.
 **Risiko:** eine Zeile wird am Handy (375 px) dreizeilig — Messung je Liste auf 375 px.
-**Aufwand:** 8–10 Tage, in vier PRs. **Voraussetzung:** Paket 6 (Formatierer), E-P.
+**Aufwand:** 8–10 Tage, in vier PRs. **Voraussetzung:** Paket 6 (Formatierer). E-P ist entschieden.
 
 #### Paket 8 — Weniger Text
 **Punkte:** alle 88 T-Funde (D1-T1 bis T25, D2-T1 bis T20, D3-T1 bis T22, D4-T1 bis
 T21), D2-C10, D4-I9, D4-I11, D1-I16, D1-I18.
 
-1. Regel in `style.md` (Abschnitt 5), nach Entscheidung E-T.
+1. Regel in `style.md` (Abschnitt 5) — entschieden (E-T).
 2. `PageHeader`: Untertitel nur noch als Auskunft; die beschreibenden Untertitel wandern
    in `hilfe` derselben Seite (ein PR, rund 30 Seiten).
 3. Doppelte Angaben streichen (Muster 2), je Fenster ein PR-Abschnitt: Rechnungsfenster,
@@ -682,7 +684,7 @@ Messung „Wörter über dem Falz“ je Route vorher/nachher (aus `analyse/8`).
 **Bleibt gleich:** die als „bleibt“ markierten Sätze (Abschnitt 5); alles Gestrichene
 steht in der Hilfe oder im Fenster. **Risiko:** gering, solange Schritt 3 je Fenster
 geprüft wird, dass die Angabe an der verbleibenden Stelle wirklich steht.
-**Aufwand:** 5–6 Tage. **Voraussetzung:** E-T.
+**Aufwand:** 5–6 Tage. E-T ist entschieden.
 
 #### Paket 9 — Vorschau zeigt jeden Bildschirm
 **Punkte:** D3-C0, die „nicht erreichbar“-Listen der Papiere 9–12.
@@ -764,7 +766,7 @@ D4-T12 bis T14, D1-B7.
 - Ansichtswahl als eine Leiste (Sicht | Zeitraum getrennt erkennbar).
 
 **Bleibt gleich:** Ziehen mit Maus und Finger, „Noch einzuplanen“ (E96), Konflikte,
-Abwesenheiten, Monatsvorschau. **Aufwand:** 7–9 Tage. **Voraussetzung:** E-M; Paket 19
+Abwesenheiten, Monatsvorschau. **Aufwand:** 7–9 Tage. E-M ist entschieden; Paket 19
 (P-4: Plan aktuell halten) kann parallel.
 
 #### Paket 13 — Akten, Angebote, Scheine, Wartungen (Büro)
@@ -832,7 +834,7 @@ D3-C12, D3-P12.
 - Betragsfelder mit Einheit im Feld; Mahnspesen als Raster 3 × 2.
 
 **Bleibt gleich:** jede Einstellung, ihr Ort in der Adresse (alte Adressen leiten
-weiter), Rückfragen der Module. **Aufwand:** 6–7 Tage. **Voraussetzung:** E-E.
+weiter), Rückfragen der Module. **Aufwand:** 6–7 Tage. E-E ist entschieden.
 
 ### Stufe D — Lücken in den Abläufen
 
@@ -939,7 +941,13 @@ Hinweis „Quer halten“ (D1-I8).
 
 ## 8. Entscheidungen des Auftraggebers
 
-| Nr. | Frage | Empfehlung |
+**Entschieden am 23.11.2026: alle fünfzehn Punkte wie empfohlen** (Wortlaut: „alles wie
+von dir empfohlen, aber noch nicht mit der umsetzung starten“). Die Spalte „Entschieden“
+hält fest, was damit gilt. **Das ist noch kein Startsignal** (Grundsatz 5): gebaut wird
+erst auf Ansage, und erst nach der unabhängigen Gegenprüfung des Plans (Abschnitt 11).
+E-G13 bleibt bis zum Gespräch mit der Kanzlei offen — so lautete die Empfehlung.
+
+| Nr. | Frage | Entschieden (= Empfehlung) |
 |---|---|---|
 | E-R | Reihenfolge A → B → C → D, E begleitend? | ja; Paket 1 sofort |
 | E-T | Textregel (Abschnitt 5) in `style.md` aufnehmen; Untertitel der Seitenköpfe in die Hilfe? | ja |
