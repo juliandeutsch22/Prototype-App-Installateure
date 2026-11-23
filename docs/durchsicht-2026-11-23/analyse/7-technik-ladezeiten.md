@@ -164,8 +164,8 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
 - Beleg: Tabelle in Abschnitt 1. `leistungsbudget.json:2` nennt als Stand „vor dem ersten Bild
   264,7 KB … größter eigener Baustein 90,7 KB, 234 Bausteine, schwerste Ansicht 123,5 KB in 63
   Dateien … Etwa 10 % Luft“; gemessen sind heute 274,0 KB, 94,3 KB, 254 Bausteine, 131,0 KB und
-  69 Dateien. In sechs Tagen (17.11. bis 23.11.) sind 20 Bausteine und 9 KB vor dem ersten Bild
-  dazugekommen.
+  69 Dateien. Seit dem dort genannten Stand vom 17.11.2026 sind 20 Bausteine und 9 KB vor dem
+  ersten Bild dazugekommen.
 - Auswirkung: Ein neues Fenster auf der Startseite (eine Datei mehr im Graph) bricht den Bau
   ab. Wer dann die Grenze anhebt, hebt sie für alle Ansichten.
 - Vorschlag: (1) `_warum` in `leistungsbudget.json` auf die gemessenen Werte bringen und das
@@ -229,8 +229,8 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
   eintragen, Lagereingang: bleibt die Meldung des Kanals aus (gesperrte Websockets, Abriss),
   zeigt die eigene Seite den alten Stand bis zum nächsten Abgleich. Genau dieser Fall wurde in
   der CI gefunden (Stand §118) und nur für die einfachen Schreibwege behoben.
-- Beleg: `eigeneAenderung(` wird nur in `src/lib/db/pg/kern.ts:509, 531, 587` (und beim
-  Löschen), in `ohneEmpfang.ts` und im Ausgangsfach gerufen. Die Wege über Funktionen rufen es
+- Beleg: `eigeneAenderung(` wird nur in `src/lib/db/pg/kern.ts:509, 531, 587, 600` (Anlegen,
+  Anlegen mit Kennung, Ändern, Löschen), in `ohneEmpfang.ts` und im Ausgangsfach gerufen. Die Wege über Funktionen rufen es
   nicht, etwa `einsatz_speichern` (`src/lib/db/pg/assignments.ts:206`), `zeit_einfuegen`
   (`src/lib/db/pg/timeEntries.ts:245`), `urlaub_eintragen`
   (`src/lib/db/pg/abwesenheiten.ts:124`). Die Grenze ist benannt in
@@ -301,14 +301,17 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
 - Auswirkung: Ein Pull Request ändert nur `tailwind.config.js`; die CI ist grün; auf `main`
   werden die Migrationen eingespielt, dann bricht „Bauen“ am Budget ab.
 - Vorschlag: Im Auftrag `test` nach den Unit-Prüfungen `npx vite build --config vite.config.ts`
-  (gemessen 24 s; die Typen sind dort schon geprüft) — ohne Geheimnisse, der Bau braucht keine
-  (`datenbankVorverbinden` kommt ohne Adresse aus). Damit läuft der Leistungswächter in jedem
-  Pull Request und noch einmal vor dem Einspielen? Nein: auf `main` läuft `test` erst nach dem
-  Einspielen. Deshalb zusätzlich den Bau als Schritt in „Migrationen von null an“ aufnehmen
-  oder — einfacher — die fehlenden Pfade in `durchklick.yml` ergänzen **und** den Bau in `test`
-  aufnehmen; der Pull Request ist dann in jedem Fall gebaut. Prüfung:
-  `auslieferungsKette.test.ts` „der Prüfauftrag baut“ (Gegenprobe ohne den Schritt rot).
-  Gleich bleiben muss: der Deploy-Auftrag baut weiter selbst mit den Geheimnissen.
+  (gemessen 24 s; die Typen sind dort schon geprüft) — ohne Geheimnisse: der Bau dieser
+  Durchsicht lief ohne `.env` durch (`datenbankVorverbinden` kommt ohne Adresse aus).
+  `deploy.yml` läuft bei **jedem** Pull Request ohne Pfadfilter; damit ist jeder Pull Request
+  vor dem Merge gebaut, und der Leistungswächter, die Hash-Prüfung der eingebetteten Skripte
+  und die Prüfung der Start-Bausteine laufen mit. Zusätzlich die fehlenden Pfade in
+  `durchklick.yml` ergänzen (`index.html`, `public/**`, `leistungsbudget.json`,
+  `tailwind.config.js`), damit eine Änderung an der Hülle auch den Rundgang unter der
+  Inhaltsregel auslöst. Prüfung: `auslieferungsKette.test.ts` „der Prüfauftrag baut“
+  (Gegenprobe ohne den Schritt rot). Gleich bleiben muss: der Deploy-Auftrag baut weiter selbst
+  mit den Geheimnissen; die Reihenfolge Schema → Functions → App. Risiko: rund eine halbe
+  Minute mehr je Pull Request.
 - Aufwand: klein
 
 ### L-10 Die Auslieferung läuft auf Node 20, das seit 30.04.2026 nicht mehr gepflegt wird; die Werkzeugfassungen sind uneinheitlich festgelegt
@@ -470,8 +473,8 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
   dem Tabellennamen ab; die Ursache war der Fremdschlüssel ohne `cascade` aus
   `20261115300000_…sql:308–311`. Ein Suchlauf über die Fremdschlüssel (`audit/L/fk.py`) findet
   keine weitere Tabelle, die das Abräumen festhält. (b) `leistungsbudget.json:2` (siehe L-4).
-  (c) `docs/ui-umbau/messung-gewachsen.md` (siehe L-6). (d) `index.html:17–20` erklärt die
-  Statusbalkenfarbe mit `#0f4552`, gesetzt ist `#ffffff` (Zeile 29 im Bau).
+  (c) `docs/ui-umbau/messung-gewachsen.md` (siehe L-6). (d) `index.html:19` erklärt die
+  Statusbalkenfarbe mit `#0f4552`, gesetzt ist in Zeile 30 `#ffffff`.
 - Vorschlag: Die vier Stellen berichtigen. Für (a) als Idee ein kleiner Wächter, der die
   Abräumliste gegen die Fremdschlüssel der Migrationen prüft (heute sagt es der Aufbau erst,
   wenn Zeilen da sind — laut, aber spät).
@@ -513,7 +516,7 @@ lädt kein heutiger Browser. Das Vorladen im Leerlauf achtet auf den Datensparmo
   Taste am Handy spürbar ist, ist weiter nicht gemessen (React-Profiler, CPU ×4, angemeldete App).
 - **V-6 „Überfällig“ entsteht nur, wenn jemand mit Schreibrecht die Rechnungsliste öffnet**
   (`InvoicesView.tsx:893–904`, ein Schreibvorgang je Rechnung, Fehler bewusst still). Die
-  Kundenakte zeigt den gespeicherten Zustand (`KundenakteView.tsx:597`) und damit „Offen“, bis
+  Kundenakte zeigt den gespeicherten Zustand (`KundenakteView.tsx:596`) und damit „Offen“, bis
   das geschehen ist; Startseite und Mahnlauf rechnen selbst (`shared/forderungen.ts`). Gehört
   fachlich ins Geld-Papier; hier nur als Hinweis auf eine Regel, die an zwei Stellen verschieden
   wirkt.

@@ -110,7 +110,7 @@ Einlass und bleibt leer); der Rechnungspreis nimmt den Artikel über seine Kennu
 - Beleg: `src/lib/db/pg/materialOrders.ts:506` ruft `ausgegebenes_material_gesamt` ohne
   Seiten; die Funktion gibt eine Zeile je Anforderung, Retoure und Rüstlistenposition
   zurück (`mig/20261116060700_material_kleine_luecken.sql:486-557`), für bis zu 25
-  Baustellen je Aufruf (`costing/nachkalkulationLaden.ts:54-56`, `:79`).
+  Baustellen je Aufruf (`costing/nachkalkulationLaden.ts:53-54`, `:79`).
   `supabase/config.toml:18` setzt `max_rows = 1000`; dass das auch Funktionen trifft, steht
   im Code selbst (`pg/materials.ts:350-353`). Geordnet wird nach Baustelle, Tag, Name
   (`:555`) — abgeschnitten werden die hinteren Baustellen. Ebenso ohne Seiten:
@@ -428,7 +428,7 @@ Einlass und bleibt leer); der Rechnungspreis nimmt den Artikel über seine Kennu
   Zeilen zu (`mig/20261110120000_…:102-117`, mit Absicht — der Bestand bleibt abgezogen).
   Danach gilt `darfNichtAufLager` (`AdminOrdersView.tsx:1039-1042`, prüft `processed` nur
   beim Weg aus dem Lager), und `aufEinkaufsliste` schreibt ohne die Bedingung
-  „unverbucht“ (`pg/einkauf.ts:151-161`). `einkauf_geliefert` überspringt verbuchte
+  „unverbucht“ (`pg/einkauf.ts:145-157`). `einkauf_geliefert` überspringt verbuchte
   Zeilen (`mig/20261116060700_…:229-232`), `einkauf_stornieren` ebenso
   (`mig/20261116060400_…:280`).
 - Auswirkung: Monteur holt direkt ab; das Büro setzt später auf „Offen“ zurück und tippt
