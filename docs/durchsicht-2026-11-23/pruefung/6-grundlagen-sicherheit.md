@@ -60,8 +60,8 @@ wiedergegeben** (Abschnitt 4).
 
 Statisch am Endstand: 817 Funktionen in `public`/`app`, 579 mit Eigentümerrechten, **alle 579** mit
 `search_path=""`; 0 Tabellen in `public` ohne Zeilenschutz; 0 Tabellenrechte für `anon`; 0 mal
-TRUNCATE/TRIGGER/REFERENCES für `authenticated`. Von den 131 seit dem 15.11. angelegten oder
-geänderten Funktionen in `public` sind 122 für Konten ausführbar (deckt sich mit dem Papier), für
+TRUNCATE/TRIGGER/REFERENCES für `authenticated`. Von den 131 in den Migrationen ab `20261115…`
+angelegten oder geänderten Funktionen in `public` sind 122 für Konten ausführbar (deckt sich mit dem Papier), für
 `anon` nur `passwort_hilfe_anfragen` (gewollt). Die zehn neuen Tabellen: Zeilenschutz an, je eine
 Leseregel über `app.lesebetrieb()`, `rechnungsversuche_ohne_beleg` ohne Regel.
 
@@ -84,10 +84,10 @@ Listen, die drei Anforderungs-/Rückgabefunktionen, `retoure_rahmen`,
 
 Ergebnis: jedes fremde Konto bekommt „gibt es nicht“ (P0002), 42501, eine leere Menge oder
 „veraltet“. **Prüfsumme über alle 88 Tabellen mit `company_id` für den Betrieb Alfa vor und nach
-den 120 fremden Aufrufen gleich**, ebenso die Anmeldekonten von Alfa. Bei 27 der 40 liefert die
+den 120 fremden Aufrufen gleich**, ebenso die Anmeldekonten von Alfa. Bei 24 der 40 liefert die
 Kontrolle als eigener Administrator ein Ergebnis oder eine fachliche Meldung nach der
 Zugriffsprüfung (der fremde Aufruf scheitert also am Zugriff, nicht an meinen Angaben); bei den
-übrigen 13 scheitern beide an den Angaben oder liefern beide leer — dort trägt nur die Prüfsumme.
+übrigen 16 scheitern beide an den Angaben oder liefern beide leer — dort trägt nur die Prüfsumme.
 
 ### 2b. Gegenfälle zum Vorschlag `coalesce(app.betrieb(), app.supportbetrieb())`
 
