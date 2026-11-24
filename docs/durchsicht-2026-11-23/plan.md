@@ -1,9 +1,13 @@
-# Durchsicht vom 23.11.2026 — Befunde und Umsetzungsplan (Fassung 2, nach der Gegenprüfung)
+# Durchsicht vom 23.11.2026 — Befunde und Umsetzungsplan (Fassung 2 mit den Auflagen der Bestätigung)
 
 Stand des Codes: `main` fa6e740 (nach E99). Diese Datei fasst zwölf Arbeitspapiere (`analyse/`)
 und dreizehn Berichte unabhängiger Prüfer (`pruefung/`) zusammen. Fassung 1 war die erste
 Zusammenfassung der Papiere; **Fassung 2 arbeitet die Gegenprüfung vollständig ein**. Was sich
 dabei geändert hat, steht Punkt für Punkt in `pruefung/aenderungen-fassung-2.md`.
+**Zwei weitere unabhängige Prüfer haben Fassung 2 danach bestätigt — beide mit Auflagen**
+(`pruefung/13-bestaetigung-fassung-2-funktion.md`: zehn Auflagen;
+`pruefung/14-bestaetigung-fassung-2-oberflaeche.md`: zwölf Auflagen). Diese 22 Auflagen sind hier
+eingearbeitet; was dabei geändert wurde, steht im Änderungsprotokoll, Abschnitt F.
 
 **Was gilt:**
 
@@ -23,6 +27,12 @@ dabei geändert hat, steht Punkt für Punkt in `pruefung/aenderungen-fassung-2.m
 - **Nicht entschieden ist, was auf die Kanzlei wartet** (Abschnitt 10.4 und 11), und was
   „zurückgestellt — neue Entscheidung nötig“ heißt (Abschnitt 8.4). Vor Paket 1 ist außerdem ein
   Verdachtsfall zu klären (Verdacht S-4, Abschnitt 4.9).
+- **Nicht entschieden ist auch, was die Bestätigung geändert oder neu aufgeworfen hat.** Die
+  Erklärung des Auftraggebers deckt die Zeilen von Abschnitt 10, wie sie ihm vorlagen. Jede
+  Empfehlung, die sich durch die Berichte 13 und 14 inhaltlich ändert, und jede neue Frage steht
+  in Abschnitt 10.5 („nach der Bestätigung neu vorzulegen — nicht entschieden“, 23 Zeilen); was
+  vor dem PR im Bild vorzulegen ist, in 10.6; Folgen schon entschiedener Punkte, die er kennen
+  sollte, in 10.7. Was an einer Zeile aus 10.5 hängt, wird bis zur Entscheidung nicht gebaut.
 
 Auftrag des Auftraggebers, in vier Teilen:
 
@@ -48,7 +58,7 @@ Auftrag des Auftraggebers, in vier Teilen:
 | 7 | Statt der Trennpunkte — Befund und Regel in der Fassung nach der Gegenprüfung |
 | 8 | Die vier Listen: widerlegt · keine Handlung · bleibt, wie es ist · zurückgestellt |
 | 9 | Der Plan in Paketen: Reihenfolge, Abhängigkeiten, Seite → Paket, Pakete 1 bis 29 |
-| 10 | Entscheidungen des Auftraggebers in drei Teilen: nicht beanstandet · neu vorgelegt · neu offen; dazu, was auf die Kanzlei wartet |
+| 10 | Entscheidungen des Auftraggebers in drei Teilen: nicht beanstandet · neu vorgelegt · neu offen; dazu, was auf die Kanzlei wartet (10.4), was nach der Bestätigung neu vorzulegen und nicht entschieden ist (10.5), was vor dem PR im Bild vorzulegen ist (10.6) und Folgen entschiedener Punkte (10.7) |
 | 11 | Fragen an Kanzlei und Steuerberatung |
 | 12 | Was diese Durchsicht nicht geleistet hat |
 
@@ -103,15 +113,24 @@ nicht „bestätigt“, sondern auf Risiko geprüft.
 - **36 neue Befunde** haben die Prüfer beim Nachstellen gefunden (Abschnitt 4.8), darunter
   mehrere mit Schaden.
 
+**Bestätigung der Fassung 2 (Berichte 13 und 14):** Der Bestätiger für den Teil Funktion urteilt
+„bestätigt mit Auflagen“ (zehn Auflagen): kein Urteil weicht vom Bericht ab, keine Warnung fehlt,
+in der Stichprobe nichts Erfundenes — aber an zwei Stellen behandelte ein Paket etwas als
+entschieden, das auf die Kanzlei wartet oder eine Entscheidung braucht. Der Bestätiger für den
+Teil Oberfläche urteilt ebenfalls „bestätigt mit Auflagen“ (zwölf Auflagen): alle 408 Urteile
+stehen richtig, aber zwei Regeln waren so nicht eindeutig baubar und eine frühere Entscheidung
+(E31) wurde berührt, ohne dass es dastand. Alle 22 Auflagen sind eingearbeitet (Änderungsprotokoll,
+Abschnitt F).
+
 ### 1.2 Was die Gegenprüfung am Plan geändert hat
 
 | Thema | Fassung 1 | Fassung 2 |
 |---|---|---|
-| Entscheidungen | fünfzehn „entschieden wie empfohlen“ | sechs gelten unverändert; **neun sind mit neuer Empfehlung neu vorgelegt**, weil die alte nicht hielt (E-T, E-P, E-D, E-N, E-E, E-M, E-S, E-A13, E-Z14); dazu die neu offenen Fragen. Der Auftraggeber hat am 23.11.2026 alle neuen Empfehlungen übernommen (Abschnitt 10) |
+| Entscheidungen | fünfzehn „entschieden wie empfohlen“ | sechs gelten unverändert; **neun sind mit neuer Empfehlung neu vorgelegt**, weil die alte nicht hielt (E-T, E-P, E-D, E-N, E-E, E-M, E-S, E-A13, E-Z14); dazu die neu offenen Fragen. Der Auftraggeber hat am 23.11.2026 alle neuen Empfehlungen übernommen (Abschnitt 10). Was die Bestätigung danach geändert oder neu aufgeworfen hat, ist davon nicht gedeckt und steht in 10.5 |
 | Absicherung „nichts verschlimmbessern“ | stützte sich auf Werkzeuge, die weniger leisten als behauptet | Abschnitt 2 sagt, was jedes Werkzeug leistet; das Funktionsinventar wird zuerst auf den Stand nach E99 gebracht, das Bildwerkzeug zuerst gebaut (Paket 8) |
 | Zuordnung | rund 140 Punkte der Papiere in keinem Paket; 9 Kürzel doppelt | jedes der 500 Kürzel genau einmal in einem Paket oder in einer der vier Listen (per Skript geprüft); 45 Verdachtsfälle, 58 Ideen zum Zusammenspiel und die Grenzen ohne gültigen Grund je in einer eigenen Tabelle |
 | Reihenfolge | vier Voraussetzungen kamen später als das Paket, das sie brauchte | Bau bei jedem PR und das Herauslösen der Rechnungsfenster vor Stufe B; Vorschau und Bildwerkzeug als erstes Paket der Stufe B; WebKit für die Büro-Geldwege vor Stufe C |
-| Stufe B und C | dieselbe Liste bis zu fünfmal umgebaut | Stufe B liefert nur Regeln, Bausteine und Wächter; **jede Seite wird genau einmal umgebaut, in Stufe C** (Tabelle 9.3) |
+| Stufe B und C | dieselbe Liste bis zu fünfmal umgebaut | Stufe B liefert nur Regeln, Bausteine und Wächter; **jede Seite wird genau einmal umgebaut, in Stufe C** (Tabelle 9.3) — außer den in 9.3 benannten Fenstern, die Paket 9 vorab an ihrem Baustein berührt |
 | Vorschläge | mehrere hätten etwas verschlechtert oder eine Entscheidung zurückgedreht | je Punkt die Vorgabe des Prüfers; was eine Entscheidung zurückdrehen, eine Funktion wegnehmen oder einen Tipp kosten würde, bleibt, wie es ist (Liste 8.3) |
 | Aufwand | keine Summe genannt (nachgerechnet 190 bis 235 Arbeitstage) | Summe je Stufe und gesamt (1.5) |
 
@@ -140,7 +159,8 @@ nachgestellt):
 - **Z-1 (Nebenwirkung des Monatsabschlusses vom 16.11., kein Rückfall):** Mit eingeschaltetem
   Monatsabschluss lässt sich über Stunden eines abgeschlossenen Monats keine Rechnung ausstellen
   oder stornieren. Neu dazu (N-Z-1): auch die Einstufung einer Person lässt sich dann nicht mehr
-  ändern.
+  ändern. Wie der Satz in abgeschlossenen Monaten nachgezogen wird, ist nach der Bestätigung
+  neu vorgelegt (E-B1): die bisherige Empfehlung hätte ein heutiges Verhalten verschlechtert.
 - **S-1 / M-1 (Rückfall):** Der Supportzugang sieht seit 18.11. Baustellen, Lager, Anforderungen,
   Wartungen und offene Forderungen nicht mehr. Der Vorschlag der Fassung 1 hätte dem Support ein
   leeres Lager gezeigt statt eines Fehlers — berichtigt (Paket 1).
@@ -148,7 +168,10 @@ nachgestellt):
 **Falsche Zahlen und Datenverlust:**
 
 - **L-1 / M-2 / N-L-1:** Die Nachkalkulation verliert Materialkosten ab 1.000 Ausgabezeilen;
-  dieselbe Grenze trifft das ausgegebene Material beim Rechnungstellen.
+  dieselbe Grenze trifft das ausgegebene Material beim Rechnungstellen. Am Code bestätigt und an
+  der Datenbankhälfte belegt; der Schnitt an PostgREST und der Wert im gehosteten Projekt
+  sind nicht nachgestellt (Bericht 7: „sehr wahrscheinlich — belegt ist der Wert nicht“) — der
+  Wert wird in Paket 1, Schritt 0 abgelesen.
 - **G-1:** Der Kontoauszug-Abgleich hält ein Datum oder eine fremde Nummer aus Jahr und
   vierstelliger Zahl im Verwendungszweck für eine Rechnungsnummer und wählt die Rechnung eines
   fremden Kunden vor (nachgestellt; betrifft 92 Nummern je Jahr, nicht rund 230).
@@ -177,24 +200,30 @@ Zahlungsdialog belegt „22104.6“ vor — ein Formfehler, keine falsche Zahl).
   „Abschicken“ hinter der Kopfinsel (D1-C3); der Tipp auf einen Tag im Einsatzplan zeigt nichts
   (D1-C6).
 - Text: die Untertitel der Seitenköpfe wiederholen ab Tablet nur den Titel; derselbe Betrag
-  steht im Rechnungsfenster viermal.
+  steht im Rechnungsfenster viermal. Ob die Untertitel ab dem Tablet in die Hilfe wandern, ist
+  nach der Bestätigung neu vorgelegt (E-B17): der Schritt berührt auch E31 („alle Seiten
+  beginnen auf derselben Höhe“); bis zur Entscheidung bleibt der Seitenkopf ab dem Tablet, wie
+  er ist.
 - Trennpunkte: die Menge entsteht durch Wiederholung und durch Ketten mit drei bis fünf Punkten.
   Die Ersatzformen der Fassung 1 tragen am Handy mit langen Namen aber nicht überall
-  (Abschnitt 7).
+  (Abschnitt 7). Die entschiedene Regel nimmt die Ketten weg; die vielen einzelnen Punkte bleiben
+  (Abschnitt 7.2, E-B18).
 
 ### 1.5 Stufen und Aufwand
 
 Schätzung in Arbeitstagen, aus den Aufwänden der Papiere und den Berichtigungen der Prüfer
 (Bericht 0, Abschnitt 9). Nicht enthalten: was bleibt, wie es ist (Liste 8.3), was
-zurückgestellt ist (Liste 8.4 und die eigenen Ideen zum Zusammenspiel) und G-13 (wartet auf die
-Kanzlei).
+zurückgestellt ist (Liste 8.4 und die eigenen Ideen zum Zusammenspiel) und, was auf die Kanzlei
+wartet: G-3 und G-13 (Paket 24: „ohne G-3 und G-13“) und P-8 (Paket 23: „ohne P-8“). G-10,
+Teil 2 (Rechnungskorrektur als Beleg) wartet ebenfalls (E-B3, K-10), ist im Aufwand von Paket 24
+aber noch mitgezählt. Die Zeilen aus 10.5 ändern die Summe nicht.
 
 | Stufe | Inhalt | Pakete | Aufwand |
 |---|---|---|---|
 | Vorab | Verdacht S-4 (Realtime) klären | — | ½–1 |
 | **A** | Rückfälle und Fehler mit Schaden, je mit einem Wächter | 1–6 | 25–34 |
 | vor B | Rechnungsfenster verhaltensgleich herauslösen | 7 | 4–6 |
-| **B** | Werkzeuge, Regeln, Bausteine, Wächter — keine Seite wird umgebaut | 8–12 | 31–42 |
+| **B** | Werkzeuge, Regeln, Bausteine, Wächter — keine Seite wird umgebaut, außer den in 9.3 benannten Fenstern | 8–12 | 31–42 |
 | **C** | Seiten, jede genau einmal | 13–20 | 75–95 |
 | **D** | Lücken in den Abläufen | 21–26 | 95–119 |
 | **E** | Technik: Auslieferung, Prüfungen, Skalierung | 27–29 | 15–19 |
@@ -215,11 +244,21 @@ Fälle „ein Tipp mehr“. Der Auftraggeber hat am 23.11.2026 erklärt: „alle
 entscheidungen wie von dir neu empfohlen“ — damit gilt in Teil 2 und Teil 3 je Zeile die neue
 Empfehlung.
 
-**Offen bleibt:** (1) das Startsignal; (2) der Verdacht S-4 vor Paket 1; (3) zehn Punkte, die auf
-Kanzlei oder Steuerberatung warten (Abschnitt 10.4, neun Fragen in Abschnitt 11); (4) alles, was
+**Nach der Bestätigung (Berichte 13 und 14)** ist der Plan „Fassung 2 mit den Auflagen der
+Bestätigung“. Die Erklärung des Auftraggebers deckt die Zeilen so, wie sie ihm vorlagen. Wo ein
+Bestätiger eine Zeile nur genauer gefasst hat (sie sagt jetzt, was schon gemeint war, oder nennt
+einen bisher verschwiegenen Verlust), steht das in der Zeile selbst, mit dem Zusatz „nach der
+Bestätigung genauer gefasst“. Wo sich eine Empfehlung **inhaltlich ändert** oder eine Frage **neu**
+ist, steht sie in **10.5 — nicht entschieden** (23 Zeilen, E-B1 bis E-B23); die alte Zeile bleibt
+stehen und verweist dorthin. **10.6** (13 Zeilen) sammelt, was vor dem PR im Bild oder im Wortlaut
+vorzulegen ist, weil eine Vorgabe eine Wahl offenlässt. **10.7** (7 Zeilen) nennt Folgen
+entschiedener Punkte, die bisher nur als Vorgabe in einem Paket standen.
+
+**Offen bleibt:** (1) das Startsignal; (2) der Verdacht S-4 vor Paket 1; (3) zwölf Punkte, die auf
+Kanzlei oder Steuerberatung warten (Abschnitt 10.4, zehn Fragen in Abschnitt 11); (4) alles, was
 „zurückgestellt — neue Entscheidung nötig“ heißt (Abschnitt 8.4 und die eigenen Ideen in 4.11);
 (5) 22 offene Verdachtsfälle, je vor ihrem Paket zu klären; (6) die zweite Durchsicht der
-Bildschirme, die die Vorschau heute nicht zeigt.
+Bildschirme, die die Vorschau heute nicht zeigt; (7) die Zeilen in 10.5 und 10.6.
 
 ---
 
@@ -233,7 +272,7 @@ was jedes Werkzeug heute wirklich leistet, und dann, welche Regeln für jedes Pa
 
 | Werkzeug | Leistet | Leistet nicht | Folge für den Plan |
 |---|---|---|---|
-| Funktionsinventar (`tests/unit/funktionsinventar.test.ts`, `scripts/funktionsinventar.mjs`, `docs/ui-umbau/v10-entfernt.json` mit 107 Einträgen) | vergleicht Knöpfe, Verweise, Menüeinträge und Felder im Quelltext mit einer Vorher-Datei (1.941 Einträge) | (a) Die Vorher-Datei ist der Stand **vor V10** (13.11.): was seit E93 dazukam (Schublade „Noch einzuplanen“, `Card klappe`, Belegzeilen und Rechnungsfenster der Akten, Einsatz-Vorschau der Startseite …), kann unbemerkt verschwinden. (b) Der Schlüssel ist Art + Text + Ziel **ohne Datei**: 496 Einträge teilen ihren Schlüssel („Abbrechen“ 38-mal, „Speichern“ 16-mal) — fällt einer von 16 „Speichern“-Knöpfen weg, bleibt die Prüfung grün. (c) Gelesen wird Quelltext, nicht Erreichbarkeit: ein Knopf, der ins dritte Fenster wandert, gilt als „da“ | Regel 3 und Regel 11; Paket 8 bringt das Inventar zuerst auf den heutigen Stand |
+| Funktionsinventar (`tests/unit/funktionsinventar.test.ts`, `scripts/funktionsinventar.mjs`, `docs/ui-umbau/v10-entfernt.json` mit 107 Einträgen) | vergleicht Knöpfe, Verweise, Menüeinträge und Felder im Quelltext mit einer Vorher-Datei (1.941 Einträge) | (a) Die Vorher-Datei ist der Stand **vor V10** (13.11.): was seit E93 dazukam (Schublade „Noch einzuplanen“, `Card klappe`, Belegzeilen und Rechnungsfenster der Akten, Einsatz-Vorschau der Startseite …), kann unbemerkt verschwinden. (b) Der Schlüssel ist Art + Text + Ziel **ohne Datei**: 496 Einträge teilen ihren Schlüssel („Abbrechen“ 38-mal, „Speichern“ 16-mal) — fällt einer von 16 „Speichern“-Knöpfen weg, bleibt die Prüfung grün. (c) Gelesen wird Quelltext, nicht Erreichbarkeit: ein Knopf, der ins dritte Fenster wandert, gilt als „da“. (d) `inventar()` entdoppelt selbst je Datei (`scripts/funktionsinventar.mjs`, Schluss der Funktion: `einzeln.set(schluessel(e), e)` mit Datei, Art, Text, Ziel): roh sind es 2.338 Bedienstellen, nach dem Entdoppeln 2.227; 87 Schlüssel stehen mehrfach in derselben Datei (111 überzählige, z. B. zweimal „Hauptnavigation“ in `Layout.tsx`). Ein Zählen je Datei geht also erst, wenn das Skript die rohe Liste liefert — sonst bleibt die Prüfung grün, wenn von zwei gleichen Knöpfen einer Datei einer wegfällt (vom Bestätiger nachgezählt, Bericht 13) | Regel 3 und Regel 11; Paket 8 bringt das Inventar zuerst auf den heutigen Stand und lässt das Skript die rohe Liste liefern |
 | Bilder (`tools/vorschau/fotos.mjs`) | nimmt 35 fest eingetragene Routen im Grundzustand auf, hell, in Chromium; misst `scrollWidth` | die Vermessung fand 65 Routen (darin Modul- und Abfragevarianten); es fehlen u. a. `/eingaenge`, `/liegenschaften`, `/nachrichten`, `/sonderurlaub`, `/invoices/kontoauszug`, sieben Einstellungsseiten, `/plattform`; keine Fenster, Menüs, Blätter, Reiter; nicht dunkel; stellt nichts nebeneinander | Regel 5: das Werkzeug wird in Paket 8 erst gebaut |
 | Messskripte der Vermessung (`lauf.mjs`, `inseite.mjs`, `text.mjs`) | haben Flucht, Tastfläche, Punkte je Zeile und Wörter über dem Falz gemessen | liegen nur im Arbeitsverzeichnis der Durchsicht, das nicht dauerhaft ist. Die Tastflächen-Messung taugt so nicht als Vorlage für einen Wächter: sie meldete zwei Stellen falsch (ein umgebendes `label` und das Klick-Ziel der Elternzeile zählen nicht mit) und zählt außerhalb geparkte Wischaktionen als sichtbaren Text (Bericht 8) | Paket 8 nimmt sie berichtigt ins Repo |
 | Browserwege (`telefon-chromium`, `webkit-telefon`, `tablet-834`, Linkprüfungen) | prüfen die Wege des Monteurs; lokal läuft Chromium, WebKit prüft die CI (`CLAUDE.md`) | die Büroseiten laufen in diesen Projekten nicht (`testMatch: MONTEUR_WEGE`); die Geldwege des Büros laufen nie in WebKit, das Tablet nie in Safari (L-11) | Regel 7; Paket 12 vor Stufe C |
@@ -255,8 +294,11 @@ was jedes Werkzeug heute wirklich leistet, und dann, welche Regeln für jedes Pa
 3. **Keine Bedienstelle geht verloren.** Vor Stufe B wird das Funktionsinventar auf den heutigen
    Stand gebracht (`node scripts/funktionsinventar.mjs` → neue Vorher-Datei nach E99), und der
    Vergleich zählt je Datei, wie oft ein Schlüssel vorkommt; sinkt eine Zahl, braucht es einen
-   Eintrag mit Grund in `docs/ui-umbau/v10-entfernt.json`. Gegenprobe: einen von 16
-   „Speichern“-Knöpfen entfernen → rot. Auch danach liest das Inventar nur Quelltext — ob ein
+   Eintrag mit Grund in `docs/ui-umbau/v10-entfernt.json`. Dafür liefert das Skript zuerst die
+   **rohe** Liste: heute entdoppelt `inventar()` selbst je Datei (Abschnitt 2.1, d), und das
+   Zählen bliebe grün, wenn von zwei gleichen Knöpfen einer Datei einer wegfällt. Gegenproben:
+   einen von 16 „Speichern“-Knöpfen entfernen → rot; einen von zwei gleichen Einträgen derselben
+   Datei entfernen → rot. Auch danach liest das Inventar nur Quelltext — ob ein
    Knopf noch erreichbar ist, zeigen die Browserwege und Regel 11.
 4. **Kein Text verschwindet ohne Ziel.** Jeder gestrichene Satz steht danach in „Hilfe zu dieser
    Seite“, im Fenster der Zeile oder erscheint nur noch im abweichenden Fall. Sätze, die eine
@@ -274,7 +316,9 @@ was jedes Werkzeug heute wirklich leistet, und dann, welche Regeln für jedes Pa
    Paket 12 in WebKit gar nicht geprüft — deshalb kommt Paket 12 vor Stufe C.
 8. **Entscheidung vor Bau.** Gebaut wird nach den Entscheidungen in Abschnitt 10. Was dort
    „bleibt, wie es ist“ heißt, wird nicht angefasst; was „zurückgestellt — neue Entscheidung
-   nötig“ heißt oder auf die Kanzlei wartet, wird nicht gebaut, bevor es entschieden ist. Kommt
+   nötig“ heißt oder auf die Kanzlei wartet, wird nicht gebaut, bevor es entschieden ist. Dasselbe
+   gilt für alles, was an einer Zeile aus Abschnitt 10.5 hängt (nach der Bestätigung neu
+   vorgelegt), und für die Wahl zwischen den Fassungen aus Abschnitt 10.6. Kommt
    beim Bau eine neue Frage auf, wird sie gestellt, nicht stillschweigend beantwortet.
 9. **Wächter zuerst — mit Ausnahmeliste und Gegenprobe.** Ein neuer Wächter ist am heutigen
    Stand rot an den gemeldeten Fundstellen und grün an allem Gewollten. Mehrere der
@@ -292,7 +336,10 @@ was jedes Werkzeug heute wirklich leistet, und dann, welche Regeln für jedes Pa
     (E-W1).
 12. **Sicherheit, Datenauskunft, `shared/`.** Jede neue Datenbankfunktion: `security definer`,
     `set search_path = ''`, `revoke … from public, anon`, nur der nötige `grant`. Jede neue
-    Zeilenschutz-Regel prüft den Betrieb als `company_id = (select app.lesebetrieb())`. Jede neue
+    Zeilenschutz-Regel prüft den Betrieb als `company_id = (select app.lesebetrieb())` — wo der
+    Support lesen soll, dazu `or company_id = (select app.supportbetrieb())` —, Rollen und
+    `auth.uid()` als `(select …)` (`CLAUDE.md`; `leseregelnGleichwertig.test.ts` lässt
+    `app.darf(…)` in Regeln nicht durch). Jede neue
     Tabelle mit Personenbezug gehört in die Datenauskunft (`person_auskunft`,
     `auszug_ausgenommen`) und in die Löschung einer Person. Nach Änderungen an `shared/`
     `node scripts/edge-shared-uebernehmen.mjs`. Rollenprüfungen in Funktionen als `… is not true`
@@ -332,6 +379,7 @@ was jedes Werkzeug heute wirklich leistet, und dann, welche Regeln für jedes Pa
 | D3-C0 bis D3-C13 | **Achtung:** im Papier 11 sind die „C“ die *Ideen*, nicht die Bedienung. Die neun durchgespielten Aufgaben des Papiers 11 haben kein Kürzel; sie heißen hier „Aufgabe 1 bis 9 (Papier 11)“ | Papier 11, Abschnitte 4 und 5 |
 | `N-<Gebiet>-n` (z. B. N-G-1) | **neuer Befund aus der Gegenprüfung** — Nebenbefund oder geklärter Verdachtsfall eines Prüfers | Prüfberichte, Abschnitt 4.8 |
 | E-… | Entscheidung oder Frage an den Auftraggeber (Abschnitt 10) | |
+| E-B1 bis E-B23 | **nach der Bestätigung neu vorgelegt — nicht entschieden** (Abschnitt 10.5): Empfehlungen, die sich durch die Berichte 13 und 14 inhaltlich geändert haben, und neue Fragen | Berichte 13 und 14 |
 | K-… | Frage an Kanzlei oder Steuerberatung (Abschnitt 11) | |
 | E mit Zahl (E74, E99 …), U1 bis U13, G22, G29 | frühere Entscheidungen und Regeln aus `docs/ui-umbau/entscheidungen.md`, `docs/design/v10/style.md` und dem Stand | |
 
@@ -600,7 +648,7 @@ noch Verdacht S-4**.
 | Verdacht M-3 | Papier 5, §3 (3) | Die Lagerliste hört nicht auf Rüstlisten | am Code bestätigt, nicht im Browser nachgestellt | Befund N-M-3, Paket 23 |
 | Verdacht M-4 | Papier 5, §3 (4) | Suche der Zählliste: Platzhalterzeichen | geklärt: trifft zu, Auswirkung gering | Befund N-M-2, Paket 6 |
 | Verdacht M-5 | Papier 5, §3 (5) | Uhr des Geräts in „Laufend“ | die Angabe stimmt; der Vergleich mit der Startseite ist nicht gezogen | vor Paket 16 |
-| Verdacht M-6 | Papier 5, §3 (6) | Wartende Retoure und Rechnung | offen (bräuchte die Rechnungsansicht) | vor Paket 15 (Idee I-M6) |
+| Verdacht M-6 | Papier 5, §3 (6) | Wartende Retoure und Rechnung | offen (bräuchte die Rechnungsansicht) | vor Paket 15 (Idee I-M6); dort und bei Paket 25 als Voraussetzung geführt |
 | Verdacht S-1 | Papier 6, V-1 | `betrieb-loeschen` bei vielen Konten (Zeitgrenze der Edge-Runtime) | offen (nicht angefasst) | vor Paket 26 (S-3) |
 | Verdacht S-2 | Papier 6, V-2 | Scheinfoto nachträglich untergeschoben | geklärt: bestätigt (nachgestellt, an der Regel) | Befund N-S-3, Paket 26 |
 | Verdacht S-3 | Papier 6, V-3 | `uid-pruefen` ohne Begrenzung | am Code bestätigt | Befund N-S-5, Paket 26 |
@@ -638,7 +686,7 @@ unbenannt hält — mit Paket oder mit dem gültigen Grund.
 | 3 | Der Monatsabschluss sperrt Saldo-Start, Startwerte, Urlaubsanspruch nicht | Papier 1; Bericht 1 | Eintritt und Austritt fehlen in der Aufzählung; eine Berichtigung hinterlässt keine Spur am Abschluss | N-Z-3, Paket 21 |
 | 4 | Ohne Modul Korrekturanträge bleibt nur das Wiederöffnen | Papier 1 | auch mit Modul fehlen Nachtrag und Löschen | Z-6, Paket 21 |
 | 5 | Die Vorschau beim Kürzen rechnet in Kalendertagen | Papier 1 | „einfacher“ ist kein Grund; die App hat die Rechnung schon | bauen, klein — Paket 21, nach Z-2 |
-| 6 | Resturlaub beim Austritt steht nicht da | Papier 1 | gültig für den Betrag (Kanzlei), nicht für die Tatsachen, die nur die App kennt | Idee I-Z2 (Austrittsblatt) — zurückgestellt, neue Entscheidung nötig (E-F26); der Grund für den Betrag bleibt gültig (Kanzlei) |
+| 6 | Resturlaub beim Austritt steht nicht da | Papier 1 | gültig für den Betrag (Kanzlei), nicht für die Tatsachen, die nur die App kennt | Idee I-Z2 (Austrittsblatt) — zurückgestellt, neue Entscheidung nötig (E-F26); der Grund für den Betrag bleibt gültig (Kanzlei). Für die Tatsachen, die nur die App kennt: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B13) |
 | 7 | Aliquoter Urlaub, Arztbesuch im KV; Gleitzeit beim Arztbesuch | Papier 1 | gültig | gültiger Grund: liegt bei jemand anderem — nachfassen |
 | 8 | Unbenannt: Urlaubsjahr nur als fester Tag | Papier 1 | kein gültiger Grund | Z-11, Paket 21 |
 | 9 | Unbenannt: Wegzeit zählt nie als Arbeitszeit | Papier 1 | offen | Z-14: benennen in Paket 21; die Einstellung wartet auf die Kanzlei (K-5) |
@@ -646,8 +694,8 @@ unbenannt hält — mit Paket oder mit dem gültigen Grund.
 | 11 | Unbenannt: die Rolle Administrator führt nie ein Zeitkonto | Papier 1 | für den Inhaber gültig, für eine angestellte Büroleitung nicht | Schalter je Person wie bei der Geschäftsführung, klein — Paket 21 |
 | 12 | „E-Mail an …“ (Angebot) öffnet das Mailprogramm | Papier 2; Bericht 2 | überholt: seit F16 sendet die App Angebote | Zeile berichtigen — Paket 28 |
 | 13 | Annahme per Link: Versand aus der App erst mit M14 | Papier 2; Bericht 2 | überholt: der Maildialog trägt den Link | Zeile streichen — Paket 28 |
-| 14 | Annahme per Link: kein QR-Code | Papier 2 | „eine neue Bibliothek nur dafür“ ist „einfacher“, kein Grund | den Grund ehrlich als „kein Bedarf gemeldet“ benennen — Paket 28; der QR-Code selbst ist als Idee zurückgestellt |
-| 15 | Liegenschaften: keine abweichende Rechnungsanschrift; „Sammelrechnung kommt mit M13“ | Papiere 2 und 4 | „kommt später“ ist kein Grund | E-F5: zurückgestellt — neue Entscheidung nötig; der Grund „kommt mit M13“ entfällt im Grenzen-Dokument; gebaut wird der Kundenvorschlag „Rechnungsempfänger“ (Paket 22) |
+| 14 | Annahme per Link: kein QR-Code | Papier 2 | „eine neue Bibliothek nur dafür“ ist „einfacher“, kein Grund | den Grund ehrlich als „kein Bedarf gemeldet“ benennen — Paket 28; der QR-Code selbst ist als Idee zurückgestellt. „Kein Bedarf gemeldet“ ist keiner der sechs Gründe: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B14) |
+| 15 | Liegenschaften: keine abweichende Rechnungsanschrift; „Sammelrechnung kommt mit M13“ | Papiere 2 und 4 | „kommt später“ ist kein Grund | E-F5: zurückgestellt — neue Entscheidung nötig; der Grund „kommt mit M13“ entfällt im Grenzen-Dokument; gebaut wird der Kundenvorschlag „Rechnungsempfänger“ (Paket 22). Ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B9) |
 | 16 | Liegenschaftsakte zeigt je Liste höchstens 100 Baustellen bzw. Wartungen | Papier 2 | „die Akte ist ein Überblick“ trägt nicht; die Kundenakte lädt seit A12 vollständig nach | bauen wie in der Kundenakte, klein — Paket 18 |
 | 17 | Die Verwaltung sieht beim Eingang nicht, dass sein Angebot im Papierkorb liegt | Papier 2 | Folge einer unbenannten Regel | mit A-13 (E-A13: Zusatzrecht je Person), Paket 22 |
 | 18 | Unbenannt: feste Texte im Angebots-PDF, kein Rechtstext auf der Annahmeseite | Papier 2 | unbenannt | A-8, A-9 — Paket 22 |
@@ -659,23 +707,23 @@ unbenannt hält — mit Paket oder mit dem gültigen Grund.
 | 24 | Der Zwischenspeicher der Woche merkt sich auch einen Stand ohne Abwesenheiten | Papier 3 | „nicht Teil dieses Auftrags“ ist kein Grund | mit P-4, Paket 23 |
 | 25 | Unbenannt: höchstens 500 laufende Baustellen in Planung und Startseite | Papier 3 | kein Grund vorhanden | P-3, Paket 29 |
 | 26 | „Stunden ohne Buchung“ höchstens 50 bzw. 150 Scheine | Papier 3 | der Grund (Gewicht der Unterschriftsbilder) ist entfallen | P-9, Paket 23 |
-| 27 | Scheine ohne eigene Nummer, auch in der Suche | Papier 3 | gültig (Entscheidung liegt beim Auftraggeber) — das Papier bittet, sie noch einmal vorzulegen | E-F27: bleibt, wie es ist — zurückgestellt, neue Entscheidung nötig |
+| 27 | Scheine ohne eigene Nummer, auch in der Suche | Papier 3 | gültig (Entscheidung liegt beim Auftraggeber) — das Papier bittet, sie noch einmal vorzulegen | E-F27: zurückgestellt — neue Entscheidung nötig; bis dahin bleiben Scheine ohne eigene Nummer. Ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B10) |
 | 28 | Die Push-Meldung zu einem Notfall nennt nur Nummer und Ort | Papier 3 | gültig; auffällig daneben: die Einsatzplan-Meldung nennt den Kundennamen am Sperrbildschirm | gültiger Grund (Datenschutz); die Einsatzmeldung der Kanzlei vorlegen (K-6) |
 | 29 | Bestehende Schlussrechnungen mit Rest 0 bleiben „Offen“ | Papier 4; Bericht 4 | Altdaten gültig — aber der Betrieb kann sie selbst nicht schließen (ein Eingang über null ist verboten) | Handgriff „Zahlstand neu rechnen“ an der Rechnung, klein — Paket 24 |
 | 30 | Kein abweichendes Rechnungsdatum in der Oberfläche | Papier 4; Bericht 4 | rechtlich gültig; die Folge ist unbenannt: ein Gerät mit falscher Uhr kann gar nicht ausstellen | die App schickt kein Datum mehr; Datum und Zahlungsziel kommen aus der Antwort der Datenbank — Paket 24 |
 | 31 | BMD-Stapel vorgebaut bis zum Importtest; Umbuchungszeile | Papier 4 | gültig (Kanzlei), aber seit September offen — ohne den Test ist der Ablauf „Export an die Steuerberatung“ nicht von Anfang bis Ende belegt | gültiger Grund: liegt bei jemand anderem — Termin einfordern (K-1) |
-| 32 | Eine Gutschrift an den Kunden ist ein Hinweis; keine negativen Positionen | Papiere 4 und 5; Bericht 4 | nur zum Teil; negative Zeilen gibt es technisch schon | G-10, Paket 24; Satz im Grenzen-Dokument berichtigen |
+| 32 | Eine Gutschrift an den Kunden ist ein Hinweis; keine negativen Positionen | Papiere 4 und 5; Bericht 4 | nur zum Teil; negative Zeilen gibt es technisch schon | G-10, Paket 24 (Teil 1); Satz im Grenzen-Dokument berichtigen. Teil 2 — die Rechnungskorrektur als eigener Beleg — ist nicht entschieden und wartet auf die Kanzlei (E-B3, K-10) |
 | 33 | Text und PDF einer Mail werden nicht gespeichert | Papier 4 | Datenschutz gültig; „das PDF entsteht jederzeit gleich“ stimmt nicht | G-17, Paket 24 |
-| 34 | Vorgemerkte Umsätze und Rückbuchungen nur gezählt | Papier 4 | für Vorgemerktes gültig; eine Rücklastschrift zu einem verbuchten Eingang ist ein Rechnungsvorgang | Idee I-G5 — zurückgestellt, neue Entscheidung nötig (E-F26) |
+| 34 | Vorgemerkte Umsätze und Rückbuchungen nur gezählt | Papier 4 | für Vorgemerktes gültig; eine Rücklastschrift zu einem verbuchten Eingang ist ein Rechnungsvorgang | Idee I-G5 — zurückgestellt, neue Entscheidung nötig (E-F26). Für die Rücklastschrift zu einem verbuchten Eingang: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B15) |
 | 35 | Nur die jüngste Mahnung per Mail | Papier 4 | gültig | nach G-7 gilt „jüngste nicht zurückgenommene“ — Paket 24 |
 | 36 | Unverrechnete Stunden mit den Sätzen des Betriebs | Papier 4 | gültig; mit G-11 wären es die des Kunden | mit G-11 nachziehen — Paket 24 |
 | 37 | Verbrauch am Schein nur einmal je Schein; Korrektur über die Inventur | Papier 5 | für den falsch gewählten Ort eine Abkürzung | „Buchung zurücknehmen“, solange der Schein nicht verrechnet ist — Paket 25, mit M-6 |
 | 38 | Inventur bewertet den Bestand nicht | Papier 5 | die Bewertungsmethode liegt bei der Kanzlei; eine Spalte „Einkaufspreis“ im Protokoll nicht | CSV des Protokolls mit Einkaufspreis für die Spitze, klein — Paket 25 |
-| 39 | Zählen und buchen nur Verwaltung und Leitung, nicht der Fahrer | Papier 5 | für das Buchen gültig; für das Zählen eine Annahme über den Betrieb | E-F28: zurückgestellt — neue Entscheidung nötig; für das Buchen bleibt der Grund gültig (fachlich: Kontrolle) |
+| 39 | Zählen und buchen nur Verwaltung und Leitung, nicht der Fahrer | Papier 5 | für das Buchen gültig; für das Zählen eine Annahme über den Betrieb | E-F28: zurückgestellt — neue Entscheidung nötig; für das Buchen bleibt der Grund gültig (fachlich: Kontrolle). Für das Zählen: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B11) |
 | 40 | „E-Mail an …“: die App verschickt nichts an Großhändler; „bestellt“ ist bis M05a, was die Einkaufsliste führt | Papier 5 | seit F16 überholt; „kommt später“ ist kein Grund | M-9, Paket 25 |
 | 41 | EAN und Preiseinheit nicht gegen echte Dateien geprüft | Papier 5 | gültig, der Nachweis steht weiter aus | gültiger Grund: liegt beim Pilotbetrieb — Dateien anfordern; bis dahin M-3 als Schutz |
-| 42 | An weiteren Orten gibt es keine Reservierung | Papier 5 | gilt nur für Fahrzeuge; ein zweites Lager ist kein Fahrzeug | E-F28: zurückgestellt — neue Entscheidung nötig (groß; hängt daran, ob Betriebe mit zwei Standorten Zielgruppe sind) |
-| 43 | Sollbestand am Artikel, nicht je Ort | Papier 5 | für die Bestellung gültig; die Bestückung eines Fahrzeugs deckt der Grund nicht | Idee I-M2 — zurückgestellt, neue Entscheidung nötig (E-F26) |
+| 42 | An weiteren Orten gibt es keine Reservierung | Papier 5 | gilt nur für Fahrzeuge; ein zweites Lager ist kein Fahrzeug | E-F28: zurückgestellt — neue Entscheidung nötig (groß; hängt daran, ob Betriebe mit zwei Standorten Zielgruppe sind). Für ein zweites Lager: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B12) |
+| 43 | Sollbestand am Artikel, nicht je Ort | Papier 5 | für die Bestellung gültig; die Bestückung eines Fahrzeugs deckt der Grund nicht | Idee I-M2 — zurückgestellt, neue Entscheidung nötig (E-F26). Für die Bestückung eines Fahrzeugs: ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B16) |
 | 44 | „Zuletzt angefordert“ nur aus den letzten hundert eigenen Anforderungen | Papier 5 | „mehr lädt die Seite nicht“ ist „reicht“, kein Grund; Schaden gering | kleine Datenbankabfrage „zuletzt angeforderte Artikel“ — Paket 29 |
 | 45 | Unbenannt: 500 offene eigene Posten, 200 Großhändler, 500 Vorschläge je Übernahme | Papier 5 | plausibel, aber unbenannt | ins Grenzen-Dokument — Paket 28 |
 | 46 | Unbenannt: ein Fahrer je Fahrzeug; 200 Bewegungen; „knapp“ fest bei 5 | Papier 5 | unbenannt | M-7 (Paket 25), M-12, M-15 (Paket 6) |
@@ -684,7 +732,7 @@ unbenannt hält — mit Paket oder mit dem gültigen Grund.
 | 49 | Alte App nutzt bis zum Neuladen den alten Auszug | Papier 6 | gültig, läuft von selbst aus | Zeile kann nach der nächsten Auslieferung entfallen — Paket 28 |
 | 50 | Unbenannt: eine E-Mail-Adresse und ein Benutzername gelten über alle Betriebe | Papier 6 | gültig (der Anmeldedienst führt eine Adresse einmal), fehlt aber in der Übersicht | S-8, Paket 26 |
 | 51 | Unbenannt: `passwort_hilfe_anfragen` nimmt höchstens 200 Bitten je Stunde über alle Betriebe zusammen | Papier 6; Bericht 6 | Schutz gültig; „über alle Betriebe“ ist bei vielen Betrieben eine Grenze ohne Grund | je Betrieb zählen, gesamt höher — Paket 26 |
-| 52 | Unbenannt: Zugangstoken und Datenbankpasswort in GitHub-Secrets | Papier 6 | gültig (CI des Betreibers), aber nicht als Grenze geführt und gegen den Wortlaut von `CLAUDE.md` | S-9, Paket 27 — mit Grund benennen |
+| 52 | Unbenannt: Zugangstoken und Datenbankpasswort in GitHub-Secrets | Papier 6 | gültig (CI des Betreibers), aber nicht als Grenze geführt und gegen den Wortlaut von `CLAUDE.md` | S-9, Paket 27 — gebaut wird die Härtung. Ob die Praxis bleibt und der Wortlaut der Regel in `CLAUDE.md` („Geheimnisse … nie in GitHub-Secrets“) genauer gefasst wird, oder ob die Zugangsdaten aus GitHub genommen werden, ist eine Entscheidung des Auftraggebers: neu vorgelegt als E-B4; bis dahin wird `CLAUDE.md` nicht angefasst |
 | 53 | Fassungswechsel am echten Telefon nicht geprüft; echtes iPhone: Lage der Inseln | Papier 7 | gültig (Gerät), seit 17.11. offen | gültiger Grund: Gerät — Termin mit dem Pilotbetrieb setzen |
 | 54 | Belegschaft über 50 Zeilen, „Betriebe bis etwa 30 Mitarbeiter“ | Papier 7 | Annahme über den Betrieb | L-5, Paket 28 |
 | 55 | Schreibwege über Datenbankfunktionen melden ihre Tabelle nicht; Abonnements ohne `abonnieren` | Papier 7; Bericht 7 | kein Grund (gebraucht wird nur der Tabellenname); es sind elf Stellen, nicht drei | L-7, Paket 23 |
@@ -698,6 +746,14 @@ bleibt dem Support verschlossen (Grund: Datenschutz — Zeitbuchungen gehören n
 Push hängt am Gerät (E69; betrifft P-7 und S-4), „Umplanen geht im Einblick nicht“ (Grund:
 Datenschutz — Abwesenheiten liest nur der Betrieb). A-4 wird gebaut (Paket 3) und nicht benannt.
 Das Grenzen-Dokument wird in Paket 28 auf diesen Stand gebracht.
+
+**Nach der Bestätigung (Bericht 13, Abschnitt 6 Nr. 8):** Acht Zeilen dieser Tabelle bleiben als
+„zurückgestellt — neue Entscheidung nötig“ stehen (Nr. 6, 14, 15, 27, 34, 39, 42, 43). Nach
+Grundsatz 6 ist „zurückgestellt“ keiner der sechs Gründe, und für mehrere dieser Zeilen hält das
+Papier den bisherigen Grund ausdrücklich für nicht gültig („kommt später“, „einfacher“,
+„reicht“). Der Auftraggeber lässt hier also Grenzen ohne gültigen Grund stehen, solange er nicht
+entscheidet: bauen oder einen der sechs Gründe nennen. Je Grenze steht dazu eine Zeile in
+Abschnitt 10.5 (E-B9 bis E-B16), mit der Empfehlung des jeweiligen Papiers.
 
 ### 4.11 Ideen zum Zusammenspiel der Funktionen
 
@@ -1303,7 +1359,10 @@ Gegenprüfung zeigt, dass drei der sechs Regeln so nicht halten (Regel 1 ändert
 E25, ohne es zu sagen; Regel 5 „höchstens zwei Textzeilen“ ist mit langen Namen nicht haltbar;
 Regel 6 stößt an E99) und dass Muster 4 einen widerlegten Befund enthielt. Die Regel wurde
 deshalb in der folgenden Fassung neu vorgelegt (Abschnitt 10, Teil 2, E-T); **mit der Erklärung
-des Auftraggebers vom 23.11.2026 gilt diese Fassung.**
+des Auftraggebers vom 23.11.2026 gilt diese Fassung.** Nach der Bestätigung (Bericht 14) sind
+zwei Stellen davon berührt: Regel 5 ist genauer gefasst (ein Wortlaut für 6.3 und 7.3), und der
+Teil „Beschreibung auch ab dem Tablet in die Hilfe“ von Regel 1 ist neu vorgelegt und nicht
+entschieden (E-B17), weil er auch E31 berührt.
 
 ### 6.3 Regel für `docs/design/v10/style.md` — Fassung nach der Gegenprüfung
 
@@ -1311,8 +1370,22 @@ des Auftraggebers vom 23.11.2026 gilt diese Fassung.**
    Dateiname, Zahl) — nie eine Beschreibung der Seite. Die Beschreibung steht in „Hilfe zu dieser
    Seite“, **künftig auch ab dem Tablet (das ändert E86)**. Die Auskunft bekommt am Baustein ein
    eigenes Merkmal, damit sie nicht mit ausgeblendet wird. Die vier Seiten aus E25 (Urlaub,
-   Nachkalkulation, Handwerksscheine, Sonderurlaub) behalten ihren Untertitel, solange der
-   Auftraggeber diese Grenze nicht aufhebt.
+   Nachkalkulation, Handwerksscheine, Sonderurlaub) behalten ihren Untertitel **ab dem Tablet**,
+   solange der Auftraggeber diese Grenze nicht aufhebt; am Handy ist er heute schon ausgeblendet
+   (bloßer Text: `VacationsView.tsx:1316`, `NachkalkulationView.tsx:176`,
+   `WorkSheetsListView.tsx:1014`) und bleibt es — über das Merkmal „Auskunft“ kommt am Handy
+   keine Zeile dazu (das ginge gegen E86).
+   **Nach der Bestätigung (Bericht 14, Auflage 1): der Teil „ab dem Tablet“ ist neu vorgelegt
+   (E-B17) und wird bis zur Entscheidung nicht gebaut.** Er berührt außer E86 auch E31
+   (31.10.2026: „Seitenkopf in drei festen Zeilen“, „alle Seiten und Unterreiter beginnen auf
+   derselben Höhe“): blendet man die Beschreibung bei 834 und 1440 px aus, schrumpft der Kopf
+   von 96 auf 72 px und der Inhalt beginnt 24 px höher — eine Seite mit Beschreibung begänne
+   danach 24 px höher als eine Seite aus E25 oder eine mit Auskunft im Untertitel (gemessen).
+   Entweder bleibt die dritte Zeile reserviert und auf Seiten ohne Auskunft leer (E31 hält), oder
+   sie entfällt und die Seiten beginnen ungleich hoch (E31 ändert sich) — das entscheidet der
+   Auftraggeber am Bild. Bis dahin bleibt der Seitenkopf ab dem Tablet, wie er ist (E86 und E31
+   gelten); am Handy bleibt alles wie heute. Dazu gehört in jedem Fall die Prüfung „der erste
+   Inhalt beginnt auf jeder Seite gleich hoch“.
 2. Jede Angabe steht auf einem Bildschirm einmal. Ein Kennwert im Kopf einer Akte zählt nicht als
    Wiederholung der Angabe in einem Reiter.
 3. Erklärung steht in „Hilfe zu dieser Seite“ oder als `hint` am Feld. Offen bleibt, was eine
@@ -1321,8 +1394,15 @@ des Auftraggebers vom 23.11.2026 gilt diese Fassung.**
 4. Der Normalfall wird nicht ausgeschrieben; gezeigt wird die Abweichung. Ausgenommen sind feste
    Zeilen, die eine Entscheidung verlangt (Zahlungsziel, Skonto, Rücklass und Zahlbetrag der
    Rechnung), und Angaben, die „geladen und null“ von „Stand unbekannt“ unterscheiden.
-5. Eine Listenzeile trägt am Handy den Namen (er darf umbrechen), darunter höchstens zwei
-   Angaben, und einen Wert rechts.
+5. Eine Listenzeile trägt am Handy den Namen allein in der ersten Zeile (er darf umbrechen);
+   darunter stehen Zustand und Stempel und höchstens zwei weitere Angaben, der Wert rechts in
+   dieser zweiten Zeile — nicht neben dem Namen, dort nähme er ihm die Breite (der Fall D1-P4).
+   Zustand und Stempel zählen nicht zu den zwei Angaben. Für 760 bis 1.199 px nennt die Regel
+   keine neue Form — dort bleibt die heutige Zeile. „Nicht mehr Zeilen als heute“ wird je
+   **Zeilenart** mit den langen Namen der Beispieldaten gemessen, nicht je Datensatz. Die
+   Baustellenzeile ist benannte Ausnahme (sie bleibt, E-W1). Derselbe Wortlaut steht in
+   Abschnitt 7.3, Regel 5 (nach der Bestätigung auf einen Wortlaut gebracht, Bericht 14,
+   Auflage 3).
 6. Ein Blatt ohne Inhalt steht zugeklappt oder als ein Satz — ausgenommen Karten, deren Leersatz
    den nächsten Schritt trägt (E99: Nachrichten, Einsätze).
 
@@ -1347,6 +1427,11 @@ nicht in die Hilfe verschoben:
   (Befund G1 vom 15.11.2026).
 - Die zwei Sperrgründe und die Warnung vor „Rechnung erstellen“ — gekürzt, nicht gestrichen;
   je nach Rolle verschieden (D3-T5).
+- Der Satz der Rüstliste mit seinen zwei Aussagen — der Haken bucht Lagermaterial vom Bestand
+  ab; Zurücknehmen geht nur heute (D1-T3, D1-I16): eine Meldung mit „Rückgängig“ ersetzt ihn
+  nicht ganz, und sie muss die Buchung nennen (nach der Bestätigung nachgetragen, Bericht 14).
+- „Zwischenstand“ an der Zahl im Fenster der Nachkalkulation (D3-T19; nach der Bestätigung
+  nachgetragen, Bericht 14).
 - „(wird am Schein vorgeschlagen)“ als Hinweis am Feld (D1-T8).
 - „… bitte noch nichts fix buchen.“ im Fenster des Urlaubsantrags (D1-T16).
 - „Der Anspruch ist der Restanspruch beim Umstieg.“, wo es einen Umstiegsstand gibt (D1-T17).
@@ -1430,6 +1515,17 @@ mehr als einen“. Die Regel wurde deshalb in der folgenden Fassung neu vorgeleg
 Teil 2, E-P); **mit der Erklärung des Auftraggebers vom 23.11.2026 gilt diese Fassung** — also
 „ein Punkt“, nicht „zwei“.
 
+**Was sich damit für den Auftraggeber ändert — und was nicht** (nach der Bestätigung, Bericht 14,
+Auflage 2 und Abschnitt 6; von ihm selbst gemessen): Die entschiedene Regel nimmt die Ketten weg,
+die vielen einzelnen Punkte bleiben. Auf 15 Seiten tragen bei 375 px 126 Textblöcke einen Punkt;
+nur 7 davon haben zwei oder mehr Punkte in einer sichtbaren Textzeile — nur dort ändert die Regel
+etwas. Auf `/time`, der Seite mit den meisten Punkten, tragen 58 von 59 Zeilen genau einen
+sichtbaren Punkt (der zweite Punkt der Rohdaten steht im unsichtbaren Vorlesetext). Die
+Ersatzform der Zeitliste nach Regel 5 braucht in 44 von 53 Zeilen mehr Textzeilen als heute und
+wird deshalb nicht gebaut: auf `/time` bleibt alles, wie es ist. War mit „statt dieser Punkte“
+gemeint, dass auch die einzelnen Punkte weniger werden, braucht es die Fassung „Regel 2 geht vor
+Regel 1“ — sie ist neu vorgelegt, nicht entschieden und noch nicht im Bild geprüft (E-B18).
+
 ### 7.3 Regel für `style.md` — Fassung nach der Gegenprüfung
 
 1. Der Punkt trennt höchstens **zwei kurze, gleichrangige** Angaben in einer leisen Zeile — nie
@@ -1442,22 +1538,42 @@ Teil 2, E-P); **mit der Erklärung des Auftraggebers vom 23.11.2026 gilt diese F
 4. Was die Gruppe sagt, steht im Gruppenkopf — aber der Stand einer Zeile bleibt in der Zeile,
    wenn die Gruppe ihn nicht sagt.
 5. **Je Breite eine Form, vor dem Bau gemessen:** am Handy steht der Name allein in der ersten
-   Zeile (er darf umbrechen), Zustand, Stempel und höchstens zwei Angaben stehen darunter; feste
+   Zeile (er darf umbrechen); darunter stehen Zustand und Stempel und höchstens zwei weitere
+   Angaben, der Wert rechts in dieser zweiten Zeile — nicht neben dem Namen, dort nähme er ihm
+   die Breite (der Fall D1-P4). Zustand und Stempel zählen nicht zu den zwei Angaben. Für 760 bis
+   1.199 px nennt die Regel keine neue Form — dort bleibt die heutige Zeile; feste
    Spalten gibt es erst ab dem Schreibtisch und nur, wo das Blatt die volle Breite hat. Keine
    Ersatzform wird gebaut, die bei 375 px oder 834 px mehr Zeilen braucht als die heutige Zeile
    — dann bleibt die Zeile und steht als benannte Ausnahme in der Liste des Wächters (so der
-   Mahnlauf und „Nicht verrechnet“, deren halbe Breite E98 festlegt).
+   Mahnlauf und „Nicht verrechnet“, deren halbe Breite E98 festlegt). „Nicht mehr Zeilen als
+   heute“ wird je **Zeilenart** mit den langen Namen der Beispieldaten gemessen, nicht je
+   Datensatz. Die Baustellenzeile ist benannte Ausnahme (sie bleibt, E-W1). (Derselbe Wortlaut
+   wie Abschnitt 6.3, Regel 5 — nach der Bestätigung auf einen Wortlaut gebracht, Bericht 14,
+   Auflage 3. Nachgebaut hat der Bestätiger drei Formen: die Zeitliste trägt nicht — 44 von 53
+   Zeilen mit mehr Textzeilen; die Startseite der Geschäftsführung trägt in 8 von 9 Zeilenarten,
+   in einer nicht; die Wartungszeile trägt.)
 6. Eine Nummer steht gerahmt (Stempel, `.zeile-nr`) nur als die eine Nummer am Titel einer Zeile;
    in Begleitzeilen steht sie ungerahmt über einen eigenen Baustein „Nummer“ — nicht über die
    Klasse `.nr` (die liegt an 26 Stellen auch auf Telefonnummern, Mengen und Datum). Datum und
    Betrag tragen keinen Stempel.
+
+**Regel 1 gegen Regel 2 und 6 (nach der Bestätigung, Bericht 14, Auflage 2 b):** Für das
+häufigste Muster — genau ein Punkt zwischen einer Wortangabe und etwas Gemessenem (Tag und Zeit,
+Kunde und Nummer, Art und Uhrzeit) — sagte die Regel beides: Regel 1 erlaubt es („zwei kurze,
+gleichrangige Angaben“), Regel 2 und 6 ändern es („Gemessenes braucht kein Zeichen davor“, die
+Nummer als Stempel). **Bis zur Entscheidung gilt Regel 1: ein einzelner Punkt bleibt.** Ob
+Regel 2 vorgeht — zwischen einer Wortangabe und etwas Gemessenem steht dann kein Punkt, sondern
+ein fester Abstand —, ist neu vorgelegt und nicht entschieden (E-B18).
 
 **Der Punkt bleibt:** bei zwei kurzen gleichrangigen Angaben („KW 48 · 23.11. – 29.11.“, „Max
 Mustermann · du“; D1-P15), in der Summenzeile einer zugeklappten Karte (E98), in der Zählzeile
 der Schublade „Noch einzuplanen“ („15 Baustellen · auf Person und Tag ziehen“, E96), in der
 Anschrift und in der Kontaktzeile, wie sie auf dem Beleg stehen („Musterstrasse 1 · 2700 Wiener
 Neustadt“, „Tel … · office@… · www…“ — auf der Annahmeseite zwei Punkte; D4-P11), und in den
-Auswahlfeldern des Geräts (D1-P17).
+Auswahlfeldern des Geräts (D1-P17). Nach der Bestätigung nachgetragen (Bericht 14, Abschnitt 6):
+die Legendenzeile des Monats („Punkt im Kopf: Termine an diesem Tag · Tag antippen zeigt die
+Vorschau“, `MonatsAnsicht.tsx:625` — kein Paar kurzer Angaben, deshalb benannte Ausnahme) und
+die Belegzeile der Akten aus E99, die bleibt (E-R3).
 
 **Bausteine** (entstehen in Paket 11): `ListRow` mit Wert rechts und
 Stempel am Titel (gibt es); Wertpaare für Fenster- und Dialogköpfe über `AktenAngaben` bzw.
@@ -1466,10 +1582,21 @@ Baustein „Nummer“ und ein Verbinder für die Teile einer Zeile statt `join('
 Höchstzahl kennt (sein Name wird vor dem Bau festgelegt — Papier 8 nennt ihn `Angaben`).
 
 **Wächter** (Paket 11): im Browser je sichtbarer Textzeile höchstens ein Punkt; im Quelltext
-keine Zeichenkette mit zwei „ · “. Er wird mit einer **Ausnahmeliste der heutigen Fundstellen**
+keine Zeichenkette mit zwei „ · “ **und kein `join(' · ')` außerhalb des neuen Verbinders** (113
+Stellen in 67 Dateien — „keine Zeichenkette mit zwei ‚ · ‘“ allein fängt sie nicht). Er wird mit
+einer **Ausnahmeliste der heutigen Fundstellen**
 eingeführt (darunter der Zuschlag-Zusatz mit bis zu vier Punkten und die Termin-Zeilen); jede
-Seite der Stufe C streicht ihre Einträge aus der Liste. Gegenprobe: ohne Ausnahmeliste am
-heutigen Stand rot an den gesammelten Fundstellen.
+Seite der Stufe C streicht ihre Einträge aus der Liste. **Gegenprobe, so wie sie stimmt** (nach
+der Bestätigung berichtigt, Bericht 14, Auflage 2 a): ohne Ausnahmeliste ist der Browser-Teil am
+heutigen Stand rot **nur an Ketten mit zwei und mehr Punkten in einer sichtbaren Textzeile** — bei
+375 px an 7 von 126 punkttragenden Textblöcken auf 15 Seiten (`/time` 1 von 59, Startseite des
+Mitarbeiters 1, `/wartungen` 1, Einsatzplan 1, Meine Baustellen 1, `/quotes` 2). An den übrigen
+rund 94 % der Fundstellen ist er grün, weil Regel 1 den einzelnen Punkt erlaubt; die frühere
+Aussage „rot an den gesammelten Fundstellen“ stimmte nicht. Die Zählweise „je sichtbarer
+Textzeile“ hängt an Breite und Namenslänge (bei 834 px rutscht „Nacht 00:00 · Notdienst 09:00 ·
+letzte 3 Monate“ durch den Umbruch auf je einen Punkt je Zeile) — bei welchen Breiten der Wächter
+misst, wird vor dem Bau festgelegt. Der Quelltext-Teil ist ohne Ausnahmeliste rot an den
+`join`-Stellen.
 
 ---
 
@@ -1521,7 +1648,7 @@ empfohlen“) gilt je Punkt die neue Empfehlung: **es bleibt, wie es ist.** Die 
 
 | Kürzel | Worum es geht | Entscheidung | Warum es bleibt, wie es ist |
 |---|---|---|---|
-| A-17 | Die Angebotsakte trägt zwei ⋯-Menüs. Das zweite ist am 15.11. bewusst so gebaut worden (U1/U4), steht aber gegen „⋯ nur im Seitenkopf“ | E-R4 | Bleibt, wie am 15.11. gebaut: der Umbau nähme eine frische Entscheidung zurück und legte „Annahme-Link“, „Per Mail senden“, „Neue Fassung“ einen Tipp weiter weg. Das zweite ⋯ wird im Wächter als benannte Ausnahme geführt. |
+| A-17 | Die Angebotsakte trägt zwei ⋯-Menüs. Das zweite ist am 15.11. bewusst so gebaut worden (U1/U4), steht aber gegen „⋯ nur im Seitenkopf“ | E-R4 | Bleibt, wie am 15.11. gebaut: der Umbau nähme eine frische Entscheidung zurück und legte „Annahme-Link“, „Per Mail senden“, „Neue Fassung“ einen Tipp weiter weg. Das zweite ⋯ wird im Wächter als benannte Ausnahme geführt. Damit bleibt ein ⋯ außerhalb des Seitenkopfs stehen (gegen `CLAUDE.md`, Oberfläche: „⋯ nur im Seitenkopf“); die Ausnahme kommt in `style.md` (Paket 11), nicht nur in die Liste des Wächters; ob auch `CLAUDE.md` einen Verweis auf benannte Ausnahmen bekommt, ist neu vorgelegt (E-B21). |
 | V-4 | Zweites ⋯ außerhalb des Seitenkopfs in der Angebotsakte (Administrator, Projektleitung, Geschäftsführung; die Buchhaltung hat gar kein ⋯) | E-R4 | Bleibt, wie am 15.11. gebaut (siehe A-17). Die Buchhaltung hat in der Angebotsakte gar kein ⋯. |
 | V-14 | Kleiner Knopf mit 8 px, Zeilenknopf mit 12 px Radius — kein Versehen: die kleinere Rundung ist am Baustein beschrieben (`knopf.ts:88–96`) und geprüft (`KnopfLink.test.tsx:27`); `style.md` sagt „einheitlich, etwa 12 px“ | E-V4 | Bleibt: die kleinere Rundung des kleinen Knopfs ist am Baustein beschrieben und geprüft; `style.md` wird um diese benannte Ausnahme ergänzt. |
 | D1-A13 | Hauptaktion des letzten Schein-Schritts ist zweizeilig — kein Fehler: der Umbruch zwischen zwei Wörtern ist Entscheidung E82 für genau diesen Knopf | E-R2 | Bleibt: der Umbruch zwischen zwei Wörtern ist Entscheidung E82 für genau diesen Knopf. |
@@ -1533,7 +1660,7 @@ empfohlen“) gilt je Punkt die neue Empfehlung: **es bleibt, wie es ist.** Die 
 | D1-I2 | Kopfinsel mit Rückweg „‹“ in Akte, Schein und Gespräch | E-R10 | Bleibt: stößt an U3 („keine Aktion doppelt“); der Betrieb steht in der Kopfinsel mit Absicht. |
 | D1-I17 | Kennzahl „Resturlaub“ neben dem Arbeitstag statt als Band | E-R11 | Bleibt: widerspricht `style.md` („kompakte Kennzahlenleiste“); die Leiste trägt bis zu vier wählbare Zahlen. |
 | D1-T24 | Profil-Blatt endet mit „Fassung · App erneuern · Datenschutz · Impressum“ | E-W1 | Bleibt: „Datenschutz · Impressum“ nicht hinter mehr Schritte legen als heute (rechtlich, § 5 ECG); „App erneuern“ und Fassung bleiben im Profil-Blatt. |
-| D2-A9 | Runde gefüllte „+“-Knöpfe im Kartenkopf: (a) ist kein Fehler, sondern Entscheidung E76; (b) am Handy im Reiter „Termine“ der Baustellenakte zwei gleiche „+“ mit verschiedener Bedeutung | E-N | Bleibt: (a) ist Entscheidung E76; (b) die zwei gleichen „+“ entstehen aus E76 und E95 — beide bleiben. |
+| D2-A9 | Runde gefüllte „+“-Knöpfe im Kartenkopf: (a) ist kein Fehler, sondern Entscheidung E76; (b) am Handy im Reiter „Termine“ der Baustellenakte zwei gleiche „+“ mit verschiedener Bedeutung | E-N | Bleibt: (a) ist Entscheidung E76; (b) die zwei gleichen „+“ entstehen aus E76 und E95 — beide bleiben. Damit bleiben am Handy im Reiter „Termine“ der Baustellenakte zwei gleiche „+“ mit verschiedener Bedeutung stehen (D2-A9 b ist nicht gelöst; Abschnitt 10.7). |
 | D2-B10 | Termine in zwei Darstellungen; in der Karte Stift und Tonne statt antippbarer Zeile | E-R1 | Bleibt: Stift und Papierkorb in der Zeile sind Entscheidung E74; der Vorschlag kostete beim Ändern einen Tipp mehr. |
 | D2-C7 | Tastatur am Schreibtisch: gut — bis auf den Fokus nach dem Öffnen eines Fensters („Schließen“ zuerst) | E-R13 | Bleibt: der Fokus auf dem Fenster ist gewollt (`BottomSheet.tsx:65–71`, Prüflauf 25.09.2026). |
 | D2-C11 | Handy: Angebotsakte und Eingang zeigen die Positionen bzw. das Anliegen zuletzt | E-R4 | Bleibt: solange die Schritte im Verlauf stehen (E-R4), schöbe „Positionen zuerst“ sie hinter die Positionen. |
@@ -1553,7 +1680,7 @@ empfohlen“) gilt je Punkt die neue Empfehlung: **es bleibt, wie es ist.** Die 
 | D4-B2 | Gruppenkopf in normaler Schrift 13/500 (Start, Planung) und in Versalien 12 px (Mitarbeiterübersicht, Benutzer) | E-F2 | Bleibt: siehe E-F2 — die normale Form ist durch `v10Stil.test.ts:683` gedeckt, die versale durch E92. |
 | D4-B4 | Vier Kalender in vier Umsetzungen | E-F9 | Bleibt: kein gemeinsamer Kalenderbaustein — groß, schadet keinem Ablauf; E76 hat drei der Kalender erst am 10.11. umgestellt. Gebaut wird nur der Radius des Personenkalenders (D4-A13). |
 | D4-B11 | Kurzname: der Monat nennt die Baustelle kurz, die Woche schreibt den Kundennamen vierzeilig | E-R8 | Bleibt: folgt aus E-R8 (der Kundenname wird in der Woche nicht gekürzt). |
-| D4-B15 | Runder Kreis (`NeuKnopf`, E76) neben der gefüllten Hauptaktion im Tag-Fenster; in der Handy-Woche über der schwebenden Aktion | E-N | Bleibt: E76 nennt genau diese Stellen (Tagesfenster, Handy-Woche) als Auftrag. |
+| D4-B15 | Runder Kreis (`NeuKnopf`, E76) neben der gefüllten Hauptaktion im Tag-Fenster; in der Handy-Woche über der schwebenden Aktion | E-N | Bleibt: E76 nennt genau diese Stellen (Tagesfenster, Handy-Woche) als Auftrag. Damit bleiben im Tagesfenster zwei gefüllte Aktionen nebeneinander stehen (U4: höchstens eine; gemessen: „Termin anlegen“ 48 × 48 gefüllt neben „Einsatz planen“ gefüllt — Bericht 12, D4-B15; Abschnitt 10.7). |
 | D4-C12 | Planung bei 1440×900: 2½ Personen sichtbar — mit den absichtlich langen Namen der Beispieldaten (131 px je Zeile); mit einzeiligem Namen 77 px | E-R8 | Bleibt: die 2½ Personen entstehen aus den absichtlich langen Namen der Beispieldaten (131 px je Zeile; mit einzeiligem Namen 77 px); die Hochrechnung „2,6 Bildschirme“ ist kein Messwert; die einzige vorgeschlagene Lösung (D4-I1) wird nicht gebaut. |
 | D4-I1 | Einsatzkachel zweizeilig: gemessen −27 % Höhe (nicht „70 statt 131 px“); zwölf Monteure passen auch dann nicht auf einen Bildschirm | E-R8 | Bleibt: gegen „Kunde nie abgeschnitten“ (`WochenEintraege.tsx:45`, `style.md`) und E96; gemessen nur −27 % Höhe, zwölf Monteure passen auch dann nicht auf einen Bildschirm. |
 | D4-I5 | Leerer Betrieb: Blatt „Einrichten“ auf der Startseite — die Startseite trägt die Einrichtung schon als Themen unter „Zu erledigen“ | E-R16 | Bleibt: die Startseite trägt die Einrichtung schon als Themen unter „Zu erledigen“; ein eigenes Blatt stünde neben denselben Angaben. |
@@ -1583,9 +1710,9 @@ davon will, entscheidet sie einzeln neu. Dazu gehören auch die eigenen Ideen zu
 | D3-C1 | Rechnung stellen als Arbeitsbereich in erkennbarer Folge — sieben Punkte hängen an der heutigen Anordnung, zwei widersprechen der vorgeschlagenen | E-R14 | Zurückgestellt: sieben Punkte hängen an der heutigen Anordnung, zwei widersprechen der vorgeschlagenen (Leistungszeitraum und Konditionen stehen mit Absicht vor den Positionen). Wird später neu entschieden, dann als eine Seite in vier Abschnitten, nicht als geführter Ablauf; „Vorschau“ bleibt das Wort. |
 | D3-C2 | „Verrechnen“ statt „Baustelle wählen“ | E-R14 | Zurückgestellt: Art und Konditionen stehen mit Absicht vor dem Zusammenstellen; der Weg `?neu=` stellt nicht zusammen (zwei Verhalten für dieselbe Absicht); 18 Prüfungen suchen „Baustelle wählen“. |
 | D3-C9 | Verkaufs- und Einkaufspreis in der Katalogzeile | E-R17 | Zurückgestellt: ein Preisrecht gibt es nur für den Einkaufspreis (eigene Tabelle, nur die Geschäftsführung liest); in der Zeile hieße das eine Abfrage je Seite — nicht „klein“. |
-| D4-A6 | Drei Formen des Tastaturfokus (3 px/2 px Versatz allgemein; 2 px an Zeilen; 17 Regeln mit `--focus-ring`). Das Soll ist nicht eindeutig: `style.md` nennt `--focus-ring`, E95 nennt Petrol | E-F13 | Zurückgestellt: `style.md` nennt `--focus-ring`, E95 nennt Petrol — welche Form gilt, ist nicht geklärt. Farbe, Breite und Versatz der drei Fokusformen bleiben; gebaut wird nur V-13. |
+| D4-A6 | Drei Formen des Tastaturfokus (3 px/2 px Versatz allgemein; 2 px an Zeilen; 17 Regeln mit `--focus-ring`). Das Soll ist nicht eindeutig: `style.md` nennt `--focus-ring`, E95 nennt Petrol | E-F13 | Zurückgestellt: `style.md` nennt `--focus-ring`, E95 nennt Petrol — welche Form gilt, ist nicht geklärt. Farbe, Breite und Versatz der drei Fokusformen bleiben; gebaut wird nur V-13. Nach der Bestätigung: ein bestätigter Widerspruch im Regelwerk, keine Idee — → neu vorgelegt als E-B22; bis dahin nicht bauen. |
 | D4-I7 | Startseite anpassen: Reihenfolge per Griff ziehen | E-F4 | Idee ohne Befund; Nutzen ohne Verlust ist nicht belegt. |
-| N-D4-1 | Firmendaten am Schreibtisch: nach einer Änderung im ersten Feld ist bei 1440×900 keine Speicherleiste im Bild (sie steht 1.650 px unter dem Feld); ab 1.200 px ist jede Speicherleiste `position: static`, §112 nennt sie „klebend“ | E-F30 | Zurückgestellt: eine klebende Leiste ab 1.200 px änderte `Speicherleiste`/`Aktionsleiste` für alle Formulare (`raster.spec.ts`, `flucht.spec.ts`, Bewegungen B4); der Prüfer nennt keine sichere Lösung. |
+| N-D4-1 | Firmendaten am Schreibtisch: nach einer Änderung im ersten Feld ist bei 1440×900 keine Speicherleiste im Bild (sie steht 1.650 px unter dem Feld); ab 1.200 px ist jede Speicherleiste `position: static`, §112 nennt sie „klebend“ | E-F30 | Zurückgestellt: eine klebende Leiste ab 1.200 px änderte `Speicherleiste`/`Aktionsleiste` für alle Formulare (`raster.spec.ts`, `flucht.spec.ts`, Bewegungen B4); der Prüfer nennt keine sichere Lösung. Nach der Bestätigung: ein bestätigter Widerspruch im Regelwerk (U1 nennt die Leiste „klebend“), und „der Prüfer nennt keine sichere Lösung“ ist nach Grundsatz 6 kein Grund für eine Grenze — → neu vorgelegt als E-B23; bis dahin nicht bauen. |
 
 ---
 
@@ -1597,7 +1724,15 @@ Paket und stehen dort nur einmal. **Die Tabelle „Vorgaben aus der Gegenprüfun
 Auftrags an den, der baut:** sie enthält jede Warnung eines Prüfers, dass ein Vorschlag so, wie er
 im Papier oder in Fassung 1 stand, etwas verschlechtern würde. Für die Befunde am Code steht die
 Bauanleitung im Papier; die Tabelle „Prüfung mit Gegenprobe / Bleibt gleich“ gibt den Wortlaut
-des Papiers wieder, die Vorgaben berichtigen ihn.
+des Papiers wieder, die Vorgaben berichtigen ihn. **Wo eine Vorgabe aus der Gegenprüfung etwas
+anderes sagt als eine Zelle „laut Papier“, gilt die Vorgabe.** Zellen, deren Prüfung oder
+„bleibt gleich“ ein Prüfer widerlegt hat, sind nach der Bestätigung in der Zelle selbst mit
+„**gilt nicht — siehe Vorgabe**“ gekennzeichnet (Bericht 13, Auflage 10 d; Bericht 14, Auflage 9),
+damit niemand, der nur die Zeile liest, die falsche Prüfung baut. Für die neuen Befunde (`N-…`)
+und die aus 4.10 eingeplanten Bauten steht je Paket eine eigene Tabelle „Neue Befunde und Bauten
+aus 4.10 — Prüfung mit Gegenprobe und ‚bleibt gleich‘“ (Bericht 13, Auflage 7). Schritte, die an
+einer Zeile aus Abschnitt 10.5 hängen, sind als „wartet auf E-B…“ gekennzeichnet und werden bis
+zur Entscheidung nicht gebaut; der Rest des Pakets wartet nicht.
 
 ### 9.1 Reihenfolge und Abhängigkeiten
 
@@ -1619,6 +1754,26 @@ des Papiers wieder, die Vorgaben berichtigen ihn.
 | C | 13 bis 20 Seiten | 7 bis 12; je Seite die zweite Durchsicht aus Paket 8 | jede Seite genau einmal |
 | D | 21 Zeit · 22 Auftragskette · 23 Planung · 24 Geld · 25 Material · 26 Plattform | 1; im Einzelnen je Paket | größere Stücke; einzelne warten auf die Kanzlei |
 | E | 27 Auslieferung · 28 Prüfungen und Ordnung · 29 Skalierung | 27 kann jederzeit vorgezogen werden | begleitend |
+
+**Nach der Bestätigung — Schritte, die auf eine Zeile aus Abschnitt 10.5 warten** (nur der
+genannte Schritt; der Rest des Pakets ist davon unabhängig):
+
+| Paket | Schritt | Wartet auf |
+|---|---|---|
+| 1 | Schritt 3, nur der Teil „Satz nachziehen / Einstufung ändern im abgeschlossenen Monat“ (N-Z-1) | E-B1 |
+| 1 | Schritt 8 (A-1, P-10 und im selben Schritt N-S-2) | E-B2 |
+| 9 | Farbe des Fokusrings (V-13 selbst wartet nicht); klebende Speicherleiste ab 1.200 px; „Deaktivieren“ ins ⋯ | E-B22; E-B23; E-B20 |
+| 11 | Schritt 2, Teil „Beschreibung auch ab dem Tablet in die Hilfe“; der Vermerk dazu in `entscheidungen.md`; die Form „fester Abstand statt Punkt“; der Halbsatz in `CLAUDE.md` | E-B17; E-B17; E-B18; E-B21 |
+| 14 | „Eintrag löschen“ ins ⋯ des Blatts (D1-A2) | E-B19 |
+| 15 | Hinweis beim Entfernen einer Stundenposition (E-F21) | E-B5 |
+| 20 | „Deaktivieren“ im Fenster „… verwalten“ der Plattform (D4-B8) | E-B20 |
+| 24 | Schritt (c), Teil 2 (Rechnungskorrektur als Beleg); Schritt (h) (N-G-6) | E-B3 und K-10; E-B7 |
+| 26 | Höhe der Obergrenze für die UID-Prüfung (N-S-5) | E-B8 |
+| 27 | der Wortlaut der Regel in `CLAUDE.md` (die Härtung wartet nicht) | E-B4 |
+| — | die acht Grenzen ohne gültigen Grund (4.10 Nr. 6, 14, 15, 27, 34, 39, 42, 43) | E-B9 bis E-B16 |
+
+E-B6 (Eintritt und Saldo-Start als Pflichtfeld) hält keinen Schritt auf: Paket 21 (i) baut, was
+E-F6 sagt; die Felder bleiben bis zur Entscheidung freiwillig.
 
 Abhängigkeiten, die Fassung 1 verletzt hatte, und wie sie jetzt gelöst sind:
 
@@ -1678,7 +1833,7 @@ Ausnahmelisten der Wächter.
 |---|---|---|
 | Hülle: Seitenleiste, Kopf- und Fußinsel, Profil-Blatt, Verbindungsband, „Neue Fassung“-Leiste, Suche am Handy | 13 | Seitenleiste rollt in sich; Titel in der Kopfinsel; Ausgang der Suche; Texte von Verbindungsband und Abmelde-Rückfrage; Zeichen im Profil |
 | Startseite (alle Rollen), „Startseite anpassen“ | 13 | Seitenkopf ohne Rolle; Zeilen der Themen; Verweiszeichen; Kartenkopf mit Zahl; Pfeilknöpfe |
-| Zeit (`/time`): Liste, Zeitblatt und -formular | 14 | Löschen ins ⋯; Kennzeichen-Feld; Zeile der Zeitliste; Kennzahlen; Texte; Tastaturen |
+| Zeit (`/time`): Liste, Zeitblatt und -formular | 14 | Löschen ins ⋯ (wartet auf E-B19); Kennzeichen-Feld; Zeile der Zeitliste; Kennzahlen; Texte; Tastaturen |
 | Mein Einsatzplan, Team-Woche, Meine Baustellen | 14 | Tagesliste; Aktionen am Einsatz; Kalenderkopf; Kalender-Abo; Rüstliste |
 | Material des Monteurs (Katalog, Korb, Meine Anforderungen, Retoure) | 14 | Korb mit „Abschicken“ im Bild; Zeilen; Texte |
 | Handwerksschein schreiben (`/worksheet`) | 14 | Karten und Abstände; gesperrte Hauptaktion nennt den Grund; Texte; Hinweis „Quer halten“ |
@@ -1703,6 +1858,25 @@ Ausnahmelisten der Wächter.
 Funktionen, die in Stufe D zu einer Seite dazukommen (etwa A-16 auf der Startseite, G-7 im
 Rechnungsfenster), sind Ergänzungen, kein zweiter Umbau.
 
+**In Paket 9 vorab berührt** (nach der Bestätigung, Bericht 14, Auflage 4). „Jede Seite genau
+einmal“ stimmt für Paket 9 nicht ganz: es berichtigt am Baustein, was auf den folgenden Fenstern
+und Stellen sichtbar wird — vor Stufe C. Das ist kein Umbau der Seite, aber eine erste Berührung;
+das Seitenpaket zieht nach, was die Spalte rechts nennt, und nur dort wird die Stelle fertig.
+Außer diesen Fenstern baut Stufe B keine Seite um.
+
+| Fenster oder Stelle | In Paket 9 (Punkt) | Seitenpaket | Was das Seitenpaket aus Paket 9 nachzieht |
+|---|---|---|---|
+| Rechnungsfenster (auf `/invoices` und lesend in Kunden- und Baustellenakte) | Aktionsreihe in voller Breite an ihrer heutigen Stelle (D3-4, D2-A3); Kennwerte in einer Form (D3-15) | 15 | Bild vorher und nachher auf `/invoices` und in beiden Akten; die Lese-Fassung ohne Knöpfe; die übrigen Punkte des Fensters (D3-T6, D3-T7) im selben PR der Seite |
+| Fenster der Nachkalkulation | Kennwerte in einer Form (D3-15) — der eine große Deckungsbeitrag darf größer bleiben | 15 | Bild vorher und nachher; mit D3-T19 |
+| Lager-Artikelfenster | die doppelte Linie entfällt (D3-5); Kennwerte in einer Form (D3-15) | 16 | Bild vorher und nachher; Abstand zwischen Zahlen und Knöpfen |
+| Arbeitszeile der Anforderungen (es gibt sie nur in `AdminOrdersView`) | auf die Blattflucht (V-2, D3-11) | 16 | Bild vorher und nachher; die Textflucht der Zeile und `bewegungen.spec.ts:1041 ff.` als „bleibt gleich“ der Seite |
+| Kopf der vier Akten (Benutzer-, Kunden-, Angebots-, Baustellenakte) | Kopf im Raster (V-15) | 18 (Kunden-, Angebots-, Baustellenakte), 19 (Benutzerakte) | je Akte das Bild bei 390, 834 und 1440 px; `handyInhalt.spec.ts` |
+| Zeitblatt | Fuß: die `Aktionsleiste` hört im Blatt auf den Rollbehälter (D1-C1, D1-B15) | 14 | „Fuß im Bild“ für das Zeitblatt; mit D1-A4 und den Texten im selben PR der Seite |
+| „Neuer Kunde“, „Neue Baustelle“, „Neuer Eingang“, „Neue Wartung“, „Neue Liegenschaft“, „Liegenschaft bearbeiten“ (Akte), „Kunde bearbeiten“ (Liste); „Termin anlegen“ | Ungespeichertes am Baustein (D2-B3, E-F11) | 18; „Termin anlegen“ 17 | je Fenster auf den Baustein umstellen: „Neu“-Fenster behalten den Entwurf und sagen es, Rückfrage nur beim Bearbeiten, ein leeres Fenster schließt ohne Frage |
+| Blattköpfe mit Text-Knopf: „+ Material“; „+ Steuersatz“, „+ Anzahlungskonto“, „Warengruppe hinzufügen“ | „Neu in dieser Liste“ als Kreis nach E76 (D3-B15, E-N) | 16 („+ Material“); 20 (die übrigen drei) | je Stelle den Kreis einsetzen (der Baustein kommt aus Paket 9, die Stelle stellt das Seitenpaket um) |
+| Fensterfuß: Termin, Tag-Fenster, Einsatz; Plattform „… verwalten“ | Regel und Baustein für den Fuß (D4-B8, D1-B3) — ohne eine Aktion zu verlegen | 17 (Termin, Tag-Fenster, Einsatz); 20 (Plattform) | je Fenster den Fuß nach der Regel; „Deaktivieren“ bleibt, wo es ist (wartet auf E-B20) |
+| nebeneinander liegende Blätter: `/worksheet`, `/invoices`, `/assignments/tag` | nur der Wächter (V-3) | 14, 15, 17 | den Abstand an der Stelle berichtigen und den Eintrag aus der Ausnahmeliste von `raster.spec.ts` streichen |
+
 ---
 
 ### Vorab — vor Paket 1
@@ -1715,6 +1889,8 @@ Betriebs B ein Löschereignis aus Betrieb A bekommt — für die Kanäle über `
 elf Stellen, die einen Kanal direkt halten (Bericht 7). Bestätigt sich der Verdacht, wird er ein
 eigener Befund mit eigenem Paket vor Paket 1; sonst steht das Ergebnis im Stand.
 **Verdacht G-4** (`rechnung_ersetzen`) ist durch Bericht 4 entkräftet — nichts mehr zu klären.
+Der Schritt setzt den lokalen Supabase-Stapel voraus; auch die Bestätigung konnte ihn nicht
+klären (dort war kein Stapel vorhanden) — der Verdacht ist weiter offen (Bericht 13).
 **Aufwand:** ½ bis 1 Tag.
 
 ### Stufe A — Rückfälle und Fehler mit Schaden
@@ -1725,19 +1901,22 @@ eigener Befund mit eigenem Paket vor Paket 1; sonst steht das Ergebnis im Stand.
 Supportzugang sind behoben; die Nachkalkulation verliert keine Kosten mehr; dieselbe Art Fehler
 kann nicht unbemerkt wiederkommen.
 **Punkte:** Z-1, Z-2, Z-15, A-1, P-10, M-1, M-2, M-16, S-1, S-10, S-13, L-1, L-2, N-Z-1, N-S-1, N-S-2, N-L-1, N-L-2. **Dazu Teile von:** N-S-4 (Rollenprüfungen in den hier angefassten Funktionen als `… is not true`).
-**Voraussetzung:** Verdacht S-4 geklärt (Vorab). Entscheidung E-F22 (entschieden).
+**Voraussetzung:** Verdacht S-4 geklärt (Vorab). Nach der Bestätigung warten zwei Schritte auf
+eine neue Entscheidung, der Rest des Pakets nicht: in Schritt 3 der Teil „Satz nachziehen /
+Einstufung ändern im abgeschlossenen Monat“ (E-F22 → neu vorgelegt als E-B1) und Schritt 8 ganz
+(A-1, P-10, N-S-2 → E-B2).
 
 | Schritt | Was | Prüfung und Gegenprobe | Bleibt gleich |
 |---|---|---|---|
 | 0 | **N-L-2:** Zeilengrenze des gehosteten Projekts ablesen und in `DEPLOYMENT.md` festhalten | — | — |
-| 1 | **Wächter Textersatz (Z-15):** `tests/unit/migrationenTextersatz.test.ts` liest die Migrationen in Reihenfolge und schlägt an, wenn eine Funktion nach einem Textersatz noch einmal definiert wird (Ausnahmeliste mit Grund). Dazu in `tests/supabase/schema.test.ts` eine Tabelle „Funktion → muss enthalten“ für lohn- und geldrelevante Stellen (`urlaub_entscheiden`, `urlaub_kuerzen` → `urlaubstage_person`; `app.baustelle_abschluss_zaehlen` → `scheine_verrechnet_kern`) | Der Wächter ist am heutigen Stand rot wegen `urlaub_entscheiden`. **Grün wird er nach Schritt 2 nur mit dem Eintrag „behoben in <Migration>“ in der Ausnahmeliste.** Die Tabelle in `schema.test.ts` ist ohne die Migration aus Schritt 2 rot, mit ihr grün | keine Migration wird angefasst |
+| 1 | **Wächter Textersatz (Z-15):** `tests/unit/migrationenTextersatz.test.ts` liest die Migrationen in Reihenfolge und schlägt an, wenn eine Funktion nach einem Textersatz noch einmal definiert wird (Ausnahmeliste mit Grund). Dazu in `tests/supabase/schema.test.ts` eine Tabelle „Funktion → muss enthalten“ für lohn- und geldrelevante Stellen (`urlaub_entscheiden`, `urlaub_kuerzen` → `urlaubstage_person`; `app.baustelle_abschluss_zaehlen` → `scheine_verrechnet_kern`; dazu `rechnung_anlegen` → `ruest_position`, `material_je_ausgabe` und je ein Merkmal für `person_auskunft` und `person_loeschen`, am Endstand festzulegen). **Regel für die späteren Pakete:** Paket 3 definiert `rechnung_anlegen` neu, Paket 22 `person_auskunft`, Paket 26 `person_loeschen` — alle drei nach einem Textersatz (`20261116060000:280` u. a.); der Wächter wird dort bestimmungsgemäß rot. Eine bewusste Neudefinition vom Endstand (Regel 13) bekommt einen Eintrag mit Grund in der Ausnahmeliste, und die Tabelle „muss enthalten“ hält fest, dass dabei nichts verloren geht | Der Wächter ist am heutigen Stand rot wegen `urlaub_entscheiden`. **Grün wird er nach Schritt 2 nur mit dem Eintrag „behoben in <Migration>“ in der Ausnahmeliste.** Die Tabelle in `schema.test.ts` ist ohne die Migration aus Schritt 2 rot, mit ihr grün | keine Migration wird angefasst |
 | 2 | **Z-2:** neue Migration als Textersatz am Endstand (Regel 13): `urlaub_entscheiden` und `urlaub_kuerzen` rechnen über `app.urlaubstage_person(…)`; ein Tag, an dem eine Zeile dieses Antrags steht, lässt sich weiter einzeln streichen. Dazu die lesende Abfrage für den Bestand seit 16.11. | `urlaubMitVerlauf.test.ts`: Antrag über den Tag einer vorgemerkten Änderung genehmigen, kürzen, zurücknehmen — Tage wie in der Vorschau der App; unter dem Fehler gebuchter Tag lässt sich streichen. Ohne Migration rot | Personen ohne Verlauf bekommen dieselben Tage (vom Prüfer für sieben Muster verglichen); genehmigte Anträge werden nicht neu gerechnet |
-| 3 | **Z-1, N-Z-1:** `app.monat_abgeschlossen_sperre()` lässt ein UPDATE durch, wenn sich nur `is_billed`, `invoice_number`, `updated_at` ändern (Vergleich über `to_jsonb(new) - Spalten`, damit neue Spalten von selbst gesperrt bleiben); eigener Merker für `baustelle_umnummern`, gleich nach dem UPDATE zurückgesetzt; im abgeschlossenen Monat rechnen `nacht_setzen`, `satz_setzen` und `baustelle_aufloesen` nichts nach, wenn sich Zeiten, Stand und Abwahl nicht ändern; `app.satz_nachziehen` lässt abgeschlossene Monate aus | `monatsabschluss.test.ts`: Rechnung ausstellen, stornieren, Storno aufheben, Baustelle umnummern im abgeschlossenen Monat (ohne Migration rot, 23514); **„eine Rechnung über einen abgeschlossenen Monat lässt jede andere Spalte unverändert, auch wenn Nachtzeit oder Einstufung inzwischen geändert wurden“**; Einstufung ändern geht nach dem Abschluss; nach `baustelle_umnummern` geht in derselben Transaktion kein freies UPDATE durch | Büro ändert Ende, Kommentar, Baustelle, Notdienst oder löscht → weiter 23514; der Monteur setzt `is_billed` nicht (42501); Anlegen mit `is_billed = true` bleibt gesperrt; offene Monate rechnen wie heute; je eigene Prüfung |
-| 4 | **Wächter Support-Einblick (S-10, M-16):** jede Funktion aus `LESENDE_FUNKTIONEN` steht in genau einer Liste: „läuft im Einblick“ oder „dem Support verschlossen“ mit Grund | Kriterium: mit angelegten Zeilen kommt mit der Freigabe „ansehen“ **dasselbe Ergebnis wie für den Administrator**. Am heutigen Stand rot für die vier Listenfunktionen und für `lager_frei`/`lager_knapp` | was dem Support verschlossen ist, bleibt es |
+| 3 | **Z-1, N-Z-1:** `app.monat_abgeschlossen_sperre()` lässt ein UPDATE durch, wenn sich nur `is_billed`, `invoice_number`, `updated_at` ändern (Vergleich über `to_jsonb(new) - Spalten`, damit neue Spalten von selbst gesperrt bleiben); eigener Merker für `baustelle_umnummern`, gleich nach dem UPDATE zurückgesetzt; im abgeschlossenen Monat rechnen `nacht_setzen`, `satz_setzen` und `baustelle_aufloesen` nichts nach, wenn sich Zeiten, Stand und Abwahl nicht ändern. **Der Teil zum Satz wartet auf E-B1:** wie `app.satz_nachziehen` und `satz_setzen` mit abgeschlossenen Monaten umgehen, wenn Einstufung, Lehrbeginn oder Lehrzeit geändert werden. Bisher stand hier „`app.satz_nachziehen` lässt abgeschlossene Monate aus“ (E-F22); der Bestätiger hat nachgestellt, dass das ein heutiges Verhalten verschlechtert — bis zur Entscheidung nicht bauen | `monatsabschluss.test.ts`: Rechnung ausstellen, stornieren, Storno aufheben, Baustelle umnummern im abgeschlossenen Monat (ohne Migration rot, 23514); **„eine Rechnung über einen abgeschlossenen Monat lässt jede andere Spalte unverändert, auch wenn Nachtzeit oder Einstufung inzwischen geändert wurden“**; Einstufung ändern geht nach dem Abschluss (wartet auf E-B1; die Prüfung dazu wird mit der Entscheidung festgelegt); nach `baustelle_umnummern` geht in derselben Transaktion kein freies UPDATE durch | Büro ändert Ende, Kommentar, Baustelle, Notdienst oder löscht → weiter 23514; der Monteur setzt `is_billed` nicht (42501); Anlegen mit `is_billed = true` bleibt gesperrt; offene Monate rechnen wie heute; je eigene Prüfung |
+| 4 | **Wächter Support-Einblick (S-10, M-16):** jede Funktion aus `LESENDE_FUNKTIONEN` steht in genau einer Liste: „läuft im Einblick“ oder „dem Support verschlossen“ mit Grund. Einen Eintrag „verschlossen“ mit Grund brauchen auch `baustelle_verwendung`, `baustelle_abschluss_lage` und `artikel_verwendung` (sie weisen „ansehen“ über die Rolle ab — vertretbar: Vorschau einer Handlung; Bericht 6, Abschnitt 3 Nr. 3) und `retoure_rahmen` (gehört zum Schreiben, steht aber in der Leseliste) | Kriterium: mit angelegten Zeilen kommt mit der Freigabe „ansehen“ **dasselbe Ergebnis wie für den Administrator**. Am heutigen Stand rot für die vier Listenfunktionen und für `lager_frei`/`lager_knapp` | was dem Support verschlossen ist, bleibt es |
 | 5 | **S-1, M-1, N-S-1, S-13:** eine Migration am Endstand. `baustellen_liste`, `lager_liste`, `anforderungen_laufend`, `wartungen_faellig_stand`, **`lager_frei`, `lager_knapp`** nehmen `coalesce(app.betrieb(), app.supportbetrieb())`; die Prüfung `app.darf(betrieb)` dahinter bleibt. `schein_verrechnung`, `retoure_rahmen`, `kommissionsartikel_im_lager` und die drei Anforderungs-Rückfälle je nach Vorgabe (Tabelle unten). `startseite-forderungen` bekommt den Betrieb aus dem Rumpf, gelesen wird weiter mit dem Token der Person; danach `node scripts/edge-shared-uebernehmen.mjs` | `supportAnsehenListen.test.ts`, `startseiteForderungen.test.ts`: im Einblick dieselben Zahlen wie der Administrator; `supportArbeitetMit.test.ts`: je Funktion ein Fall mit echter Zeile. Ohne Migration rot | die bestehenden Fälle der vier Prüfdateien; 35 Vergleiche Betriebskonto × Aufruf vorher/nachher gleich; die Gegenfälle aus Bericht 6 (Freigabe widerrufen, abgelaufen, `aal1`, fremder Betrieb …) je 42501 oder 0 Zeilen; **mit „ansehen“ ändert kein Aufruf eine Zeile des Betriebs** (mit echten Zeilen geprüft); Projektleiter, Verwaltung, Monteur in `schein_verrechnung` wie heute; `baustellen_budget_lage` bleibt verschlossen (Grund: Datenschutz); ohne Token weiter 401 |
 | 6 | **Wächter Zeilengrenze (L-2, M-16):** `tests/unit/funktionsgrenzen.test.ts`: jeder `.rpc(` mit Zeilenmenge braucht `.range(`/`rpcAlle`, ein `limit` im Rumpf oder einen begründeten Eintrag; die sieben Hüllen mit veränderlichem Namen sind erfasst | mit rund 30 begründeten Einträgen rot für genau drei Funktionen, bis Schritt 7 gebaut ist | — |
 | 7 | **L-1, M-2, N-L-1:** Helfer `rpcAlle` in `kern.ts`; `ausgegebenes_material_gesamt` und `schein_einkaufspreise` bekommen eine eindeutige Reihenfolge (`beleg_id` bzw. `wm.id`; neue Migration); `ausgegebenes_material` wird nur umgestellt; beim Zusammenführen über `beleg_id` entdoppeln | `ausgegebenesMaterialGesamt.test.ts` mit 1.200 Zeilen über zwei Baustellen: alle kommen an; mit dem heutigen Aufruf genau 1.000 | Zeilen, Vorzeichen der Retouren, Rechte, Bündeln, Ansicht (bestehende Prüfungen) |
-| 8 | **A-1, P-10, N-S-2:** `app.baustelle_abschluss_zaehlen` zählt über `app.scheine_verrechnet_kern`; der Aufruf von `ausgegebenes_material` läuft auch im Supportzugang mit „Mitarbeiten“ | `baustelleAbschliessen.test.ts`: die drei Fälle aus P-10 (Regie mit Stundenschein im abgerechneten Zeitraum, Regie mit Ersatzschein nach Storno, Pauschal mit gültiger Rechnung) melden 0; Schein und Stunden **nach** der Schlussrechnung; Gegenprobe Regie mit Material ohne Rechnung meldet 1. Ohne Migration rot | eine Regiebaustelle mit wirklich offenem Schein zählt wie bisher; `null` für die Projektleitung fremder Baustellen bei allen vier Schlüsseln; Material nur für `ist_buch_oder_spitze`; Rückgabeform |
+| 8 | **Wartet auf E-B2 — bis zur Entscheidung nicht bauen (N-S-2 wartet im selben Schritt mit).** **A-1, P-10, N-S-2:** `app.baustelle_abschluss_zaehlen` zählt über `app.scheine_verrechnet_kern`. **N-S-2, der Weg:** der Zähler ruft heute `public.ausgegebenes_material(…)`, das den Betrieb nur aus dem Token nimmt; er bekommt dafür einen Kern ohne Token-Bezug (der Betrieb kommt vom Zähler). Der direkte Aufruf von `ausgegebenes_material` bleibt dem Support verschlossen (Papier 6: richtig verschlossen — „Rechnungen gehen im Supportzugang nicht“) | `baustelleAbschliessen.test.ts`: die drei Fälle aus P-10 (Regie mit Stundenschein im abgerechneten Zeitraum, Regie mit Ersatzschein nach Storno, Pauschal mit gültiger Rechnung) melden 0; Schein und Stunden **nach** der Schlussrechnung; Gegenprobe Regie mit Material ohne Rechnung meldet 1. Ohne Migration rot. N-S-2: `baustelle_abschluss_lage` und `baustelle_abschliessen` gehen mit „Mitarbeiten“ an einer echten Baustelle (heute 42501 „Ausgegebenes Material sieht nur, wer Rechnungen schreibt“), mit „ansehen“ bleiben sie abgewiesen; der direkte Aufruf von `ausgegebenes_material` bleibt im Supportzugang abgewiesen | eine Regiebaustelle mit wirklich offenem Schein zählt wie bisher; `null` für die Projektleitung fremder Baustellen bei allen vier Schlüsseln; Material nur für `ist_buch_oder_spitze`; Rückgabeform |
 
 **Vorgaben aus der Gegenprüfung:**
 
@@ -1745,9 +1924,9 @@ kann nicht unbemerkt wiederkommen.
 |---|---|
 | Z-1 | Die Ausnahme allein reicht nicht (Bericht 1, 2a). (1) Auch „Einstufung ändern“ scheitert (N-Z-1) und bleibt mit dem Vorschlag gesperrt. (2) Die Ausnahme vergleicht, bevor `nacht_setzen`, `satz_setzen`, `baustelle_aufloesen` an der Zeile weiterrechnen: nachgestellt kippt `is_night_work` beim Ausstellen im abgeschlossenen Monat. Nötig ist eine Stelle, die im abgeschlossenen Monat nichts nachrechnet, wenn sich Zeiten, Stand und Abwahl nicht ändern; offene Monate rechnen wie heute. (3) Der Merker für das Umnummern wird gleich nach dem `UPDATE` zurückgesetzt (`set_config(…, '', true)`). |
 | Z-2 | Unter dem Fehler gebuchte Tage dürfen nicht unkürzbar werden: die Prüfung „gestrichener Tag ist Arbeitstag“ lässt einen Tag gelten, an dem eine Zeile dieses Antrags steht (nachgestellt: sonst „Der 08.01.2027 ist kein Urlaubstag“). Dazu eine lesende Abfrage „genehmigte Anträge seit 16.11., deren gebuchte Tage von `urlaubstage_person` abweichen“ — dem Betrieb nennen, nichts umschreiben (Altdaten). |
-| Z-15 | Die Gegenprobe „nach Z-2 grün“ gilt für den Wächter ohne Datenbank nur mit einem begründeten Eintrag in der Ausnahmeliste („behoben in <Migration>“): die Neudefinition in `20261116030000` steht für immer in den Migrationen. Ohne Eintrag grün wird nur die Tabelle „Funktion → muss enthalten“ in `tests/supabase/schema.test.ts`. In diese Tabelle gehört auch `app.baustelle_abschluss_zaehlen` → `scheine_verrechnet_kern`. |
+| Z-15 | Die Gegenprobe „nach Z-2 grün“ gilt für den Wächter ohne Datenbank nur mit einem begründeten Eintrag in der Ausnahmeliste („behoben in <Migration>“): die Neudefinition in `20261116030000` steht für immer in den Migrationen. Ohne Eintrag grün wird nur die Tabelle „Funktion → muss enthalten“ in `tests/supabase/schema.test.ts`. In diese Tabelle gehört auch `app.baustelle_abschluss_zaehlen` → `scheine_verrechnet_kern`. Nach der Bestätigung ergänzt (Bericht 13, Auflage 6): der Wächter wird durch die bewussten Neudefinitionen der Pakete 3 (`rechnung_anlegen`), 22 (`person_auskunft`) und 26 (`person_loeschen`) bestimmungsgemäß rot — jede bekommt einen Eintrag mit Grund in der Ausnahmeliste, **und** die Tabelle „muss enthalten“ führt `rechnung_anlegen` → `ruest_position`, `material_je_ausgabe` (genau der Verlust, vor dem die Voraussetzung von Paket 3 warnt) sowie je ein Merkmal für `person_auskunft` und `person_loeschen`. |
 | A-1 | Die Prüfung „Pauschalbaustelle mit Schlussrechnung meldet 0“ ist ohne Migration grün; die Gegenprobe trägt nur mit Schein und Stunden nach der Rechnung. „Bleibt gleich“ gilt nicht für Regie-Scheine unter Regel 3 — der Fall bekommt einen eigenen Namen. `null` für die Projektleitung fremder Baustellen bei allen vier Schlüsseln; Material nur für `ist_buch_oder_spitze`. |
-| P-10 | „Bleibt gleich: Regiebaustelle zählt wie bisher“ ist falsch. Richtig: „eine Regiebaustelle mit wirklich offenem Schein (Material, keine Rechnung) zählt wie bisher“. Alle drei Fälle und die Gegenprobe in die Prüfung. Bewusst sehen: auf einer Pauschalbaustelle warnt der Abschluss danach auch nicht mehr vor einem Schein, der nach der Schlussrechnung unterschrieben wurde. |
+| P-10 | „Bleibt gleich: Regiebaustelle zählt wie bisher“ ist falsch. Richtig: „eine Regiebaustelle mit wirklich offenem Schein (Material, keine Rechnung) zählt wie bisher“. Alle drei Fälle und die Gegenprobe in die Prüfung. Bewusst sehen: auf einer Pauschalbaustelle warnt der Abschluss danach auch nicht mehr vor einem Schein, der nach der Schlussrechnung unterschrieben wurde. **Nach der Bestätigung (Bericht 13, Abschnitt 6 Nr. 5):** der Prüfer schreibt „bewusst sehen … der Abschluss ist die letzte Stelle, an der es auffiele“ — das stand hier nur als Vorgabe, nicht als Frage. Es ist jetzt als Frage vorgelegt (E-B2: eine eigene Hinweiszeile ohne Sperre für das, was nach der Schlussrechnung dazugekommen ist); bis zur Entscheidung wird Schritt 8 nicht gebaut. |
 | M-1 | Alle vier Funktionen in dieselbe Migration: nur `lager_liste` umgestellt, sähe der Support ein leeres Lager statt eines Fehlers (nachgestellt) — schlechter als heute. Die Prüfung `app.darf(…)` hinter dem Betrieb bleibt stehen. |
 | M-2 | Auch `ausgegebenes_material` (`materialOrders.ts:473`) blättern (N-L-1). Beim Zusammenführen über `beleg_id` entdoppeln. |
 | M-16 | Der Wächter braucht beim ersten Lauf an die 30 begründete Einträge (36 Aufrufe ohne `.range()`); „rot für zwei“ gilt erst danach, und es sind drei. |
@@ -1756,9 +1935,10 @@ kann nicht unbemerkt wiederkommen.
 | S-13 | `schein_verrechnung` nicht auf `app.verrechnung_betrieb()` (sperrte den Projektleiter aus und ließe „ansehen“ weiter draußen): Betrieb `coalesce(app.arbeitsbetrieb(), app.lesebetrieb(), app.supportbetrieb())`, Rollenprüfung um `app.support_liest(betrieb)` ergänzen. `retoure_rahmen` und `kommissionsartikel_im_lager` gehören zum Schreiben (`app.arbeitsbetrieb()`/`app.support_schreibt`). Keine schreibende Funktion bekommt den Betrieb über `app.supportbetrieb()`. |
 | L-1 | Der Wert der Zeilengrenze im gehosteten Projekt ist nur behauptet — einmal ablesen und in `DEPLOYMENT.md` festhalten (N-L-2). `nachkalkulationBuendel.test.ts` liegt unter `tests/supabase/`. |
 | L-2 | Der Wächter erfasst die sieben Stellen mit veränderlichem Funktionsnamen (`kern.ts:422`, `plattform.ts:112`, `nachrichten.ts:165`, `inventur.ts:98`, `invoices.ts:807`, `zeitsitzungen.ts:93`, `supabaseSender.ts:227`). `scheine_verrechnet` darf mit Grund in die Ausnahmeliste, `ausgegebenes_material` nicht. |
-| N-Z-1 | Entschieden (E-F22): `app.satz_nachziehen` lässt Buchungen abgeschlossener Monate aus (dieselbe Regel wie für das Nacht-Kennzeichen) — mit eigener Prüfung. |
+| N-Z-1 | **Wartet auf E-B1.** Bisher stand hier: „Entschieden (E-F22): `app.satz_nachziehen` lässt Buchungen abgeschlossener Monate aus (dieselbe Regel wie für das Nacht-Kennzeichen)“. Der Bestätiger hat nachgestellt (`z1.sql`, `z1b.sql`): heute zieht eine Berichtigung des Lehrbeginns die Satzklasse einer unverrechneten Oktoberbuchung nach (`lj2` → `lj3`); mit E-F22 bliebe sie in einem abgeschlossenen Oktober für immer `lj2` und würde so verrechnet. Betroffen sind Berichtigungen von Lehrbeginn und Lehrzeit und die erste Einstufung, ein gewöhnlicher Wechsel der Einstufung nicht (er gilt ab heute, der Verlauf hält die alte Klasse). Die Begründung „dieselbe Regel wie für das Nacht-Kennzeichen“ setzte Lohnaufzeichnung und Verrechnungssatz gleich. Neue Empfehlung in E-B1 (`satz` in die Ausnahme der Sperre); bis zur Entscheidung wird dieser Teil von Schritt 3 nicht gebaut, der Rest von Schritt 3 schon. |
 | N-S-1 | In dieselbe Migration wie die vier Listenfunktionen. |
-| N-S-2 | Im selben Schritt wie A-1/P-10 beheben, damit `app.baustelle_abschluss_zaehlen` einmal angefasst wird. |
+| N-S-2 | Im selben Schritt wie A-1/P-10 beheben, damit `app.baustelle_abschluss_zaehlen` einmal angefasst wird — der Schritt wartet deshalb mit auf E-B2. Der Weg (nach der Bestätigung ergänzt, Bericht 13, Auflage 5): der Zähler nimmt einen Kern von `ausgegebenes_material` ohne Token-Bezug; der direkte Aufruf bleibt dem Support verschlossen. Prüfung: `baustelle_abschluss_lage` und `baustelle_abschliessen` mit „Mitarbeiten“ an einer echten Baustelle; mit „ansehen“ weiter abgewiesen. |
+| S-13 (Nr. 3) | Nach der Bestätigung ergänzt (Bericht 6, Abschnitt 3 Nr. 3; Bericht 13, Auflage 5): `baustelle_verwendung`, `baustelle_abschluss_lage` und `artikel_verwendung` weisen „ansehen“ über die Rolle ab. Alle drei stehen in `LESENDE_FUNKTIONEN` (`netzFrist.ts`) — der Wächter aus Schritt 4 braucht für sie einen Eintrag „verschlossen“ mit Grund; ebenso für `retoure_rahmen` (gehört zum Schreiben, steht aber in der Leseliste). |
 | N-L-1 | Die Funktion sortiert schon eindeutig — die Umstellung kostet keine Migration. |
 | N-L-2 | Einmal im Projekt ablesen und in `DEPLOYMENT.md` festhalten. |
 
@@ -1768,14 +1948,14 @@ Zu S-13 im Einzelnen (Papier 6, berichtigt durch Bericht 6): `retoure_rahmen` un
 `coalesce(app.lesebetrieb(), app.arbeitsbetrieb())`. Der Vorschlag der Fassung 1 (alle drei auf
 `coalesce(app.betrieb(), app.supportbetrieb())`) bewirkt nichts — der Prüfer hat ihn eingespielt.
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
 | Z-1 | Papier 1, Befund Z-1 (Aufwand dort: m) | im abgeschlossenen Monat ändert weiterhin niemand Tag, Uhrzeit, Pause, Stand, Baustelle, Kommentar, Nacht/Notdienst; Anlegen und Löschen bleiben gesperrt; ausgeschaltet ändert sich nichts. - Risiko des Umbaus: eine zu weite Ausnahme wäre ein Loch im Abschluss. Deshalb die Ausnahme als feste, kurze Spaltenliste und nicht als … (weiter im Papier) | im Papier nicht eigens benannt — vor dem Bau festzulegen |
 | Z-2 | Papier 1, Befund Z-2 (Aufwand dort: k) | im Papier nicht eigens benannt — vor dem Bau festzulegen | Personen ohne Verlauf bekommen dieselben Tage wie heute (`app.urlaubstage_person` liefert ohne Verlauf dasselbe, Kommentar `20261116020000:674–677`); schon genehmigte Anträge werden nicht neu gerechnet (Altdaten). |
 | Z-15 | Papier 1, Befund Z-15 (Aufwand dort: k) | im Papier nicht eigens benannt — vor dem Bau festzulegen | keine Migration wird angefasst. |
-| A-1 | Papier 2, Befund A-1 (Aufwand dort: k) | `baustelleAbschliessen.test.ts` + Fall „Pauschalbaustelle mit Schlussrechnung: 0 Scheine, 0 Minuten“ (Gegenprobe: ohne Migration rot), + | Regiebaustelle zählt wie bisher“ und „Pauschale nur mit Anzahlung zählt weiter“. Gleich bleiben muss: Rückgabeform (`AbschlussLage`), `null` statt 0 für Rollen ohne Einblick in Rechnungen, das Anhalten bei kommenden Einsätzen. Risiko des Umbaus: zu großzügig rechnen (eine Regiebaustelle gälte als … (weiter im Papier) |
+| A-1 | Papier 2, Befund A-1 (Aufwand dort: k) | `baustelleAbschliessen.test.ts` + Fall „Pauschalbaustelle mit Schlussrechnung: 0 Scheine, 0 Minuten“ (Gegenprobe: ohne Migration rot), + **— gilt nicht, siehe Vorgabe A-1: der Fall ist ohne Migration grün; die Gegenprobe trägt nur mit Schein und Stunden nach der Rechnung** | **„Regiebaustelle zählt wie bisher“ gilt nicht — siehe Vorgaben A-1 und P-10** (richtig: eine Regiebaustelle mit wirklich offenem Schein zählt wie bisher). Wortlaut des Papiers: Regiebaustelle zählt wie bisher“ und „Pauschale nur mit Anzahlung zählt weiter“. Gleich bleiben muss: Rückgabeform (`AbschlussLage`), `null` statt 0 für Rollen ohne Einblick in Rechnungen, das Anhalten bei kommenden Einsätzen. Risiko des Umbaus: zu großzügig rechnen (eine Regiebaustelle gälte als … (weiter im Papier) |
 | P-10 | Papier 3, Befund P-10 (Aufwand dort: k) | `tests/supabase/baustelleAbschliessen…` um drei Fälle erweitert (Pauschale mit Rechnung, Stundenschein im Zeitraum, Ersatzschein → je 0; Gegenprobe: heute je 1). | ein wirklich offener Schein mit Material zählt weiter, die Sicht ohne Leserecht bleibt `null`. |
 | M-1 | Papier 5, Befund M-1 (Aufwand dort: k) | je eine neue Prüfung in `lagerListe.test.ts` und `anforderungenLaufend.test.ts` — Support mit Freigabe „ansehen“ bekommt dieselben Zahlen wie die Verwaltung, ohne Freigabe und nach Widerruf einen Fehler. Gegenprobe: ohne die Migration rot (42501). | alle 17 bestehenden Prüfungen beider Dateien, `mandantenTrennung`, und dass ein Betriebskonto nie einen anderen Betrieb erreicht (`app.supportbetrieb()` ist für Betriebskonten leer). Risiko des Umbaus: `lager_liste` ruft `lager_frei` — beide müssen in derselben Migration wechseln, sonst steht für … (weiter im Papier) |
 | M-2 | Papier 5, Befund M-2 (Aufwand dort: k) | Datenbankprüfung mit 1.100 Ausgaben über zwei Baustellen — Summe je Baustelle stimmt. Gegenprobe: mit dem heutigen Aufruf fehlen 100 Zeilen (rot). | `materialkosten.test.ts`, `ausgegebenesMaterial.test.ts`, `rechnungMaterialJeAusgabe.test.ts` ohne Änderung. |
@@ -1783,7 +1963,7 @@ Zu S-13 im Einzelnen (Papier 6, berichtigt durch Bericht 6): `retoure_rahmen` un
 | S-1 | Papier 6, Befund S-1 (Aufwand dort: k) | `supportAnsehenListen.test.ts` um die vier Funktionen und `startseiteForderungen.test.ts` um den Einblick erweitern (je: gleiche Zahlen wie der Administrator des Betriebs). Gegenprobe: ohne die Migration bzw. mit der heutigen Function rot. Dazu der Wächter aus S-10. | Ergebnisse für jedes Konto des Betriebs (die bestehenden Prüfungen `baustellenListe`, `lagerListe`, `anforderungenLaufend`, `wartungenFaelligStand` — 34 Fälle — bleiben unverändert grün); ohne Einblick sieht die Plattform weiter nichts; der Monteur sieht in `anforderungen_laufend` weiter nur seine. |
 | S-10 | Papier 6, Befund S-10 (Aufwand dort: k) | im Papier nicht eigens benannt — vor dem Bau festzulegen | im Papier nicht eigens benannt — vor dem Bau festzulegen |
 | S-13 | Papier 6, Befund S-13 (Aufwand dort: k) | `supportArbeitetMit.test.ts` je Funktion ein Fall mit echter Zeile (Anforderung aus dem Lager ausgeben, Rückgabe annehmen, Lagerführung umstellen), `supportAnsehenListen.test.ts` für `schein_verrechnung`. Gegenprobe: ohne die Migration je rot. Der Wächter aus S-10 hält die Tabelle oben künftig fest (lesende Funktionen); für … (weiter im Papier) | jede Zeile „richtig“ der Tabelle — vor allem, dass der Support weder Zeiten, Urlaube und Krankenstände sieht noch Rechnungen ausstellt (`supportzugang.test.ts`, `supportArbeitetMit.test.ts:178`, `:200`, `mandantenTrennung`); für Konten des Betriebs ändert sich kein Ergebnis. |
-| L-1 | Papier 7, Befund L-1 (Aufwand dort: k) | `tests/supabase/ausgegebenesMaterialGesamt.test.ts` um einen Fall mit 1.200 Zeilen über zwei Baustellen erweitern (alle kommen an, Summe je Baustelle stimmt); Gegenprobe: mit dem heutigen Aufruf kommen genau 1.000. | Zeilen, Vorzeichen der Retouren und Rechte (`ausgegebenesMaterialGesamt.test.ts`, `materialKleineLuecken.test.ts`), das Bündeln (`tests/unit/nachkalkulationBuendel.test.ts`) und die Ansicht (`NachkalkulationView.test.tsx`). Risiko des Umbaus: bei wechselnder Reihenfolge zwischen zwei Seiten kämen … (weiter im Papier) |
+| L-1 | Papier 7, Befund L-1 (Aufwand dort: k) | `tests/supabase/ausgegebenesMaterialGesamt.test.ts` um einen Fall mit 1.200 Zeilen über zwei Baustellen erweitern (alle kommen an, Summe je Baustelle stimmt); Gegenprobe: mit dem heutigen Aufruf kommen genau 1.000. | Zeilen, Vorzeichen der Retouren und Rechte (`ausgegebenesMaterialGesamt.test.ts`, `materialKleineLuecken.test.ts`), das Bündeln (`tests/unit/nachkalkulationBuendel.test.ts` — **der Pfad gilt nicht, siehe Vorgabe L-1: die Datei liegt unter `tests/supabase/`**) und die Ansicht (`NachkalkulationView.test.tsx`). Risiko des Umbaus: bei wechselnder Reihenfolge zwischen zwei Seiten kämen … (weiter im Papier) |
 | L-2 | Papier 7, Befund L-2 (Aufwand dort: k) | im Papier nicht eigens benannt — vor dem Bau festzulegen | im Papier nicht eigens benannt — vor dem Bau festzulegen |
 
 **Risiko:** Z-1: eine zu weite Ausnahme wäre ein Loch im Abschluss — deshalb feste, kurze
@@ -1833,10 +2013,32 @@ der Datei abschreibt, verliert die Belegart `ruest_position` und `material_je_au
 2. **G-2, N-G-5:** beim Wechsel der Baustelle und beim Verwerfen die abgeleiteten Werte aus der
    Vorgabe neu setzen (Rabatt, Bauleistung, Rücklass, Steuerbefreiung, Art, „Leistungsnachweis
    anhängen“).
-3. **G-5, G-6, G-16, N-G-1, N-G-4 in einer Migration an `rechnung_anlegen`** (Ausgangstext aus
-   `\sf`): Stand der Zeitbuchungen gegen die Vorschau; keine zweite Pauschale; Nachrechnen der
-   Summen; die frei gewählte Nummer beim direkten Aufruf; die Eingabe von Menge und Preis auf die
-   Stellen der Spalten begrenzen. **Zuerst messen**, ob jede Belegart die Nachrechnung besteht.
+3. **G-5, G-6, G-16, N-G-1 in einer Migration an `rechnung_anlegen`** (Ausgangstext aus
+   `\sf`; die bewusste Neudefinition bekommt ihren Eintrag im Wächter Textersatz, Paket 1):
+   Stand der Zeitbuchungen gegen die Vorschau; keine zweite Pauschale; Nachrechnen der
+   Summen; die frei gewählte Nummer beim direkten Aufruf. **Zuerst messen**, ob jede Belegart die
+   Nachrechnung besteht. Nach der Bestätigung auf je eine Bauweise festgelegt (Bericht 13,
+   Auflage 4):
+   - **G-5:** der Stand je Buchung (Minuten je Buchungskennung) reist in `p_kopf` unter einem
+     eigenen Schlüssel — unbekannte Schlüssel verwirft `jsonb_populate_record` (Endstand
+     `rechnung_anlegen`, Z. 20) —, **nie** als neuer Schlüssel in `p_belege` (dort wird jeder
+     Schlüssel als Liste gelesen, Z. 154–156; vom Bestätiger am Endstand nachgelesen). Fehlt die
+     Angabe (ältere App), wird nicht verglichen. Der Vergleich über `updated_at` wird nicht
+     gewählt: auch `app.satz_nachziehen` und `baustelle_umnummern` ändern `updated_at` — eine
+     geänderte Einstufung wiese dann jede offene Vorschau der Person ab.
+   - **N-G-1:** `rechnung_anlegen` bleibt für `authenticated` aufrufbar — `rechnung_ausstellen`
+     läuft mit den Rechten des Aufrufers und ruft sie, ein `revoke` geht also nicht.
+     `rechnung_ausstellen` zieht die Nummer über `app.rechnungsnummer_ziehen` und reicht sie in
+     `p_kopf` weiter; sie setzt vor dem Aufruf einen transaktionslokalen Merker mit der gezogenen
+     Nummer (wie der Merker für `baustelle_umnummern` in Paket 1) und löscht ihn danach.
+     `rechnung_anlegen` nimmt eine Rechnungsnummer nur an, wenn sie dem Merker entspricht, sonst
+     42501 mit verständlicher Meldung. **Die Lösung stammt aus dem Plan, kein Prüfer hat sie
+     nachgestellt — vor dem Bau im Stapel zeigen, dass ein Aufrufer über PostgREST den Merker
+     nicht selbst setzen kann.**
+   - **G-16 (4):** ein leeres `subtotal_netto` heißt „die Summe der Zeilen gilt“.
+
+   **N-G-4** gehört nicht in diese Migration: es ist eine Begrenzung der Eingabe in der App
+   (Menge und Preis auf die Stellen der Spalten).
 4. **G-14:** Steuersatz beim Abzug einer Anzahlung — an beiden Stellen des Auslösers und in der App.
 5. **N-G-2:** die Kundenkennung einer Rechnung gehört zum Betrieb.
 6. **D3-6:** Vorbelegung des Zahlungsdialogs über `preisAlsText(cent(vorschlag))`.
@@ -1851,26 +2053,26 @@ der Datei abschreibt, verliert die Belegart `ruest_position` und `material_je_au
 | A-3 | Der Abgleich gehört an die Auswahl und an den Kundenwechsel (`BaustellenSuche.tsx:82` sucht über den ganzen Betrieb). Im Kern steht der Vergleich nach dem Zweig „schon angenommen → dieselbe Baustelle zurückgeben“, sonst scheitert der wiederholte Aufruf nach verlorener Antwort bei Altangeboten. Der Vergleich wandert in `app.angebot_annehmen_kern`, dazu `angebot_link_zustand` und `angebot_link_erzeugen`. Wird ein Link gegenstandslos, steht der Grund in der Akte. |
 | A-4 | Die Akte braucht für `PauschalHinweis` und Hauptangebot/Herkunft die vollständige Liste der angenommenen — bei „jüngste zuerst, seitenweise“ fiele das Hauptangebot zuerst heraus. Zwei Abfragen wie im Papier; `listQuotesForProject` ist eine Tabellenabfrage, `abfragen` blättert ohne `grenze` selbst (kein `rpcAlle`). Die Gegenprobe ist verlässlich baubar (angenommenes Angebot mit der größten Kennung). |
 | A-14 | „Bleibt gleich“: Papierkorb „Wiederherstellen“, „Ablehnung zurücknehmen“, das Ersetzen der übrigen Fassungen durch den Kern, `angebot_annehmen_mit_ziel` setzt `project_number` weiter. `angebot_speichern` weist das Umhängen eines angenommenen Angebots mit Meldung ab — still übergehen wäre ein stiller Fehlschlag. |
-| G-1 | Hauptregel: jeder Treffer ohne Buchstaben-Vorsatz ist nur vorgewählt, wenn der Betrag passt, sonst höchstens „bitte prüfen“ — auch auf Stufe 2 eines Betriebs ohne Vorsatz. Die Datumsregel gilt nur für die zusammenhängende achtstellige Folge (ohne Trenner). Der Zweig „Mahnspesen zu bezahlter Rechnung“ zählt bei einem solchen Treffer nicht als „Betrag passt“. Die 32 bestehenden Fälle genügen nicht als „bleibt gleich“ (keiner prüft einen Abgleich ohne Vorsatz). |
+| G-1 | Hauptregel: jeder Treffer ohne Buchstaben-Vorsatz ist nur vorgewählt, wenn der Betrag passt, sonst höchstens „bitte prüfen“ — auch auf Stufe 2 eines Betriebs ohne Vorsatz. Die Datumsregel gilt nur für die zusammenhängende achtstellige Folge (ohne Trenner). Der Zweig „Mahnspesen zu bezahlter Rechnung“ zählt bei einem solchen Treffer nicht als „Betrag passt“. Die 32 bestehenden Fälle genügen nicht als „bleibt gleich“ (keiner prüft einen Abgleich ohne Vorsatz). Nach der Bestätigung nachgetragen (Bericht 13, Abschnitt 4; Bericht 4, Tabelle zu G-1): eine Abbuchung an einen Lieferanten mit Datum-Referenz wird als „offen“ statt „fremd“ geführt — nur eine falsche Auskunft, nichts vorgewählt; kann mit G-1 erledigt werden. Folge der Hauptregel, die der Auftraggeber kennen soll: eine Teilzahlung ohne Buchstaben-Vorsatz ist nicht mehr vorgewählt — bei einem Betrieb ohne Vorsatz jede Teilzahlung (Risiko unten; Abschnitt 10.7). |
 | G-2 | `steuerbefreiung` steht nicht in `nachDemAusstellen`: zurücksetzen auf `company?.steuerbefreiungVorgabe ?? ''` (nicht leer). `appendDetail` ebenso zurücksetzen (N-G-5). `setStundenStand(n+1)` nicht mitnehmen. Benennen: die Art springt beim Baustellenwechsel auf „Einzelrechnung“. Die erste Wahl der Baustelle setzt weiter nichts zurück. |
-| G-5 | Der Schlüssel `time_entry_minuten` in `p_belege` bricht gegen die heutige Funktion („cannot extract elements from an object“): trifft eine neue App auf die alte Datenbank, lässt sich keine Rechnung mit Stunden ausstellen. Die Minuten in `p_kopf` tragen oder die Datenbank zwingend vor der App ausliefern und das prüfen. Einfacher: Vergleich über `updated_at` der Buchung (weist auch bei einer Notizänderung ab — kostet nur ein neues Zusammenstellen). |
+| G-5 | Der Schlüssel `time_entry_minuten` in `p_belege` bricht gegen die heutige Funktion („cannot extract elements from an object“): trifft eine neue App auf die alte Datenbank, lässt sich keine Rechnung mit Stunden ausstellen. **Nach der Bestätigung auf eine Übergabeform festgelegt (Bericht 13, Auflage 4 a):** der Stand je Buchung (Minuten je Buchungskennung) reist in `p_kopf` unter einem eigenen Schlüssel (unbekannte Schlüssel verwirft `jsonb_populate_record`), nie in `p_belege`; fehlt die Angabe (ältere App), wird nicht verglichen. Die zwei anderen Wege, die hier standen, gelten nicht mehr: „die Datenbank zwingend vor der App ausliefern“ und der Vergleich über `updated_at` der Buchung — auch `app.satz_nachziehen` und `baustelle_umnummern` ändern `updated_at`, eine geänderte Einstufung wiese dann jede offene Vorschau der Person ab. |
 | G-6 | Der Auslöser greift auch beim Aufheben eines Stornos (`rechnung_storno_aufheben`), wie `app.vorrechnungen_pruefen`. Er läuft nach `invoices_baustelle` (Auslöser laufen nach Namen) oder sucht selbst über beide Schreibweisen der Nummer. Baustelle ohne Abrechnungsart (Altdaten) gilt als Regie. „Stornieren und neu ausstellen“ einer Pauschale bleibt möglich. |
 | G-14 | Zwei Stellen in `app.vorrechnungen_pruefen` und `abziehbar`/`pflichtAbzug` in der App tragen dieselbe Regel — sonst verlangt die eine Stelle den Abzug und die andere verbietet ihn. `invoices.vat_rate` darf leer sein: leer wie in der App behandeln (`alt.vatRate ?? Satz des Betriebs`), eigene Prüfung. |
-| G-16 | Wogegen geprüft werden darf: (1) bei Abzug von Anzahlungen Steuer und Brutto nur gegen `gesamt_*`, nie gegen `total_*`; (2) aus den übergebenen Werten rechnen, nicht aus den gespeicherten (gerundeten) Spalten; (3) negative Zeilen zulassen; (4) leeres `subtotal_netto` bestimmen (46 Prüfdateien legen Rechnungen an). Als Prüfung in der Funktion, nicht als Auslöser (Rückspielen einer Sicherung bleibt unberührt). Zuerst messen — über die Datenbankprüfungen, nicht über die Belegreferenz (sie ruft `rechnung_anlegen` nicht). |
+| G-16 | Wogegen geprüft werden darf: (1) bei Abzug von Anzahlungen Steuer und Brutto nur gegen `gesamt_*`, nie gegen `total_*`; (2) aus den übergebenen Werten rechnen, nicht aus den gespeicherten (gerundeten) Spalten; (3) negative Zeilen zulassen; (4) ein leeres `subtotal_netto` heißt „die Summe der Zeilen gilt“ (nach der Bestätigung festgelegt, Bericht 13, Auflage 4 c; 46 Prüfdateien legen Rechnungen an). Als Prüfung in der Funktion, nicht als Auslöser (Rückspielen einer Sicherung bleibt unberührt). Zuerst messen — über die Datenbankprüfungen, nicht über die Belegreferenz (sie ruft `rechnung_anlegen` nicht). |
 | D3-6 | `preisAlsText(cent(vorschlag))` → „22104,60“, ohne Tausendertrenner (aus „22.104,60“ wird beim Kürzen „22.104“ → „nicht eindeutig“; `zahl.ts:98`). „22.104,60“ erzeugt kein Formatierer des Repos. Drei Prüfungen halten heute „100“ und „200“ fest (`InvoicesView.test.tsx:5538, 5037, 6526`) — bewusst ändern, für Eingang und Rückzahlung gleich. |
-| N-G-1 | Zur selben Härtung wie G-16. |
+| N-G-1 | Zur selben Härtung wie G-16. Nach der Bestätigung mit Lösung (Bericht 13, Auflage 4 b): ein `revoke` geht nicht (`rechnung_ausstellen` läuft mit den Rechten des Aufrufers und ruft `rechnung_anlegen`). `rechnung_ausstellen` setzt vor dem Aufruf einen transaktionslokalen Merker mit der gezogenen Nummer und löscht ihn danach; `rechnung_anlegen` nimmt eine Rechnungsnummer nur an, wenn sie dem Merker entspricht, sonst 42501 mit verständlicher Meldung. Die Prüfdateien unter `tests/supabase`, die `rechnung_anlegen` direkt mit Nummer rufen (acht Dateien nennen die Funktion; Bericht 4 nennt sechs, der Bestätiger mindestens fünf mit direktem Aufruf), werden bewusst auf `rechnung_ausstellen` umgestellt. Die Lösung stammt aus dem Plan, kein Prüfer hat sie nachgestellt — vor dem Bau im Stapel zeigen, dass ein Aufrufer über PostgREST den Merker nicht selbst setzen kann. |
 | N-G-2 | Folge wäre ein Verweis über die Betriebsgrenze. Passt zu Verdacht A-1. |
-| N-G-4 | Die Eingabe auf die Stellen der Spalten begrenzen. Folge für G-16: aus den übergebenen Werten prüfen. |
+| N-G-4 | Die Eingabe auf die Stellen der Spalten begrenzen — in der App, nicht in der Migration an `rechnung_anlegen` (nach der Bestätigung im Wortlaut berichtigt). Folge für G-16: aus den übergebenen Werten prüfen. |
 | N-G-5 | Mit G-2. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
 | A-3 | Papier 2, Befund A-3 (Aufwand dort: k) | `nachtrag.test.ts` + „fremder Kunde über Link und über `angebot_annehmen`: abgewiesen, Budget unverändert“ (Gegenprobe ohne Migration rot); `QuotesView.test.tsx` „Kundenwechsel löst den Nachtrag“ | derselbe Kunde hängt über Link und alten Weg an“ (bestehender Test `:78`). Gleich bleiben muss: Baustelle oder Angebot ohne Kundenkennung (Altdaten) hängen weiter an; Signaturen und Rechte der Funktionen. |
 | A-4 | Papier 2, Befund A-4 (Aufwand dort: k) | neuer Datenbanktest „25 Angebote, das angenommene ist das älteste → Pauschale enthält es“ (Gegenprobe: mit `grenze: 20` ohne Sortierung nicht verlässlich — deshalb zusätzlich Unit-Test an der Datenschicht „kein `limit` in der Abfrage der angenommenen“, wie `abfragegrenzen.test.ts`) | ein Angebot + ein Nachtrag ergeben dieselben Positionen und Summen wie heute“ (`pauschale.test.ts`). Gleich bleiben muss: Reihenfolge Hauptangebot vor Nachträgen in der Rechnung, Rundung über `cent()`. |
 | A-14 | Papier 2, Befund A-14 (Aufwand dort: k) | `angebotVersandPruefen.test.ts` + zwei Fälle (Gegenprobe rot) | Rücknahme, Dienstschlüssel (Rücklauf einer Sicherung), `baustelle_umnummern` zieht die Nummer weiter nach“. |
-| G-1 | Papier 4, Befund G-1 (Aufwand dort: k) | neuer Fall in `tests/unit/kontoauszugAbgleich.test.ts` mit genau dem Beispiel oben (ohne Änderung `passt` auf die falsche Rechnung, mit Änderung `pruefen` auf Maier). | Treffer mit Vorsatz (Stufe 2) und Treffer ohne Vorsatz mit passendem Betrag — die 32 bestehenden Fälle halten das fest; dazu ein eigener Fall „2026-1015 mit Trenner und passendem Betrag bleibt vorgewählt“. |
+| G-1 | Papier 4, Befund G-1 (Aufwand dort: k) | neuer Fall in `tests/unit/kontoauszugAbgleich.test.ts` mit genau dem Beispiel oben (ohne Änderung `passt` auf die falsche Rechnung, mit Änderung `pruefen` auf Maier). | Treffer mit Vorsatz (Stufe 2) und Treffer ohne Vorsatz mit passendem Betrag — die 32 bestehenden Fälle halten das fest (**gilt nicht — siehe Vorgabe G-1:** keiner der 32 Fälle prüft einen Abgleich ohne Vorsatz); dazu ein eigener Fall „2026-1015 mit Trenner und passendem Betrag bleibt vorgewählt“. |
 | G-2 | Papier 4, Befund G-2 (Aufwand dort: k) | im Papier nicht eigens benannt — vor dem Bau festzulegen | Neu zusammenstellen derselben Baustelle behält Rabatt und Steuersatz (`vorschauUebernehmen`, Prüflauf P2-01) — eigener Test „bleibt gleich“. |
 | G-5 | Papier 4, Befund G-5 (Aufwand dort: m) | Datenbankprüfung mit geänderter Buchung (vorher angelegt, nachher abgewiesen), Gegenstück „unverändert geht durch“. | im Papier nicht eigens benannt — vor dem Bau festzulegen |
 | G-6 | Papier 4, Befund G-6 (Aufwand dort: k) | Datenbankprüfung mit zwei Aufrufen nacheinander (vorher zwei Rechnungen). | Regiebaustellen; eine Baustelle, die nach der Pauschale auf „Regie“ gestellt wurde (der Weg, den die Meldung nennt); der Dienstschlüssel. |
@@ -1884,11 +2086,29 @@ bleibt vorgewählt; Gegenproben mit „AN-2026-1112“ und Teilbetrag, mit „20
 abgewiesen; eine ältere App-Fassung stellt weiter aus oder wird verständlich abgewiesen. A-3:
 `tests/supabase/nachtrag.test.ts:78–96` und der Journal-Eintrag „Kunde über Link“ bleiben. D3-6:
 kein Tausendertrenner im Feld; das Feld liest weiter Komma und Punkt.
+
+**Neue Befunde — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der Bestätigung ergänzt,
+Bericht 13, Auflage 7; wo Bericht oder Papier keine Prüfung nennen, steht „vor dem Bau
+festzulegen“):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-G-1 | Datenbankprüfung mit den zwei nachgestellten Fällen aus Bericht 4 (N-1 a: direkter Aufruf mit `RE-2026-5000`, bevor es im Jahr einen Zähler gibt; N-1 b: `RE-2026-1003` direkt bei Zählerstand 1001): beide werden mit 42501 abgewiesen. Gegenprobe: ohne Migration gehen beide durch | jede Rechnung über `rechnung_ausstellen`, `rechnung_ersetzen` und Storno; die Prüfdateien unter `tests/supabase`, die `rechnung_anlegen` direkt mit Nummer rufen, werden bewusst auf `rechnung_ausstellen` umgestellt |
+| N-G-2 | der in Bericht 4 nachgestellte Fall (`v4.sql`): `rechnung_ausstellen` und `rechnung_ersetzen` mit der Kundenkennung eines fremden Betriebs werden abgewiesen (heute angenommen). Die Prüfdatei ist vor dem Bau festzulegen | vor dem Bau festzulegen |
+| N-G-4 | der in Bericht 4 nachgestellte Fall (0,333 × 68,00 = 22,66): die Eingabe nimmt nicht mehr Stellen an, als die Spalten speichern. Die Prüfdatei ist vor dem Bau festzulegen | vor dem Bau festzulegen |
+| N-G-5 | im Bericht nicht eigens benannt — vor dem Bau festzulegen (mit G-2) | wie G-2: die erste Wahl der Baustelle setzt weiter nichts zurück |
+
 **Bleibt gleich:** jede Rechnung, die die heutige App stellt; `InvoicesView.test.tsx` (die erste
 Wahl der Baustelle setzt nichts zurück, Z. 6279); die Belegreferenz Byte für Byte.
 **Risiko:** G-16 kann richtige Rechnungen abweisen, wenn die vier Festlegungen der Vorgabe fehlen.
 G-1: wer bei einem Betrieb mit Vorsatz „20261015“ ohne Trenner schreibt, fällt von „vorgewählt“
-auf „bitte prüfen“ (gewollt, benannt).
+auf „bitte prüfen“ (gewollt, benannt). **G-1, die größere Folge der Hauptregel** (nach der
+Bestätigung benannt, Bericht 13, Auflage 10 c; Bericht 4, Abschnitt 4 Nr. 10: „gewollt,
+benannt“): eine
+**Teilzahlung**, deren Zweck die Nummer ohne Buchstaben-Vorsatz nennt, ist nicht mehr vorgewählt
+— bei einem Betrieb ohne Vorsatz ist das jede Teilzahlung. Gewollt; der Auftraggeber sollte es
+wissen (Abschnitt 10.7). N-G-1: die Lösung mit dem Merker ist nicht nachgestellt — vor dem Bau im
+Stapel prüfen.
 **Aufwand:** 6–8 Tage (Fassung 1: 4–5, laut Prüfer knapp; A-14 und vier neue Befunde kommen dazu).
 
 #### Paket 4 — Kassakonto im Zahlungsstapel (wartet auf die Kanzlei)
@@ -1914,21 +2134,34 @@ und „Sonstiges“. **Gilt nicht als entschieden; hält die übrigen Pakete der
 **Ziel:** Nichts, was jemand eingegeben hat, verschwindet ohne Spur; keine falsche Auskunft bei
 einem Fehler.
 **Punkte:** Z-4, P-1, P-2, P-5, S-2, S-5, S-6, N-Z-2, N-P-1, N-P-2, N-P-3, N-P-7. **Dazu Teile von:** Z-5 (nur der falsche Satz im Dialog „das alte Zeitkonto bleibt abgeschlossen“).
-**Voraussetzung:** Paket 1. Das erneute Senden eines gesicherten Scheins mit den
-vorhandenen Unterschriften wartet auf die Kanzlei (K-7) und gilt nicht als entschieden; bis dahin
-wird der gesicherte Schein nur aufbewahrt, angezeigt und als PDF ausgegeben.
+**Voraussetzung:** Paket 1. **Eine Aussage zu P-1 und der Kanzlei** (nach der Bestätigung,
+Bericht 13, Auflage 1): **Das Sichern wartet nicht auf K-6.** Der Vorgang liegt samt
+Unterschrift schon heute im Ausgangsfach in IndexedDB (`src/lib/sync/lagerIndexedDB.ts`; benannte
+Grenze 48 in 4.10); neu ist nur, dass er nach der Ablehnung nicht mehr gelöscht wird, und es gilt
+dieselbe Schutzregel wie für das Ausgangsfach. K-6 fragt für P-1 nach Aufbewahrungsdauer und
+Schutzregel des gesicherten Scheins — die Antwort kann die Regel später ändern, hält den Bau aber
+nicht auf. **Auf die Kanzlei (K-7) wartet nur „unverändert erneut senden“** mit den vorhandenen
+Unterschriften; das gilt nicht als entschieden.
 **Schritte:**
 
 1. **P-1:** aufgegebener Schein wird zum Entwurf auf dem Gerät (IndexedDB wegen der
    Unterschriftsbilder) — erst sichern, dann räumen; Abschnitt „Nicht angekommen“ in der
    Scheinliste mit Grund und den Handgriffen; Hilfsfunktion „gibt es diese Kundenkennung im
-   Betrieb“ mit Eigentümerrechten.
-2. **N-P-1, N-P-2, N-P-3, N-P-7:** leere 404-Antwort gilt nicht als gesendet; `aal1` und
+   Betrieb“ mit Eigentümerrechten. **Handgriffe des Abschnitts „Nicht angekommen“ vor K-7:**
+   ansehen; als PDF ausgeben; „Entwurf wieder aufnehmen“ unter der alten Kennung — ändert der
+   Monteur dabei etwas, verfallen die Unterschriften und es wird neu unterschrieben (Bericht 3,
+   3.3). Erst nach K-7 kommt dazu: „unverändert erneut senden“.
+2. **N-P-1, N-P-3, N-P-7:** leere 404-Antwort gilt nicht als gesendet; `aal1` und
    Ähnliches bleiben im Fach liegen; `schein_speichern` meldet null getroffene Zeilen.
+   **N-P-2** (Sperrseite eines Vorbaus): kein eigener Bau — der Schaden ist über P-1, S-5 und Z4
+   begrenzt; `istNetzfehler` wird nicht angefasst.
 3. **S-5:** Anforderung und Nachricht nach dem Vorschlag des Papiers.
 4. **P-5:** „Abwesenheiten nicht geladen“ mit „Erneut versuchen“ statt „niemand fehlt“.
 5. **P-2:** eigene Abwesenheiten unabhängig von „Wochenplan für alle“ und über den ganzen
-   gezeigten Zeitraum.
+   gezeigten Zeitraum; dazu Schritt 3 des Papiers: `wochenplan_abwesend` meldet über 62 Tage
+   einen Fehler statt einer leeren Menge (ändert bewusst
+   `tests/supabase/wochenplanFuerAlle.test.ts:122–126`; die Funktion ist `language sql`, ein
+   Fehler braucht plpgsql).
 6. **Z-4, N-Z-2:** „Ende ändern“ prüft die 14-Tage-Grenze und meldet dem Büro; Sperre je Person
    gegen zwei gleichzeitige Krankmeldungen.
 7. **S-2:** Passwortwechsel räumt die Push-Anmeldungen der anderen Geräte, nicht die des eigenen.
@@ -1940,7 +2173,7 @@ wird der gesicherte Schein nur aufbewahrt, angezeigt und als PDF ausgegeben.
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
 | Z-4 | Der neue Push braucht `WHEN (old.von is distinct from new.von or old.bis is distinct from new.bis)`, weil `krankmeldung_speichern` bei jedem Speichern `von` und `bis` schreibt — sonst meldet jede Notizänderung. Die Meldung sagt, dass nach 14 Tagen ohne Verlängerung nur noch das Büro verlängert. Das Büro ändert weiter ohne Grenze. |
-| P-1 | So nicht bauen (Bericht 3, 3.1–3.4): (1) Die Prüfung „Kunde unbekannt“ braucht eine Hilfsfunktion mit Eigentümerrechten (`security definer`, `set search_path = ''`), weil der Monteur die Kundentabelle nicht liest — sonst setzte sie bei jedem Schein eines Monteurs den Kunden der Baustelle ein; sie gilt für Anlegen und Ändern. (2) Erst sichern, dann räumen: mit IndexedDB wird die Reihenfolge in `aufgeben`/`melden` umgedreht; scheitert das Sichern, bleibt der Vorgang im Fach. (3) Ob eine erneut gesendete Unterschrift als Beleg trägt, wartet auf die Kanzlei (K-7): bis dahin wird der gesicherte Schein nur aufbewahrt, angezeigt und als PDF ausgegeben. Vorschlag des Prüfers für danach: unverändert erneut senden ist erlaubt; wird etwas geändert, verfallen die Unterschriften. (4) Verworfener Entwurf: „Entwurf wieder aufnehmen“ unter der alten Kennung (Fotos liegen unter ihr). (5) Für zweiten Ersatzschein, Rollenwechsel und deaktiviertes Konto fehlt ein Weg — wenigstens ansehen und als PDF. (6) Die Sicherung kommt auch mit einem einzelnen `schein_unterschreiben` ohne Kopf zurecht (`begrenzt`). |
+| P-1 | So nicht bauen (Bericht 3, 3.1–3.4): (1) Die Prüfung „Kunde unbekannt“ braucht eine Hilfsfunktion mit Eigentümerrechten (`security definer`, `set search_path = ''`), weil der Monteur die Kundentabelle nicht liest — sonst setzte sie bei jedem Schein eines Monteurs den Kunden der Baustelle ein; sie gilt für Anlegen und Ändern. (2) Erst sichern, dann räumen: mit IndexedDB wird die Reihenfolge in `aufgeben`/`melden` umgedreht; scheitert das Sichern, bleibt der Vorgang im Fach. (3) Ob eine **unverändert** erneut gesendete Unterschrift als Beleg trägt, wartet auf die Kanzlei (K-7) — nur dieser Handgriff. Nach der Bestätigung genauer gefasst (Bericht 13, Auflage 1; Bericht 3, 3.3): vor K-7 trägt der Abschnitt „Nicht angekommen“ ansehen, als PDF ausgeben und „Entwurf wieder aufnehmen“ unter der alten Kennung; ändert der Monteur etwas, verfallen die Unterschriften und es wird neu unterschrieben — das hängt nicht an der Kanzlei. Vorschlag des Prüfers für danach: unverändert erneut senden ist erlaubt (nur lesen, die Gerätezeit bleibt). Das Sichern selbst wartet nicht auf K-6 (siehe Voraussetzung). (4) Verworfener Entwurf: „Entwurf wieder aufnehmen“ unter der alten Kennung (Fotos liegen unter ihr). `vorgemerkteScheine` trägt Kopf, Zeiten, Material und Fotos, die Unterschriften aber nicht — nur `unterschrieben = true` (`vorgemerkt.ts:79–82`; Bericht 3, 3.2): für die Unterschriften kann sich die Sicherung darauf nicht stützen. (5) Für zweiten Ersatzschein, Rollenwechsel und deaktiviertes Konto fehlt ein Weg — wenigstens ansehen und als PDF. (6) Die Sicherung kommt auch mit einem einzelnen `schein_unterschreiben` ohne Kopf zurecht (`begrenzt`). |
 | P-2 | Schritt 3 des Papiers (Fehler statt leerer Menge über 62 Tage) ändert bewusst `tests/supabase/wochenplanFuerAlle.test.ts:122–126` — steht im Schritt, nicht unter „bleibt gleich“; `wochenplan_abwesend` ist `language sql`, ein Fehler braucht plpgsql. Zwei weitere Aufrufer in der Datenbank: `einsatz_umplanen`, `einsatz_folgetage`. Neue Funktion: `app.betriebsmitglied(app.betrieb())` beibehalten, Eintrag in `netzFrist.ts` und `mandantenTrennung.test.ts`. |
 | P-5 | Bei „Mein Einsatzplan“ nur einen Hinweis ergänzen; die Einsätze bleiben sichtbar. |
 | S-2 | Eine eigene Funktion, die die Marke dieses Geräts behält — `app.push_anmeldungen_entfernen` leert alle Marken des Kontos. „Bleibt gleich“: `getPushState` dieses Geräts bleibt „bereit“. |
@@ -1948,11 +2181,11 @@ wird der gesicherte Schein nur aufbewahrt, angezeigt und als PDF ausgegeben.
 | S-6 | Abgemeldet wird nur, wenn `sitzungAnderswoBeendet` es bestätigt — 42501 ist auch jede fachliche Abweisung. Vorschlag des Papiers: Minutentakt für alle und Nachsehen nach abgewiesenem Aufruf, kein „Hörer am Anmeldezustand“. |
 | N-Z-2 | Sperre je Person (wie `pg_advisory_xact_lock` in `zeit_korrektur_beantragen`) oder Ausschlussbedingung. |
 | N-P-1 | Ein Aufruf aus `AUFRUFE_OHNE_EMPFANG` braucht eine Antwort mit Inhalt oder Stand 2xx vom Server selbst. |
-| N-P-2 | Mit P-1 ist der Schaden begrenzt. Steht in der Sperrseite „network“, „fetch“ oder „failed to“, hält `istNetzfehler` sie für fehlendes Netz. |
+| N-P-2 | Mit P-1 ist der Schaden begrenzt. Steht in der Sperrseite „network“, „fetch“ oder „failed to“, hält `istNetzfehler` sie für fehlendes Netz. Nach der Bestätigung ausdrücklich (Bericht 13, Auflage 7): **kein eigener Bau** — der Schaden ist über P-1, S-5 und Z4 begrenzt; `istNetzfehler` wird nicht angefasst. |
 | N-P-3 | Für aal1 „liegen lassen“, nicht „aufgeben und sichern“ — der Vorgang geht eine Minute später durch. Gilt ebenso für Zeitbuchung, Anforderung und Nachricht. Vor dem Bau im Stack nachstellen. |
 | N-P-7 | Vom Prüfer als Verdacht für dieses Paket vermerkt — vor dem Bau über die App nachstellen. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -1971,9 +2204,23 @@ Server), `tests/unit/zeitEntwuerfe.test.ts`, `ausgangsfach*.test.ts`,
 bestehendem Kunden behält genau diese Kennung; die Reihenfolge im Ausgangsfach; Entwürfe eines
 Kontos sieht kein anderes. Bewusst geändert wird `tests/supabase/wochenplanFuerAlle.test.ts:122–126`
 (P-2).
+
+**Neue Befunde — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der Bestätigung ergänzt,
+Bericht 13, Auflage 7; wo Bericht oder Papier keine Prüfung nennen, steht „vor dem Bau
+festzulegen“):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-Z-2 | der in Bericht 1 (Abschnitt 5) nachgestellte Fall: zwei Verbindungen melden dieselbe Person gleichzeitig mit überschneidendem Zeitraum krank — danach stehen nicht zwei überschneidende Meldungen und an keinem Tag zwei Zeilen „Krank“ (heute gehen beide durch, an den gemeinsamen Tagen je zwei Zeilen „Krank“). Die Prüfdatei ist vor dem Bau festzulegen | vor dem Bau festzulegen |
+| N-P-1 | der in Bericht 3 nachgestellte Fall (`v1.test.ts`, mit dem echten supabase-js): eine 404-Antwort ohne Inhalt lässt den Vorgang im Fach (heute meldet der Sender `ok`, das Fach räumt weg — ohne Meldung). Die Prüfdatei ist vor dem Bau festzulegen | 502 bleibt `stoerung`; die Angaben unter „Bleibt gleich (aus Bericht 3 ergänzt)“ oben |
+| N-P-2 | kein eigener Bau — keine eigene Prüfung | `istNetzfehler` wird nicht angefasst |
+| N-P-3 | vor dem Bau im Stapel nachstellen (in der Datenbank nachgestellt, `p1e.sql`; der Weg durch die App nur gelesen): mit einer Sitzung `aal1` bei eingerichtetem zweitem Faktor bleibt der Vorgang im Fach liegen und geht nach der Code-Eingabe durch (heute wird er aufgegeben) | gilt ebenso für Zeitbuchung, Anforderung und Nachricht; eine Sitzung, die nicht dem Besitzer gehört, sendet weiter nicht |
+| N-P-7 | vor dem Bau über die App nachstellen (vom Prüfer nur als Verdacht für dieses Paket vermerkt, Probe `p1d.sql`): trifft das `update` in `schein_speichern` null Zeilen, antwortet die Funktion nicht mehr mit der Kennung, sondern meldet es | vor dem Bau festzulegen |
+
 **Risiko:** P-1 legt Unterschriften und Kundendaten länger auf dem Gerät ab — dieselbe Schutzregel
-wie für das Ausgangsfach (je Konto, beim Abmelden mit Rückfrage); die Frage an die Kanzlei (K-6)
-betrifft auch dieses Paket.
+wie für das Ausgangsfach (je Konto, beim Abmelden mit Rückfrage). Das Sichern wartet nicht auf
+K-6 (siehe Voraussetzung); K-6 fragt nach Aufbewahrungsdauer und Schutzregel des gesicherten
+Scheins, und die Auskunft kann die Regel nachträglich enger machen.
 **Aufwand:** 6–8 Tage (Fassung 1: 4–5; P-1 ist laut Prüfer „mittel bis groß“).
 
 #### Paket 6 — Material: der Bestand stimmt
@@ -1984,10 +2231,15 @@ betrifft auch dieses Paket.
 **Schritte:** M-4 und N-M-1 (ein Posten mit Katalogartikel trägt dessen Einheit; „Geliefert“ nimmt
 die Menge in der Einheit des Artikels); M-10 (Einheit freier Zeilen geht beim Teilen und auf die
 Bestellung mit); M-11 (Kommissionsware zählt nicht als Zusage); M-14 (verbuchte Anforderung nicht
-erneut bestellbar); M-3 (Einheit ändern); M-13 („Reserviert“ zählt Artikel); M-12 (Protokoll
+erneut bestellbar); M-3 (Einheit ändern — nach E-F15: von Hand über eine eigene Funktion mit
+Rückfrage und den Zahlen; der stille Weg — Import, ein direkter `update` einer alten App — wird
+abgewiesen; so unterscheidet die Datenbank „von Hand mit Rückfrage“ von „alte App“; nach der
+Bestätigung ausgeschrieben, Bericht 13, Abschnitt 5); M-13 („Reserviert“ zählt Artikel); M-12 (Protokoll
 blättert, CSV); M-15 (Einstellung je Betrieb „Ohne Mindestmenge knapp ab … frei“, Vorgabe 5, mit eigenem Wert
 „aus“ statt 0); M-8
-(Wareneingang findet jeden Katalogartikel, auch über Großhändlernummer und EAN); N-M-2.
+(Wareneingang findet jeden Katalogartikel, auch über Großhändlernummer und EAN); N-M-2 (die
+Suche der Zählliste nimmt `%`, `_` und `\` wörtlich: `inventur_anlegen` sucht wie die Lagerliste
+über `strpos` statt über `ilike` — siehe Vorgabe).
 
 **Vorgaben aus der Gegenprüfung:**
 
@@ -2002,12 +2254,13 @@ blättert, CSV); M-15 (Einstellung je Betrieb „Ohne Mindestmenge knapp ab … 
 | M-14 | Zeilen, die heute schon so hängen: die Anzeige (`aufEinkaufsliste(o)`, `einkauf.ts:85–89`) lässt verbuchte Zeilen ebenfalls aus. |
 | M-15 | „0 = nur Artikel mit Mindestmenge warnen“ geht mit der heutigen Regel nicht — eigener Wert „aus“. Die Konstante steht an elf Stellen in fünf Dateien. |
 | N-M-1 | Mit M-4 — sonst bleibt der Fehler über den Umweg. |
+| N-M-2 | Nach der Bestätigung mit Lösung (Bericht 13, Auflage 7; am Endstand nachgesehen): `inventur_anlegen` sucht mit `m.name ilike '%' \|\| suche \|\| '%'` und ebenso über `article_number` (Endstand, Z. 76–78) — dort wirken `%` und `_` (und `\`) als Platzhalter. `lager_liste` kennt das Problem nicht, weil sie ohne Muster sucht: `strpos(lower(…), begriff) > 0` über Name, Warengruppe und Artikelnummer (Endstand, Z. 57–60; so auch Bericht 5, Abschnitt 5). Gebaut wird dieselbe Suche in `inventur_anlegen`; wer bei `ilike` bleibt, maskiert `\`, `%` und `_` im Suchbegriff. Auswirkung gering. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
-| M-3 | Papier 5, Befund M-3 (Aufwand dort: m) | Datenbankprüfung „Einheit mit Bestand abgewiesen“, „Import lässt Einheit stehen und meldet“; Gegenprobe: ohne Auslöser grün durchlaufender Wechsel (rot). | Artikel ohne Bestand und Bezug ändern die Einheit wie heute; neue Artikel bekommen ihre Einheit aus der Datei; die Normalisierung („stk“ → „Stk“) geht weiter durch. |
+| M-3 | Papier 5, Befund M-3 (Aufwand dort: m) | Datenbankprüfung „Einheit mit Bestand abgewiesen“ (**gilt so nicht — siehe Vorgabe M-3 und E-F15:** abgewiesen wird nur der stille Weg; von Hand gibt es eine Rückfrage mit den Zahlen), „Import lässt Einheit stehen und meldet“; Gegenprobe: ohne Auslöser grün durchlaufender Wechsel (rot). | Artikel ohne Bestand und Bezug ändern die Einheit wie heute; neue Artikel bekommen ihre Einheit aus der Datei; die Normalisierung („stk“ → „Stk“) geht weiter durch. |
 | M-4 | Papier 5, Befund M-4 (Aufwand dort: k) | Datenbankprüfung „Posten übernimmt Einheit des Artikels“, Komponentenprüfung für das gesperrte Feld; Gegenprobe: heutiger Stand speichert „Pkg“ (rot). | freie Posten ohne Katalogartikel behalten ihre getippte Einheit; `einkauf.test.ts`, `Einkaufsliste.test.tsx`. |
 | M-8 | Papier 5, Befund M-8 (Aufwand dort: k) | `StockView.test.tsx` (Wahl findet Katalogartikel und über Großhändlernummer), Datenbankprüfung „Eingang auf Katalogartikel führt ihn im Lager“; Gegenprobe: heutiger Stand zeigt „Kein Lagerartikel“ (rot). | die Zahlen der Lagerliste; Inventur und Umlagern nur für Lagerartikel. |
 | M-10 | Papier 5, Befund M-10 (Aufwand dort: k) | `teilmengen.test.ts` (+1: freie Zeile mit Einheit, beide Teile tragen sie), `einkauf.test.ts` (+1); Gegenprobe: heutiger Stand rot. | Katalogartikel nehmen weiter die Einheit des Artikels. |
@@ -2023,6 +2276,15 @@ blättert, CSV); M-15 (Einstellung je Betrieb „Ohne Mindestmenge knapp ab … 
 `wareneingangBestellung.test.ts`, `AdminOrdersView.test.tsx`, `StockView.test.tsx`; der
 Wareneingang gegen einen Posten, `einkauf_teillieferung`, `einkauf_stornieren`, Bestellvorschläge
 übernehmen, Inventur; ein Importlauf mit abweichender Einheit läuft durch.
+
+**Neue Befunde — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der Bestätigung ergänzt,
+Bericht 13, Auflage 7):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-M-1 | der in Bericht 5 (M-4) nachgestellte Fall: „Geliefert“ an einem frei getippten Posten „3 Pkg Pressfitting 15“, dessen Name genau einem Artikel entspricht, bucht nicht mehr roh +3 Stk (heute +3 Stk). Die Prüfdatei ist vor dem Bau festzulegen (mit M-4) | wie M-4: freie Posten ohne Katalogartikel behalten ihre getippte Einheit |
+| N-M-2 | Datenbankprüfung an `inventur_anlegen`: der Suchbegriff „%“ bzw. „_“ trifft nur Artikel, die das Zeichen im Namen oder in der Artikelnummer tragen. Gegenprobe: am heutigen Stand wirken beide als Platzhalter. Die Prüfdatei ist vor dem Bau festzulegen | eine Suche ohne diese Zeichen trifft dieselben Artikel wie heute; die Lagerliste bleibt unberührt |
+
 **Risiko:** M-3 und M-4 nehmen in der Fassung des Papiers bzw. der Fassung 1 je eine heutige
 Möglichkeit weg — gebaut wird die Fassung der Vorgabe.
 **Aufwand:** 5–7 Tage (Fassung 1: 4–5, laut Prüfer knapp).
@@ -2056,7 +2318,9 @@ Fenster ein PR. **Aufwand:** 4–6 Tage.
 
 ### Stufe B — Werkzeuge, Regeln, Bausteine, Wächter
 
-In dieser Stufe wird keine Seite umgebaut. Jeder Wächter kommt mit einer Ausnahmeliste der
+In dieser Stufe wird keine Seite umgebaut — außer den in Abschnitt 9.3 benannten Fenstern, die
+Paket 9 vorab an ihrem Baustein berührt (nach der Bestätigung genauer gefasst, Bericht 14,
+Auflage 4). Jeder Wächter kommt mit einer Ausnahmeliste der
 heutigen Fundstellen; die Seitenpakete der Stufe C streichen ihre Einträge.
 
 #### Paket 8 — Vorschau zeigt jeden Bildschirm; Bildwerkzeug, Messskripte, Inventar
@@ -2071,10 +2335,20 @@ die Messungen liegen im Repo, das Funktionsinventar kennt den heutigen Stand.
    Einkaufsliste (D3-C0); dazu Auftragseingang, Liegenschaftsakte, Zählliste, zweiter Faktor,
    Anmeldung, „Mein Fahrzeug“, Annahmeseite in allen Ständen, Benutzerakte einer fremden Person,
    Monatsabschluss; ein leerer Bestand (`?bestand=leer`); die falschen Attrappen aus N-D-2 richten (darunter
-   `mitarbeiter` statt `mitarbeiterName`, D1-A18).
+   `mitarbeiter` statt `mitarbeiterName`, D1-A18). **Nach der Bestätigung ergänzt (Bericht 14,
+   Auflage 11):** eine Attrappe — oder ein anderer, hier benannter Weg, den Bildschirm im Bild zu
+   prüfen — für jeden Bildschirm, den ein Paket umbaut und den bisher niemand im Bild sah:
+   Verbindungsband und „Neue Fassung“-Leiste (Paket 13), Supporteinblick mit der Rolle in der
+   Meta-Zeile (Paket 13), „Willkommen“, erstes Passwort und Wiederherstellungscodes (Paket 20),
+   Fehlertafel (Paket 20), Papierkorb mit Inhalt, Projektleiter mit `rechnungenLesen`. Ohne das
+   ist die Zusage aus Schritt 7 („erst umbauen, wenn die zweite Durchsicht vorliegt“) für diese
+   Bildschirme nicht einlösbar; welcher Weg je Bildschirm gilt, wird in diesem Schritt
+   festgelegt und im PR genannt.
 2. **Bildwerkzeug** (Regel 5): Routenliste aus `navigation.ts`; je Seite Hilfe, ⋯, Hauptaktion,
    erste Zeile und deren ⋯; hell und dunkel; 375, 390, 834, 1440 px; Ablage der Vorher-Bilder;
-   Vorher und Nachher nebeneinander.
+   Vorher und Nachher nebeneinander. Mit diesem Werkzeug entstehen auch die Bilder, an denen der
+   Auftraggeber die Zeilen aus Abschnitt 10.5 und 10.6 entscheidet (zwei Fassungen nebeneinander,
+   etwa der Seitenkopf ab dem Tablet, E-B17).
 3. **Messskripte ins Repo** (`tools/vorschau/`): Flucht, Tastfläche, Punkte je sichtbarer
    Textzeile, Wörter über dem Falz — berichtigt nach Bericht 8 (ein umgebendes `label` und das
    Klick-Ziel der Elternzeile zählen zur Tastfläche; Abgeschnittenes zählt nicht als sichtbar; die
@@ -2082,6 +2356,10 @@ die Messungen liegen im Repo, das Funktionsinventar kennt den heutigen Stand.
 4. **V-16:** die fünf Falschmeldungen in `HARMLOS` und in die README von `vorschau:messen`; die
    README nennt vier Breiten.
 5. **Funktionsinventar** (Regel 3): neue Vorher-Datei nach E99; der Vergleich zählt je Datei.
+   Dafür liefert `scripts/funktionsinventar.mjs` zuerst die **rohe** Liste — heute entdoppelt
+   `inventar()` selbst je Datei (2.338 Bedienstellen roh, 2.227 nach dem Entdoppeln; 87 Schlüssel
+   stehen mehrfach in derselben Datei). Sonst bleibt die Gegenprobe grün, wenn von zwei gleichen
+   Knöpfen einer Datei einer wegfällt (nach der Bestätigung ergänzt, Bericht 13, Auflage 9).
 6. **Belege sichern:** Bilder, Rohdaten und Skripte der Durchsicht und der Gegenprüfung an einen
    dauerhaften Ort (heute liegen sie in einem Arbeitsverzeichnis, das nicht dauerhaft ist).
 7. **Zweite Durchsicht** der bisher nicht erreichbaren Bildschirme (Abschnitt 12.2), sobald die
@@ -2097,7 +2375,7 @@ die Messungen liegen im Repo, das Funktionsinventar kennt den heutigen Stand.
 | D1-A18 | Attrappe richten. Die Teile zu filtern schadet nicht. |
 | N-D-2 | In Paket 8 richten, damit die Stufe C an richtigen Daten geprüft wird. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2105,7 +2383,8 @@ die Messungen liegen im Repo, das Funktionsinventar kennt den heutigen Stand.
 
 **Prüfungen mit Gegenprobe:** `vorschauErsatz.test.ts` verlangt je neuer Attrappe die Form (sie
 muss dort von Hand eingetragen werden — der Wächter erzwingt sie nicht von selbst); Inventar:
-einen von 16 „Speichern“-Knöpfen entfernen → rot; `vorschau:messen` läuft mit „0 Befunde“;
+einen von 16 „Speichern“-Knöpfen entfernen → rot, und einen von zwei gleichen Einträgen derselben
+Datei entfernen → rot (ohne die rohe Liste grün); `vorschau:messen` läuft mit „0 Befunde“;
 Tastflächen-Messung: `chat-suche` und `ue-person` gelten als gedeckt (heute falsch gemeldet).
 **Bleibt gleich:** an der App ändert sich nichts — nur `tools/`, `tests/`, `docs/`.
 **Risiko:** gering. **Aufwand:** 6–8 Tage für die Schritte 1 bis 6 (Fassung 1: 3–4, laut Prüfer
@@ -2116,21 +2395,34 @@ knapp), dazu 3–5 Tage für die zweite Durchsicht.
 **Ziel:** Was am Baustein falsch ist, wird am Baustein einmal richtig; was die Tests heute nicht
 erzwingen, erzwingt ein Wächter.
 **Punkte:** V-1, V-2, V-3, V-5, V-6, V-13, V-15, V-B1, V-B4, V-B6, V-B7, V-B10, D1-A1, D1-A3, D1-A17, D1-B3, D1-B15, D1-C1, D1-I4, D1-I5, D2-A1, D2-A2, D2-A3, D2-A5, D2-A6, D2-A14, D2-B3, D3-4, D3-5, D3-9, D3-11, D3-15, D3-B11, D3-B15, D4-B5, D4-B8. **Dazu Teile von:** D2-A13 (nur das eingerückte Suchfeld der Listenleiste am Tablet, `lot.css:592`).
-**Voraussetzung:** Paket 8 (Bilder, Messskripte). Entscheidungen E-V1, E-F11, E-N.
+**Voraussetzung:** Paket 8 (Bilder, Messskripte). Entscheidungen E-V1, E-F11, E-N. Nicht
+entschieden und deshalb in diesem Paket nicht zu bauen: die Farbe des Fokusrings (E-B22), eine
+klebende Speicherleiste ab 1.200 px (E-B23), „Deaktivieren“ ins ⋯ (E-B20). Welche Fenster dieses
+Paket vor Stufe C berührt und was das Seitenpaket nachzieht, steht in Abschnitt 9.3 („in Paket 9
+vorab berührt“).
 **Schritte:**
 
 1. **Fokus (V-13):** die Regel `:focus-visible` (`index.css:401–405`) steht vor den Bausteinen
    oder wird zu `:where(:focus-visible)` — Elemente mit eigener Rundung behalten sie, Elemente
-   ohne bekommen weiter 8 px. Farbe, Breite und Versatz des Rings bleiben.
+   ohne bekommen weiter 8 px. Farbe, Breite und Versatz des Rings bleiben. Wird E-B22 (eine Farbe
+   für die drei Fokusformen) entschieden, kommt die Farbe mit diesem Schritt — mit
+   Kontrastmessung auf Petrolflächen und im Bild vorgelegt; bis dahin nicht.
 2. **Fuß von Fenster und Blatt** (D1-B3, D1-B15, D1-C1, D4-B8, D2-A2, D2-A3, D3-4, D3-5): im
    Blatt hört die `Aktionsleiste` auf den Rollbehälter des Blatts (kleiner Eingriff, löst das
    Zeitblatt); die Speicherleiste im Akten-Fenster deckt bis zur Kante; die Aktionsreihe des
    Rechnungsfensters bekommt die volle Breite an ihrer heutigen Stelle (`flex: 1`); die doppelte
    Linie im Lager-Fenster entfällt. Regel: Hauptaktion am Handy kompakt rechts, Nebenweg links;
-   volle Breite nur bei einem einzelnen Abschluss (`style.md` Z. 117).
+   volle Breite nur bei einem einzelnen Abschluss (`style.md` Z. 117). **D4-B8:** hier entstehen
+   nur Regel und Baustein für den Fuß (`Fensteraktionen`), soweit dabei keine Aktion verlegt
+   wird; „Deaktivieren“ (Plattform) bleibt, wo es ist, und wartet auf E-B20. Die Fenster selbst
+   (Termin, Tag-Fenster, Einsatz; Plattform) stellen die Pakete 17 und 20 um. Sollte E-B23
+   (Speicherleiste ab 1.200 px) entschieden werden, gehört sie als Baustein in diesen Schritt —
+   bis dahin bleibt die Leiste ab 1.200 px, wie sie ist.
 3. **Ungespeichertes (D2-B3, E-F11):** „Neu“-Fenster behalten den Entwurf und sagen es; Rückfrage
    nur beim Bearbeiten; ein leeres Fenster schließt ohne Frage. Am Baustein; die betroffenen
-   Fenster stellen ihre Seitenpakete um.
+   Fenster stellen ihre Seitenpakete um — es sind acht („Neuer Kunde“, „Neue Baustelle“, „Neuer
+   Eingang“, „Neue Wartung“, „Neue Liegenschaft“, „Liegenschaft bearbeiten“, „Kunde bearbeiten“
+   in Paket 18; „Termin anlegen“ in Paket 17; Bericht 10, D2-B3).
 4. **Zeile und Flucht:** `p.leer` und `.arbeitszeile` auf die Blattflucht (V-1, V-2, D2-A5,
    D3-11); der Abstand nebeneinander liegender Blätter als Wächter (V-3 — die drei Stellen
    berichtigen die Seitenpakete 14, 15 und 17); Tabelle im Blatt (V-B10); Abschlusslinie am `li` (D2-A14); Knopf-Link im Kartenkopf
@@ -2144,14 +2436,16 @@ erzwingen, erzwingt ein Wächter.
 6. **Titel in der Kopfinsel (D1-A17):** der Beobachter in `KopfTitel.tsx` erkennt den Sprung ans
    Ende beim Öffnen.
 7. **Nachbarstellen (V-B1, E-V1), Verweisgewicht (V-B6), kleine Radien als Token (V-B7).**
-8. **„Neu in dieser Liste“ (D3-B15, E-N):** im Blattkopf der Kreis nach E76.
+8. **„Neu in dieser Liste“ (D3-B15, E-N):** im Blattkopf der Kreis nach E76 — die vier
+   abweichenden Stellen stellen die Seitenpakete um: „+ Material“ in Paket 16; „+ Steuersatz“,
+   „+ Anzahlungskonto“ und „Warengruppe hinzufügen“ in Paket 20.
 9. **Wächter** — je mit Ausnahmeliste und Gegenprobe (Regel 9):
 
 | Wächter | Am heutigen Stand rot bei (Fundstelle) | Muss grün bleiben bei (gewollt — Ausnahme mit Grund) |
 |---|---|---|
 | Form unter Fokus gleich (`fokusRahmen.spec.ts`) | Knöpfe, Felder, runde Knöpfe, per Tastatur geöffnetes Fenster (V-13) | Elemente ohne eigene Rundung: 0 → 8 px ist gewollt |
 | Tastfläche 44 px bei 390 px über jede Seite (neu: `tests/links/tastflaeche.spec.ts`) | Suchfeld der Listenleiste, „alle ausblenden“, „Im Plan ansehen“ (V-5) | `Button klein` (36 px), Reaktion (43,2 px breit), Kalendertage der Monatsplanung am Handy (E-V5), Monatsraster ab 1.200 px (E88), Verweis im Fließtext; `label` und Zeilenziel zählen mit |
-| `raster.spec.ts` über die Seiten der Navigation, auch `/worksheet` und `/assignments/tag` | die drei Stellen aus V-3 (bis die Seitenpakete 14, 15, 17 sie berichtigen) | — |
+| `raster.spec.ts` über die Seiten der Navigation, auch `/worksheet` und `/assignments/tag` | die drei Stellen aus V-3 (bis die Seitenpakete 14, 15, 17 sie berichtigen). Die Testdaten des Durchklicks brauchen dafür beide Arbeitskarten der Rechnungen, sonst bleibt V-3 auf `/invoices` unsichtbar (Bericht 8, V-3; nach der Bestätigung ergänzt, Bericht 14, Auflage 12 c) | — |
 | `flucht.spec.ts` mit erweiterter Bezugslinie (auch Karten ohne Titel; Liegenschaftsakten in `akten()`) | V-1, V-2, D2-A5 | Tabellen bleiben ausgenommen |
 | Rollen im Browser: `th` = 12, `dt` = 13, `.titel-karte` = 18, auch in Fenstern | V-8, V-9, V-10 | `th` der Wochenraster 13 px (E97: dichte Raster), `.titel-karte` der Kontextspalten 12 px versal |
 | `<table>`/`<th>` nur mit Klasse `tabelle` | `ProjectSummary.tsx`, Positionstabelle, Beispielrechnung (V-8) | `WochenRaster.tsx:297, 479` |
@@ -2159,8 +2453,12 @@ erzwingen, erzwingt ein Wächter.
 | `<label>` mit `text-meta` nur in `Field` | die Stellen aus V-11 | `KontoauszugView.tsx:421`, `AnnahmeLink.tsx:143`, `KalenderAboKarte.tsx:137` |
 | `text-(lg\|xl\|2xl\|3xl)` nur in erlaubten Dateien | V-7, V-12 | `RowMenu.tsx:171`, `IconButton.tsx:44`, Startpasswort, Anmelde- und Willkommensseiten |
 | `border-radius` nur aus Tokens | die Stellen aus V-B7 | 18 px und 1,125 rem (`v10Stil.test.ts`), 4 px am Monatsbalken, `klein` (E-V4) |
-| ⋯ nur in `mehr`/`weitere`/Fenster/`ListRow` (`bedienregeln.test.ts`) | — | `AngebotView.tsx:516` (bleibt, E-R4); Zuweisungen über eine Variable verfolgen (`NachrichtenView.tsx:180`) |
+| ⋯ nur in `mehr`/`weitere`/Fenster/`ListRow` (`bedienregeln.test.ts`) | — (am heutigen Stand hat dieser Wächter keine rote Fundstelle: die eine ist die benannte Ausnahme — Bericht 14, Abschnitt 5) | `AngebotView.tsx:516` (bleibt, E-R4 — als benannte Ausnahme auch in `style.md`, Paket 11); Zuweisungen über eine Variable verfolgen (`NachrichtenView.tsx:180`) |
 | „Fuß im Bild“: die Hauptaktion eines Fensters liegt beim Öffnen im sichtbaren Bereich (390×844 und 1440×900) | „Neuer Kunde“, „Neue Baustelle“, „Neue Wartung“, „Kunde bearbeiten“ (Liste) — bis Paket 18 sie berichtigt; das Zeitblatt bis Schritt 2 | — |
+
+10. **Musterseite** (nach der Bestätigung ergänzt, Bericht 14, Auflage 12 a; `CLAUDE.md`: „alles
+    zum Ansehen auf `/_muster`“): die neuen und geänderten Bausteine dieses Pakets — Suchbaustein,
+    Fuß von Fenster und Blatt — stehen auf `/_muster`.
 
 **Vorgaben aus der Gegenprüfung:**
 
@@ -2169,17 +2467,17 @@ erzwingen, erzwingt ein Wächter.
 | V-1 | Die betroffene Karte hat keinen Titel — `flucht.spec.ts` vergleicht nur mit dem Kartentitel und sähe den Fall auch mit Fehlerzustand nicht: die Bezugslinie der Prüfung erweitern. |
 | V-2 | Nicht `--blatt-rand-einzug` (28 px, das Kästchen stünde bei 40 px): nötig sind 12 px Polster. Rückt das Kästchen, rückt der Zeilentext von 64 auf 68 px — die Textflucht der Zeile gehört in „bleibt gleich“. Schwere gering. |
 | V-3 | `.formular` nicht auf 36 rem setzen (rund 70 Stellen; Leitfaden Regel 9: höchstens 560 px) — nur die örtliche Variante an `WorkSheetView`. `/assignments/tag`: der Abstand von 2,25 rem ist im Code begründet (E24) — vor dem Ändern prüfen, ob der Grund noch gilt. Die Stellen selbst werden in den Seitenpaketen 15, 17 und 14 berichtigt; hier entsteht der Wächter. |
-| V-5 | Rahmen der Listenleiste als `<label>`; `Listenleiste.test.tsx:51` und `OrderView.test.tsx:1381` prüfen die Klasse am Element. „Im Plan ansehen“ steht im Satz: entweder Ausnahme „Verweis im Fließtext“ oder das Muster `-my-3 py-3` (`Tastflaechen.test.tsx`). Die Kalendertage am Handy fehlen im Papier (N-V-1). |
+| V-5 | Rahmen der Listenleiste als `<label>`; `Listenleiste.test.tsx:51` und `OrderView.test.tsx:1381` prüfen die Klasse am Element. „Im Plan ansehen“ steht im Satz: entweder Ausnahme „Verweis im Fließtext“ oder das Muster `-my-3 py-3` (`Tastflaechen.test.tsx`). Nach der Bestätigung auf eine Fassung gebracht (Bericht 14, Auflage 10): es gilt, was die Wächter-Tabelle oben und der Schritt in Paket 19 schon sagen — der Verweis bekommt seine Tastfläche über das Muster `-my-3 py-3` und wird keine Ausnahme. Die Kalendertage am Handy fehlen im Papier (N-V-1). |
 | V-6 | Eine allgemeine `::placeholder`-Grundregel behöbe die Ursache; der vorgeschlagene Quelltext-Wächter wäre dann überflüssig. |
-| V-13 | Nur die zweite Variante trägt: die Regel vor die Bausteine stellen oder `:where(:focus-visible)`. „Radius streichen und einzeln nachsetzen“ macht den Ring an Verweisen eckig (nachgestellt: 6 von 70 Zielen). `#inhalt:focus-visible` bleibt. Farbe, Breite und Versatz des Rings bleiben, wie sie sind (D4-A6 ist zurückgestellt, E-F13). |
-| V-15 | Der Vorschlag (Polster 6 px ändern) behebt die Angebotsakte nicht und die Baustellenakte nur halb — er muss alle vier Akten abdecken oder der Befund wird auf zwei begrenzt. Schwere gering (die Blätter darunter liegen auf der Linie). |
+| V-13 | Nur die zweite Variante trägt: die Regel vor die Bausteine stellen oder `:where(:focus-visible)`. „Radius streichen und einzeln nachsetzen“ macht den Ring an Verweisen eckig (nachgestellt: 6 von 70 Zielen). `#inhalt:focus-visible` bleibt. Farbe, Breite und Versatz des Rings bleiben, wie sie sind (D4-A6 ist zurückgestellt, E-F13 — nach der Bestätigung neu vorgelegt als E-B22; bis zur Entscheidung nicht bauen). |
+| V-15 | Der Vorschlag (Polster 6 px ändern) behebt die Angebotsakte nicht und die Baustellenakte nur halb — er muss alle vier Akten abdecken oder der Befund wird auf zwei begrenzt. Nach der Bestätigung auf eine Fassung gebracht (Bericht 14, Auflage 10): es gilt Schritt 4 — der Kopf aller vier Akten (Benutzer-, Kunden-, Angebots-, Baustellenakte) kommt ins Raster, mit je eigener Ursache (Angebotsakte: die zweizeilige Meta-Zeile; Baustellenakte: 12 px in jeder Breite). Schwere gering (die Blätter darunter liegen auf der Linie). |
 | V-B1 | Entschieden (E-V1): keine Regel über alle Stufen (bräche den Zeilentakt 48/72 px aus E33; rund 350 Regeln). Angeglichen werden nur die Stellen, an denen zwei Zeilenhöhen derselben Stufe sichtbar nebeneinander stehen (`/settings/module`: 13/24 über 13/18; Kundenakte). |
 | V-B4 | Umfang benennen: sind die Auswahlfelder gemeint, ist „ein Baustein“ größer als „klein bis mittel“; sind sie nicht gemeint, nimmt der Wächter sie aus. |
 | V-B7 | 4 px am Monatsbalken ist begründet (`lot-monat.css:108`); 18 px und 1,125 rem sind in `v10Stil.test.ts` festgehalten. „6 → 8“ nur nach Ansehen. |
 | V-B10 | Die Regel auf Blätter begrenzen; `flucht.spec.ts` nimmt Tabellen ausdrücklich aus. |
 | D1-A1 | Quelle E82. Bleibt: `Wischen.test.tsx`, Prüfung „echter Finger“. |
 | D1-A3 | Am Baustein richtig (schützt künftige Blätter); „Mehr“ (ohne Titel) bleibt unberührt. |
-| D1-A17 | Den Beobachter richten, nicht „Titel melden“. Das kann jede Seite treffen, die mit gemerkter Rollposition öffnet. Prüfung „Titel steht in der Insel, wenn die Seite gerollt öffnet“. Am echten Stand gegenprüfen (in der Vorschau kommen Daten sofort). |
+| D1-A17 | Den Beobachter richten, nicht „Titel melden“. Das kann jede Seite treffen, die mit gemerkter Rollposition öffnet. Prüfung „Titel steht in der Insel, wenn die Seite gerollt öffnet“. Am echten Stand gegenprüfen (in der Vorschau kommen Daten sofort). Reihenfolge an `KopfTitel.tsx` (nach der Bestätigung benannt, Bericht 14, Auflage 12 d): D1-A17 hier zuerst; D1-I3 (Paket 13) ändert denselben Baustein und baut auf dem berichtigten Beobachter auf — zwei PRs nacheinander, nie gleichzeitig offen. |
 | D1-B3 | Zwei der vier Formen sind entschieden: 2 : 3 in der Aktionsleiste ist E72 („Gespeichert“ lässt den Knopf sonst springen), ein einzelner Abschluss über die Breite ist in `style.md` erlaubt. Hauptaktion am Handy kompakt rechts, Nebenweg links (`style.md` Z. 117). |
 | D1-B15 | Ursache genauer als im Papier (`Aktionsleiste.tsx:76`). Die Absicht steht in U1 Nr. 3. |
 | D1-C1 | Der kleine Weg (im Blatt ohne `erstNachDemRollen`, oder auf den Rollbehälter hören) löst C1 und B15, ohne jedes Formular anzufassen. Bleibt: G22 für das Formular auf der Seite (Tablet, Schreibtisch). |
@@ -2187,7 +2485,7 @@ erzwingen, erzwingt ein Wächter.
 | D1-I5 | E96 („beim Darüberfahren voll Petrol“) am Tablet mit Maus bleibt. |
 | D2-A1 | Selektor `a:not(.lot-knopf)` statt `a.akten-verweis, a.link-still` — sonst verlieren die `link-weiter`-Verweise im Kartenkopf („Im Auftragseingang“, „Mein Einsatzplan“) ihren Ausgleich (E31). |
 | D2-A2 | Bleibt: Benutzerakte (dasselbe 480-px-Fenster) und `blattKontur.spec.ts` (§95). |
-| D2-A3 | Volle Breite, Hauptaktion rechts, an der heutigen Stelle — oder ein klebender Fuß; nicht „am Ende des Fensters“. `RechnungDetail` steht auch auf `/invoices` — dort zuerst ansehen. |
+| D2-A3 | Volle Breite, Hauptaktion rechts, an der heutigen Stelle — nicht „am Ende des Fensters“. Nach der Bestätigung auf eine Fassung gebracht (Bericht 14, Auflage 10): es gilt Schritt 2 (`flex: 1` an der heutigen Stelle); der „klebende Fuß“, der hier als zweite Möglichkeit stand, wird nicht gebaut. `RechnungDetail` steht auch auf `/invoices` — dort zuerst ansehen. |
 | D2-A5 | Nicht „`flucht.spec.ts` um drei Seiten erweitern“ (sie stehen schon in der Liste): die Prüfung überspringt Karten ohne `.titel-karte` — zu erweitern ist die Bezugslinie; Liegenschaftsakten fehlen in `akten()`. |
 | D2-A6 | Der Selektor muss `dl.beleg-angaben` einschließen (der Eingang nutzt sie). Tastfläche am Handy nachmessen (heute 48). |
 | D2-A14 | `:last-child` gehört an das `li`. Folgt ein „Alle … zeigen“ unter der Liste, bleibt die Linie. |
@@ -2196,11 +2494,11 @@ erzwingen, erzwingt ein Wächter.
 | D3-5 | Vorbild `lot.css:328`. |
 | D3-9 | `min-width: 0` an der Hülle von `SelectField`; jede Auswahl in einer `ListRow` mitmessen. |
 | D3-11 | `Arbeitszeile` wird nur in `AdminOrdersView` verwendet. Die eigene Regel am Handy (`lot.css:207`) bleibt; `bewegungen.spec.ts:1041 ff.` misst die Zeile. |
-| D3-B15 | Entschieden (E-N): „Neu in dieser Liste“ im Blattkopf ist der Kreis (E76) — die abweichenden Stellen stellen ihre Seitenpakete um. |
+| D3-B15 | Entschieden (E-N): „Neu in dieser Liste“ im Blattkopf ist der Kreis (E76) — die abweichenden Stellen stellen ihre Seitenpakete um: „+ Material“ Paket 16; „+ Steuersatz“, „+ Anzahlungskonto“, „Warengruppe hinzufügen“ Paket 20 (nach der Bestätigung benannt, Bericht 14, Auflage 4). |
 | D4-B5 | Die Schwelle „ab 9“ nicht auf Personenlisten übertragen (nähme einem Betrieb mit 7 Leuten die Suche). `?suche=` aus der globalen Suche kommt weiter an (E91). |
-| D4-B8 | Plattform: der Grund ist Pflicht vor jedem Schritt — im ⋯ muss das Feld erreichbar bleiben. |
+| D4-B8 | Plattform: der Grund ist Pflicht vor jedem Schritt — im ⋯ muss das Feld erreichbar bleiben. **Nach der Bestätigung (Bericht 14, Auflage 6):** „Deaktivieren“ ins ⋯ zu legen kostet einen Tipp mehr und war nicht nach Regel 11 benannt. Neu vorgelegt als E-B20 mit der Empfehlung „bleibt, wie es ist“ (Deaktivieren ist umkehrbar — U4 verlangt das ⋯ nur für Unumkehrbares); bis zur Entscheidung wird keine Aktion verlegt. `Fensteraktionen` als Baustein bleibt, soweit er keine Aktion verlegt. Die Fenster selbst stellen die Pakete 17 (Termin, Tag-Fenster, Einsatz) und 20 (Plattform) um. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2221,7 +2519,7 @@ erzwingen, erzwingt ein Wächter.
 | D1-C1 | alle Prüfungen und Pflichtfelder vor dem Buchen; nichts bucht ohne ausdrücklichen Tipp. |
 | D1-I4 | kein Dauerpuls, kein Federn |
 | D1-I5 | am Schreibtisch unverändert; am Gerät prüfen |
-| D2-A1 | die 44-px-Tastfläche von „Alle Termine ›“ ohne höhere Zeile (E72, `kontextEinheitlich.spec.ts`), der Knopf im Kartenkopf am Tablet/Schreibtisch. Rückschritt merkt man an: Kartenköpfe mit Verweis werden höher als 72 px. |
+| D2-A1 | die 44-px-Tastfläche von „Alle Termine ›“ ohne höhere Zeile (E72, `kontextEinheitlich.spec.ts`), der Knopf im Kartenkopf am Tablet/Schreibtisch (**„am Tablet“ gilt nicht — siehe Vorgabe D2-A1:** dort ist der Knopf heute kaputt und wird mit dem Selektor `a:not(.lot-knopf)` berichtigt). Rückschritt merkt man an: Kartenköpfe mit Verweis werden höher als 72 px. |
 | D2-A2 | Leiste erscheint erst bei Abweichung, „Verwerfen“ links, „Speichern“ rechts, Satz zum Stand darüber; am Handy über der Fußinsel. Rückschritt: Leiste verdeckt das letzte Feld oder springt beim Erscheinen. |
 | D2-A3 | alle Einträge des ⋯, „In Rechnungen bearbeiten“ führt weiter auf die Rechnungsseite mit derselben Rechnung offen (E99). Rückschritt: ein Eintrag des ⋯ fehlt, oder die Aktionen stehen auf der Rechnungsseite anders als heute. |
 | D2-A5 | am Handy 16 px (dort ist der Blattrand 16). Rückschritt: Handy bekommt 24 px. |
@@ -2273,8 +2571,10 @@ betroffenen Seiten. **Aufwand:** 8–10 Tage.
    (D3-B10, D4-B3). Der Wächter über die Texte ist neu zu
    bauen (`schreibweise.test.ts` prüft heute nur ß und Anführungszeichen).
 3. **Anrede (D3-T22, E-D):** „du“ in der Bedienoberfläche für angemeldete Nutzer (`KontoauszugView.tsx:254`,
-   `InvoicesView.tsx:3640`, `ErrorBoundary.tsx:133`); unverändert „Sie“: Kundenseite der Annahme,
-   Mailtexte, alle Belege.
+   `InvoicesView.tsx:3640`); unverändert „Sie“: Kundenseite der Annahme,
+   Mailtexte, alle Belege. (Nach der Bestätigung berichtigt, Bericht 14, Auflage 9: die hier
+   zuvor genannte Stelle `ErrorBoundary.tsx:133` ist keine — dort steht schon „Deine gespeicherten
+   Daten“, `ErrorBoundary.tsx:132–133`.)
 4. **Tastaturen (D1-A22):** Eigenschaften an `InputField` und die Regel, welche Art Feld welche
    Tastatur bekommt; Wächter mit Ausnahmeliste.
 5. **Fehlertexte (D3-17):** `grundAus` fängt auch „is not“, „iterable“, „properties“; Wächter
@@ -2300,12 +2600,12 @@ betroffenen Seiten. **Aufwand:** 8–10 Tage.
 | D4-B3 | Den Baustein gibt es: `.link-weiter` hängt „›“ selbst an — kein neuer Baustein. |
 | D4-B10 | Die beiden Urlaubs-Knöpfe nicht auf ein Wort bringen. Beim Vereinheitlichen von „ganztags“ die Vorlesetexte mitziehen. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | V-B2 | Serif nur für den Seitentitel (und, wenn gewollt, den Gesprächskopf), Umbruch langer Namen, Kopfhöhen im Raster. |
-| D1-A22 | `type="number"` mit `min`, wo der Browser prüft. ### Dunkler Satz Angesehen: Startseite (bereit, läuft), Zeitliste, Blatt „Neuer Eintrag“, Rückfrage, Material mit Auswahl und Korbleiste, Gespräch. Kein Kontrastfehler gefunden; eigene Blase `rgb(23,52,59)` mit … (weiter im Papier) |
+| D1-A22 | `type="number"` mit `min`, wo der Browser prüft. (Nach der Bestätigung bereinigt, Bericht 14, Auflage 9: hier stand ein aus dem Papier hineingerutschter Absatz „Dunkler Satz …“, der nicht zu D1-A22 gehört.) |
 | D1-B14 | Leitung und Buchhaltung sehen weiter „Einstellungen“. |
 | D2-B4 | Namen, auf die sich die Browserwege stützen (Tests mitziehen). |
 | D3-17 | deutsche Meldungen der Datenbank (`raise exception '…'`) kommen weiter wörtlich an. |
@@ -2329,21 +2629,37 @@ neuem Namen in `v10-entfernt.json`, und das Inventar zählt je Datei (Paket 8).
 Wächter dazu gibt es. Umgestellt wird in Stufe C.
 **Punkte:** V-B3, D1-B2, D1-B9, D1-T1, D1-P8, D2-T5, D3-T1, D4-T1, D4-P3, N-D4-3.
 **Voraussetzung:** Pakete 8 und 10. Entscheidungen E-T, E-P, E-F1, E-F2, E-F10, E-F29, E-V3, E-V4.
+Nach der Bestätigung nicht entschieden und bis dahin nicht zu bauen: der Teil „ab dem Tablet“
+von Schritt 2 (E-B17), die Form „fester Abstand statt Punkt“ (E-B18), der Halbsatz in
+`CLAUDE.md` (E-B21).
 **Schritte:**
 
 1. **`style.md`:** Textregel (6.3), Punktregel (7.3), Regel „der nächste Schritt wird angeboten“
    (6.5); die Rollen der Gruppenköpfe so, wie sie heute sind (E-F2); die Zahl in Klammern am
    Kartentitel (E-F1); der kleine Knopf mit 8 px als benannte Ausnahme (E-V4); die Rückfrage mit
-   16 px (E-F10); den Absatz „Schalter und Kästchen“ auf den Stand von E95 (N-D4-3). In
-   `entscheidungen.md` vermerken, dass Textregel 1 E86 ab dem Tablet ändert.
+   16 px (E-F10); den Absatz „Schalter und Kästchen“ auf den Stand von E95 (N-D4-3). Nach der
+   Bestätigung ergänzt (Bericht 14, Auflage 8 und Abschnitt 4): das zweite ⋯ der Angebotsakte
+   als benannte Ausnahme von „⋯ nur im Seitenkopf“ (E-R4) — in `style.md`, nicht nur in der
+   Liste des Wächters; und für die kleinen Radien als Token (V-B7, Paket 9) eine Rolle neben den
+   vier Rollen aus `CLAUDE.md`. Der Vermerk in `entscheidungen.md`, dass Textregel 1 E86 ab dem
+   Tablet ändert, wartet auf E-B17 — er sagt dann auch, was mit E31 geschieht. Textregel 1 kommt
+   bis dahin ohne den Teil „ab dem Tablet“ in `style.md`; die Punktregel mit dem Satz „bis zur
+   Entscheidung über E-B18 gilt Regel 1“.
 2. **`PageHeader`** (D1-T1, D2-T5, D3-T1, D4-T1): die Beschreibung steht auch ab dem Tablet in
-   der Hilfe; eine Auskunft
+   der Hilfe — **dieser Teil wartet auf E-B17 und wird bis zur Entscheidung nicht gebaut**; eine
+   Auskunft
    (Datum, Dateiname, Zahl) bekommt ein eigenes Merkmal und bleibt; die vier Seiten aus E25
-   behalten ihren Untertitel. Im Test steht die Liste der erlaubten Untertitel.
+   behalten ihren Untertitel **ab dem Tablet** — am Handy ist er heute schon ausgeblendet und
+   bleibt es (über das Merkmal „Auskunft“ kommt am Handy keine Zeile dazu, E86). Im Test steht
+   die Liste der erlaubten Untertitel. Bis zur Entscheidung bleibt der Seitenkopf ab dem Tablet,
+   wie er ist; am Handy bleibt alles wie heute.
 3. **`Card`** (D1-B9, D1-P8, D4-P3): die Zahl in Klammern am Titel als eine Form.
 4. **Baustein „Nummer“** (V-B3, D1-B2; ungerahmt, Mono, für Begleitzeilen) und der Verbinder für die Teile
-   einer Zeile.
-5. **Wächter:** Punkte je sichtbarer Textzeile (7.3); Liste der erlaubten Untertitel; lange Texte
+   einer Zeile. Beide stehen auf `/_muster` (`CLAUDE.md`: „alles zum Ansehen auf `/_muster`“; nach
+   der Bestätigung ergänzt, Bericht 14, Auflage 12 a); der Zusatz „noch nicht gespeichert“ kommt
+   mit seinem Bau in Paket 20 dorthin.
+5. **Wächter:** Punkte je sichtbarer Textzeile (7.3) und im Quelltext kein `join(' · ')`
+   außerhalb des Verbinders; Liste der erlaubten Untertitel; lange Texte
    offen (`warntextKurz.test.ts` erweitert); jede Hilfe enthält die dorthin verschobenen Sätze.
 
 **Vorgaben aus der Gegenprüfung:**
@@ -2353,22 +2669,27 @@ Wächter dazu gibt es. Umgestellt wird in Stufe C.
 | V-B3 | Entschieden (E-V3): Nummern und Zeiten in Begleitzeilen in Mono über den Baustein „Nummer“, in der Schriftgröße der Zeile; das Datum in Meta-Zeilen bleibt in DM Sans. Umgestellt wird nur, wo eine Zeile in Stufe C ohnehin umgebaut wird (194 Vorlagen und 113 `join` würden sonst zu Markup; `aria-label`, `title`, `<option>` tragen keinen Schriftwechsel; Prüfungen mit `getByText` über den ganzen Satz sind betroffen). |
 | D1-B2 | Nicht über `.nr`: das ist die allgemeine Klasse „nicht am Bindestrich umbrechen“ und liegt an 26 Stellen auch auf Telefonnummern, Mengen, Prozentsätzen, Datum. Mono nur über den eigenen Baustein „Nummer“ (E-V3). |
 | D1-B9 | Entschieden (E-F1): eine Form — die Zahl in Klammern am Titel („Zu erledigen (10)“), wie E98 sie für die Klappkarten festlegt. „noch 1 von 2“ an der Rüstliste und „3 Rechnungen“ im Kopf (E99) bleiben. |
-| D1-T1 | Dehnt E86 auf Tablet und Schreibtisch aus (E-T, entschieden in der Fassung von Abschnitt 6.3). Drei Prüfungen hängen an Wortlauten. |
+| D1-T1 | Dehnt E86 auf Tablet und Schreibtisch aus (E-T, entschieden in der Fassung von Abschnitt 6.3) — nach der Bestätigung neu vorgelegt als E-B17, weil der Schritt auch E31 berührt; bis dahin nicht bauen. Drei Prüfungen hängen an Wortlauten. |
 | D1-P8 | Entschieden (E-F1): die Zahl in Klammern am Titel, nicht rechts im Kopf (dort stehen Verweise, „i“ und der Neu-Knopf). |
 | D2-T5 | Der Weg in die Hilfe ist seit E86 gebaut. „2 offene Angebote · kalkulieren …“ ist eine Zeichenkette — die Zahl beim Umbau trennen. |
 | D3-T1 | Falle: der Dateiname des Kontoauszugs ist auch ein bloßer Text und verschwände mit — die Ausnahme braucht ein eigenes Merkmal. |
-| D4-T1 | Entschieden (E-T, Abschnitt 6.3): die Beschreibung steht auch ab dem Tablet in der Hilfe (ändert E86 an dieser Stelle); Urlaub, Nachkalkulation, Handwerksscheine und Sonderurlaub behalten ihren Untertitel (E25). Je Untertitel hängen ein bis zwei Prüfungen daran. |
+| D4-T1 | Entschieden (E-T, Abschnitt 6.3): die Beschreibung steht auch ab dem Tablet in der Hilfe (ändert E86 an dieser Stelle); Urlaub, Nachkalkulation, Handwerksscheine und Sonderurlaub behalten ihren Untertitel (E25) — ab dem Tablet; am Handy ist er heute schon ausgeblendet und bleibt es. Je Untertitel hängen ein bis zwei Prüfungen daran. **Nach der Bestätigung (Bericht 14, Auflage 1):** E31 war hier nicht genannt. Blendet man die Beschreibung bei 834 und 1440 px aus, schrumpft der Kopf von 96 auf 72 px, der Inhalt beginnt 24 px höher (`/invoices`, `/customers`, `/lager`: 140 → 116 px bzw. 144 → 120 px). Der Teil „ab dem Tablet“ ist deshalb neu vorgelegt (E-B17) und wird bis zur Entscheidung nicht gebaut; dazu gehört die Prüfung „der erste Inhalt beginnt auf jeder Seite gleich hoch“. |
 | D4-P3 | Entschieden (E-F1): die Zahl in Klammern am Titel — die häufigere Form, die das Papier empfiehlt. |
 | N-D4-3 | Absatz berichtigen. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | V-B3 | kein Umbruch in der Nummer, Kopierbarkeit, Suche nach Nummern (E91). |
 
-**Prüfungen mit Gegenprobe:** Punkt-Wächter ohne Ausnahmeliste am heutigen Stand rot an den
-gesammelten Fundstellen; Untertitel: eine Beschreibung ab Tablet → rot; der Dateiname des
+**Prüfungen mit Gegenprobe:** Punkt-Wächter ohne Ausnahmeliste am heutigen Stand rot — im Browser
+nur an den Ketten mit zwei und mehr Punkten in einer sichtbaren Textzeile (bei 375 px 7 von 126
+punkttragenden Textblöcken; an den übrigen rund 94 % ist er grün, weil Regel 1 den einzelnen
+Punkt erlaubt), im Quelltext an den `join(' · ')`-Stellen außerhalb des Verbinders (nach der
+Bestätigung berichtigt, Bericht 14, Auflage 2; Abschnitt 7.3). Untertitel (wartet auf E-B17):
+eine Beschreibung ab Tablet → rot; der erste Inhalt beginnt auf jeder Seite gleich hoch; der
+Dateiname des
 Kontoauszugs bleibt sichtbar (eigene Prüfung); die Prüfungen, die Untertitel beim Wort nehmen
 (drei im Bereich Monteur, je ein bis zwei je Seite im Bereich Team), werden bewusst nachgezogen.
 **Bleibt gleich:** der Inhalt jeder Hilfe; die Summenzeile der Klappkarten (E98); „3 Rechnungen“
@@ -2390,7 +2711,7 @@ WebKit-Projekt; ein Tablet-Projekt in WebKit (heute sind die Tablet-Projekte `De
 |---|---|
 | L-11 | In dieser Umgebung liegt nur Chromium; die neuen Projekte sieht lokal niemand, bis WebKit geladen ist — die CI prüft sie. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 _Die Papiere nennen zu den Punkten dieses Pakets kein eigenes „bleibt gleich“ — es gelten die Angaben oben._
 
@@ -2411,14 +2732,23 @@ erst fertig, wenn die Wächter ohne diese Einträge grün sind; Tastaturen, Wör
 Formatierer der Seite werden im selben PR umgestellt; jede umbenannte Bedienstelle steht in
 `v10-entfernt.json`; das Funktionsinventar (je Datei gezählt) bleibt grün; die Wege der Seite
 laufen im Durchklick (Chromium lokal, WebKit in der CI). Zeilenformen werden nach Regel 5 in
-Abschnitt 7.3 nur gebaut, wenn sie bei 375 px und 834 px nicht mehr Zeilen brauchen als heute.
+Abschnitt 7.3 nur gebaut, wenn sie bei 375 px und 834 px nicht mehr Zeilen brauchen als heute —
+gemessen je Zeilenart mit den langen Namen der Beispieldaten; für 760 bis 1.199 px bleibt die
+heutige Zeile, wo die Regel keine Form nennt.
 Voraussetzung für alle: Pakete 7 bis 12 und die zweite Durchsicht der Seite (Paket 8, Schritt 7).
+Nach der Bestätigung gilt zusätzlich: wo Paket 9 ein Fenster der Seite vorab berührt hat, zieht
+das Seitenpaket nach, was Abschnitt 9.3 („in Paket 9 vorab berührt“) nennt; ein Schritt, der auf
+eine Zeile aus Abschnitt 10.5 wartet, wird nicht gebaut; und was Abschnitt 10.6 nennt, wird dem
+Auftraggeber vor dem PR im Bild vorgelegt — beim Bau wählt niemand stillschweigend.
 
 #### Paket 13 — Hülle und Startseite
 
 **Ziel:** Kopf, Leisten und Startseite sind ruhig und sagen nichts doppelt.
 **Punkte:** D1-A11, D1-A15, D1-A19, D1-A20, D1-B10, D1-B11, D1-B13, D1-C8, D1-I3, D1-I9, D1-I11, D1-I18, D1-T2, D1-T22, D1-T23, D1-P9, D4-T2, D4-T3, D4-T21, D4-P1, D4-P2. **Dazu Teile von:** D1-P4 und D4-P5 (Stellen der Startseite); V-11 (Beschriftung in „Problem melden“).
-**Voraussetzung:** Pakete 8 bis 11. Entscheidungen E-T, E-F1, E-R7, E-W1.
+**Voraussetzung:** Pakete 8 bis 11. Entscheidungen E-T, E-F1, E-R7, E-W1. Verbindungsband, „Neue
+Fassung“-Leiste und Supporteinblick mit der Rolle in der Meta-Zeile hat bisher niemand im Bild
+gesehen — sie werden erst umgebaut, wenn Paket 8 (Schritt 1) sie zeigt und ihre zweite
+Durchsicht vorliegt (nach der Bestätigung benannt, Bericht 14, Auflage 11).
 **Schritte:**
 
 - **Hülle** (`Layout.tsx`, `KopfTitel.tsx`): die Seitenleiste rollt in sich (D1-A19); der
@@ -2440,10 +2770,10 @@ Voraussetzung für alle: Pakete 7 bis 12 und die zweite Durchsicht der Seite (Pa
 | D1-A15 | Zwei der vier (`Handlungsbedarf.tsx:98`, `RuestlisteAbhaken.tsx:227`) klappen an Ort und Stelle auf — dort kein „›“ (es heißt „öffnet etwas“). |
 | D1-A19 | Gebaut wird nur „rollt in sich“. Schalter und Marke bleiben in der Leiste (E92, `style.md`; E-R7). Rechtstexte nicht tiefer legen. |
 | D1-A20 | Bleibt: unter Rückfragen. Am Gerät prüfen. |
-| D1-B10 | Vorbehalt des Papiers: Weiß kann gewollt sein, um die Leiste von der Navigation zu trennen — vor dem Bau im Bild zeigen. |
+| D1-B10 | Vorbehalt des Papiers: Weiß kann gewollt sein, um die Leiste von der Navigation zu trennen — vor dem Bau im Bild zeigen. Die Wahl ist offen und steht in Abschnitt 10.6 (vor dem PR im Bild vorzulegen); bis dahin bleibt die Timer-Leiste, wie sie ist. |
 | D1-B11 | Der erste ist bewusst so (E90); „alle wie der erste“. |
 | D1-B13 | Der Schalter bleibt in der Leiste (E92); gebaut wird die Beschriftung. |
-| D1-I3 | Bewegung nur über `transform`/Deckkraft (§112); der Titel in der Insel bleibt `aria-hidden`. Mit D1-A17 am selben Baustein. |
+| D1-I3 | Bewegung nur über `transform`/Deckkraft (§112); der Titel in der Insel bleibt `aria-hidden`. Mit D1-A17 am selben Baustein (`KopfTitel.tsx`): D1-A17 kommt in Paket 9 zuerst, D1-I3 baut hier darauf auf — zwei PRs nacheinander (nach der Bestätigung benannt, Bericht 14, Auflage 12 d). |
 | D1-I9 | Kontrast in `lotGrundwerte.test.ts` mitmessen. |
 | D1-I11 | Wächter `aktualisierenRegel.test.ts`; nie in einem Formular. |
 | D1-I18 | Gebaut wird nur das Zeichen (Person statt Glocke). „App erneuern“, Fassung und die Rechtstexte bleiben, wo sie sind (E-W1). |
@@ -2455,9 +2785,9 @@ Voraussetzung für alle: Pakete 7 bis 12 und die zweite Durchsicht der Seite (Pa
 | D4-T3 | Kürzen, nicht streichen: der Kern schützt vor einem Fehlschluss. |
 | D4-T21 | Teil Tag-Fenster in Paket 17. |
 | D4-P1 | Die Dachzeile bleibt — „KW 48“ allein wäre die Ausnahme. |
-| D4-P2 | Für lange Titel und für den Ort des Aktionsworts am Handy („verrechnen“, „entscheiden“) eine Fassung festlegen. |
+| D4-P2 | Für lange Titel und für den Ort des Aktionsworts am Handy („verrechnen“, „entscheiden“) eine Fassung festlegen. Die Fassung ist offen und steht in Abschnitt 10.6 (vor dem PR im Bild vorzulegen). Vom Bestätiger nachgebaut: 8 von 9 Zeilen bleiben gleich hoch (Punkte 13 → 3); „1 Baustelle mit Stunden nicht verrechnet“ wächst von 4 auf 5 Zeilen (115 → 138 px) — die Form trägt nur, wenn diese eine Zeile eine eigene Fassung bekommt; sonst bleibt die Zeile (Regel 5). |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2483,9 +2813,18 @@ Strg+K, Gruppen, Aktionen und Pfeiltasten der Suche; die Meldung oben (G29); Bew
 **Ziel:** Die sieben Wege des Monteurs am Handy stocken nicht mehr an den gemessenen Stellen.
 **Punkte:** V-11, D1-A2, D1-A4, D1-A5, D1-A6, D1-A7, D1-A8, D1-A9, D1-A10, D1-A12, D1-A14, D1-B1, D1-B7, D1-C3, D1-C4, D1-C5, D1-C6, D1-C9, D1-I8, D1-I14, D1-I15, D1-I16, D1-T3, D1-T4, D1-T5, D1-T6, D1-T7, D1-T8, D1-T9, D1-T10, D1-T11, D1-T12, D1-T13, D1-T14, D1-T19, D1-T20, D1-T21, D1-T25, D1-P1, D1-P2, D1-P3, D1-P4, D1-P5, D1-P6, D1-P7, D1-P10, D1-P11, D1-P13, D1-P16, D3-T18, D3-P10, D4-T20, D4-P6, N-D1-1. **Dazu Teile von:** V-3 (Stelle `/worksheet`); V-5 („alle ausblenden“ im Änderungsprotokoll); D4-A13 (Zuschlag-Kennzahl auf `/time`); D1-A15 (Stelle Rüstliste).
 **Voraussetzung:** Pakete 8 bis 11 (Zeitblatt-Fuß aus Paket 9). Entscheidungen E-P, E-T, E-W1.
+Nach der Bestätigung nicht entschieden: ob „Eintrag löschen“ ins ⋯ des Blatts wandert (E-B19) —
+bis dahin bleibt der Knopf, wo er ist.
 **Schritte:**
 
-- **Zeit** (`TimeView.tsx`, `TimeForm.tsx`): „Eintrag löschen“ ins ⋯ des Blatts (D1-A2); Kennzeichen
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): das Zeitblatt — sein Fuß ist in Paket 9 am
+  Baustein berichtigt; hier „Fuß im Bild“ für das Zeitblatt prüfen und die übrigen Punkte des
+  Blatts im selben PR der Seite; `/worksheet` — den Abstand der nebeneinander liegenden Blätter
+  berichtigen (V-3, nur die örtliche Variante an `WorkSheetView`) und den Eintrag aus der
+  Ausnahmeliste von `raster.spec.ts` streichen.
+- **Zeit** (`TimeView.tsx`, `TimeForm.tsx`): „Eintrag löschen“ ins ⋯ des Blatts (D1-A2) —
+  **wartet auf E-B19 und wird bis zur Entscheidung nicht gebaut** (Empfehlung dort: bleibt, wie
+  es ist); Kennzeichen
   als Feld aus dem Baustein (D1-A4, V-11); Wertspalte der Zeilen mit Papierkorb (D1-A5); Zeile der
   Zeitliste (D1-P1, D1-T25); Kennzahlen „Saldo“ und „Zuschlag“ (D1-T4, D4-T20, N-D1-1, D1-T5,
   D1-P6, D4-A13 Teil 3); „Wie zuletzt buchen“ (D1-P7, D4-P6); Texte (D1-T6, D1-T7, D1-T8, D1-C9).
@@ -2508,7 +2847,7 @@ Strg+K, Gruppen, Aktionen und Pfeiltasten der Suche; die Meldung oben (G29); Bew
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
 | V-11 | Teile Kunde (Paket 18), Hülle (Paket 13), Katalog einspielen (Paket 16). |
-| D1-A2 | U7 hat das Löschen bewusst ins Blatt gelegt; `TimeView.test.tsx:1368` und `zeitVerlauf.spec.ts:59` klicken genau diesen Knopf — beide und das Funktionsinventar nachziehen. Der Wächter `bedienregeln.test.ts:193` sieht den Knopf heute nicht (als Eigenschaft durchgereicht). |
+| D1-A2 | U7 hat das Löschen bewusst ins Blatt gelegt; `TimeView.test.tsx:1368` und `zeitVerlauf.spec.ts:59` klicken genau diesen Knopf — beide und das Funktionsinventar nachziehen. Der Wächter `bedienregeln.test.ts:193` sieht den Knopf heute nicht (als Eigenschaft durchgereicht). **Nach der Bestätigung (Bericht 14, Auflage 6):** der Umbau legt „Eintrag löschen“ einen Tipp weiter weg (⋯ → „Eintrag löschen“ statt des Knopfs im Blatt) und war nicht nach Regel 11 benannt; U4 („Unumkehrbares steht immer im ⋯“) wäre die Regel, die ihn trägt. Neu vorgelegt als E-B19 mit der Empfehlung „bleibt, wie es ist“ (U7 hat das Löschen bewusst ins Blatt gelegt); bis zur Entscheidung wird nichts verlegt, und die genannten Prüfungen bleiben unverändert. Berufsschulzeilen haben kein Blatt (siehe D1-A5). |
 | D1-A4 | Der Vorsatz ist nicht fest „WN-“, sondern `kennzeichenVorsatz` je Betrieb; fehlt er, trägt das Feld das ganze Kennzeichen. Bleibt: `ohneKennzeichenVorsatz` beim Tippen, `datalist` der Fahrzeuge. |
 | D1-A5 | Der Papierkorb an Berufsschulzeilen bleibt: sie öffnen kein Blatt, er ist dort der einzige Weg ohne Geste (die Wischaktion ist `inert`, für Tastatur und Vorlesehilfe weg). |
 | D1-A6 | 8 px Luft unter der klebenden Leiste lassen den rollenden Inhalt der Karte im Spalt durchscheinen — vorher im Bild prüfen. `blattKanten.test.ts:23, 40, 205` halten die Leiste fest. Gilt ebenso für die Korbleiste. |
@@ -2540,7 +2879,7 @@ Strg+K, Gruppen, Aktionen und Pfeiltasten der Suche; die Meldung oben (G29); Bew
 | D1-T20 | Ohne Legende ist das Zeichen des Feiertags unerklärt — der gewählte Tag zeigt den Namen. |
 | D1-T21 | Wie D1-I14. |
 | D1-T25 | Siehe D1-P1. |
-| D1-P1 | Nicht in der Form des Papiers. Gebaut wird nach Regel 5 in Abschnitt 7.3: nur eine Form mit Platz für Zustand („verrechnet“, „Monat abgeschlossen“), Marke „KI“, Nacht-/Notdienstzeichen und die Knöpfe der Zeile, die bei 375 px nicht mehr Zeilen braucht als heute — gemessen an echten Tagen (eine bis zwei Buchungen je Tag) nach Paket 8; sonst bleibt die Zeile und steht in der Ausnahmeliste des Wächters. |
+| D1-P1 | Nicht in der Form des Papiers. Gebaut wird nach Regel 5 in Abschnitt 7.3: nur eine Form mit Platz für Zustand („verrechnet“, „Monat abgeschlossen“), Marke „KI“, Nacht-/Notdienstzeichen und die Knöpfe der Zeile, die bei 375 px nicht mehr Zeilen braucht als heute — gemessen an echten Tagen (eine bis zwei Buchungen je Tag) nach Paket 8; sonst bleibt die Zeile und steht in der Ausnahmeliste des Wächters. Vom Bestätiger nachgebaut (Bericht 14, Abschnitt 6): die Form nach Regel 5 braucht bei 375 px in 44 von 53 Zeilen mehr Textzeilen (2 → 3 bis 5), 41 werden höher (103 → 127 px); mit gekürztem Namen 44 gleich, 9 mehr; am Tablet hat die Zeile eine andere Form, für die die Regel keine nennt. Nach diesem Stand wird die Form **nicht** gebaut, und `/time` behält seine Punkte — außer E-B18 wird entschieden. |
 | D1-P2 | 88 px, drei Textzeilen bei langem Namen — wie heute, nicht schlechter. |
 | D1-P3 | Teilnehmer, Notiz und Kartenverweis (48 px Tastfläche) bleiben in der Zeile. |
 | D1-P4 | In der beschriebenen Form nicht bauen. Nach Regel 5 in Abschnitt 7.3: Umbau nur mit einer Form, die bei 375 px nicht mehr Zeilen braucht als heute; sonst bleibt die Zeile. |
@@ -2555,14 +2894,14 @@ Strg+K, Gruppen, Aktionen und Pfeiltasten der Suche; die Meldung oben (G29); Bew
 | D4-P6 | Passt bei 375 px knapp (272 px). |
 | N-D1-1 | Mit D1-T4. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | V-11 | `htmlFor`-Bindung, Pflichtstern, wachsendes Textfeld. |
 | D1-A2 | Löschen im Blatt erreichbar, dieselbe Rückfrage, Papierkorb an der Zeile ab Tablet, Wischen am Handy. |
-| D1-A4 | fester Bezirksvorsatz, Vorschlagsliste der Fahrzeuge. |
-| D1-A5 | Löschen erreichbar über Wischen und im Blatt; ab Tablet der Papierkorb an der Zeile. |
+| D1-A4 | fester Bezirksvorsatz (**gilt nicht — siehe Vorgabe D1-A4:** der Vorsatz ist nicht fest, sondern `kennzeichenVorsatz` je Betrieb), Vorschlagsliste der Fahrzeuge. |
+| D1-A5 | Löschen erreichbar über Wischen und im Blatt (**„im Blatt“ gilt nicht für Berufsschulzeilen — siehe Vorgabe D1-A5:** sie haben kein Blatt, der Papierkorb an der Zeile bleibt dort); ab Tablet der Papierkorb an der Zeile. |
 | D1-A6 | die Leiste verdeckt kein Feld (Platz am Seitenende mitrechnen). |
 | D1-A9 | der Kreis in derselben Flucht wie bei Katalogartikeln (E74). |
 | D1-B1 | jede der fünf Aktionen (Zeit, Schein, Anfordern, Nachricht, Anruf/Route) an jedem Einsatz, die großzügige Form ab Tablet. |
@@ -2581,7 +2920,8 @@ Tablet); „Abschicken“ liegt nach dem Tipp auf den Korb im Bild (heute bei y 
 Kopfinsel); nach dem Tipp auf einen Tag steht „Einsätze am …“ im Bild (heute bei y 846 von 844);
 der gesperrte Knopf des Scheins nennt jede der acht Bedingungen; Vorlesetext der Zeitzeile nennt
 weiter alle Angaben in derselben Reihenfolge (Prüfung wie G3 in `TimeView.test.tsx`). Bewusst
-nachgezogen: `TimeView.test.tsx:1368`, `zeitVerlauf.spec.ts:59` (Löschen), `TimeView.test.tsx:444–449`,
+nachgezogen: `TimeView.test.tsx:1368`, `zeitVerlauf.spec.ts:59` (Löschen — nur, wenn E-B19 für
+das Verlegen entschieden wird; sonst bleiben beide unverändert), `TimeView.test.tsx:444–449`,
 `Arbeitstag.test.tsx:129, 214–230`, `m06Zeit.spec.ts:86` (Wortlaute).
 **Bleibt gleich:** der Papierkorb an Berufsschulzeilen; die Notiz für die Projektleitung im Korb;
 die Pause in „Wie zuletzt buchen“; „knapp“ als Wort; der Gesundheitssatz im Schein; der Hinweis
@@ -2596,10 +2936,18 @@ zurückgestellt), Empfänger bleiben Personen (D1-C7 ist zurückgestellt).
 **Ziel:** „Rechnung stellen“ ist am Handy und Tablet bedienbar; Zahlen fluchten; nichts steht
 doppelt.
 **Punkte:** V-9, D3-1, D3-2, D3-3, D3-7, D3-8, D3-13, D3-B17, D3-B19, D3-C3, D3-C5, D3-C11, D3-T2, D3-T5, D3-T6, D3-T7, D3-T8, D3-T9, D3-T10, D3-T11, D3-T19, D3-P3, D3-P4, D3-P5, D3-P13. **Dazu Teile von:** V-3 (Stelle `/invoices`); V-8 (Positionstabelle in „Rechnung erstellen“); D3-B16 (Pfeil an der Kontoauszug-Zeile); D3-C13 (Baustelle und Kunde als Verweis im Rechnungsfenster).
-**Voraussetzung:** Pakete 3 und 7 bis 12. Verdacht G-5 und L-5 geklärt (zweite Durchsicht).
-Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18, E-F21.
+**Voraussetzung:** Pakete 3 und 7 bis 12. Verdacht G-5 und L-5 geklärt (zweite Durchsicht);
+Verdacht M-6 geklärt (Abschnitt 4.9 nennt ihn „vor Paket 15“ — nach der Bestätigung hier
+nachgetragen). Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18. E-F21 ist nach der Bestätigung neu
+vorgelegt (E-B5): der Hinweis beim Entfernen einer Stundenposition wartet darauf.
 **Schritte:**
 
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): das Rechnungsfenster — Aktionsreihe und Kennwerte
+  sind in Paket 9 am Baustein berichtigt; hier das Bild vorher und nachher auf `/invoices` und
+  lesend in Kunden- und Baustellenakte, die Lese-Fassung ohne Knöpfe, und die übrigen Punkte des
+  Fensters im selben PR der Seite; das Fenster der Nachkalkulation (Kennwerte, mit D3-T19);
+  `/invoices` — den Abstand der beiden Arbeitskarten berichtigen (V-3) und den Eintrag aus der
+  Ausnahmeliste von `raster.spec.ts` streichen.
 - **Rechnung stellen** (`InvoicesView.tsx`, `lot-rechnungen.css`): Positionen bis 1.199 px als
   gestapelte Zeilen, Summen als Block (D3-1); Felder 16 px (D3-2); Beträge in Mono auf einer
   Flucht, Tabellenkopf in der Rolle (D3-3, V-8 Teil); eine gefüllte Hauptaktion, die schwebende
@@ -2607,7 +2955,9 @@ Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18, E-F21.
   Strg+Enter (D3-C11); Texte (D3-T2, D3-T5). **Die Anordnung der Seite bleibt** (D3-C1 und D3-C2
   sind zurückgestellt); der Zahlungsblock bleibt mit festen Zeilen (D3-T4 ist widerlegt). Wer eine
   Stundenposition aus der Vorschau entfernt, bekommt an der Stelle den Hinweis, dass die Stunden
-  damit ohne Betrag verrechnet sind (E-F21).
+  damit ohne Betrag verrechnet sind (E-F21) — **wartet auf E-B5:** „bleibt, mit Hinweis“ ist die
+  Empfehlung des Plans, kein Prüfer trägt sie, und der Wortlaut des Hinweises steht in keinem
+  Bericht; bis zur Entscheidung bleibt die Stelle, wie sie ist.
 - **Rechnungsliste, Rechnungsfenster, Zahlungsdialog, Mahnlauf, Export, E-Rechnung:**
   Beschriftungen 13 px (V-9); doppelte Angaben (D3-T6, D3-T7, D3-T8, D3-T9); Rechnungszeile
   (D3-P3); Kopf des Zahlungsdialogs als Kennwerte (D3-P4); Export mit Segmenten (D3-C5, D3-P5);
@@ -2623,7 +2973,7 @@ Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18, E-F21.
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
 | V-9 | Teil Einsatz-Vorschau in Paket 17. |
-| D3-1 | Handy: gestapelte Zeile, Summen als Block. Der Tablet-Vorschlag des Papiers reicht nicht (634,6 px in 624 px) — dieselbe gestapelte Form bis 1.199 px oder schmälere Felder nachmessen. `position-preis-fehlt` hält keine Prüfung fest — eigene Prüfung „bleibt gleich“. Fehlt im Papier: Titel-/Textzeilen (`colSpan 5`), Rabatthinweis „(aus dem Angebot)“. |
+| D3-1 | Handy: gestapelte Zeile, Summen als Block. Der Tablet-Vorschlag des Papiers reicht nicht (634,6 px in 624 px) — dieselbe gestapelte Form bis 1.199 px; „oder schmälere Felder nachmessen“, was hier als zweite Möglichkeit stand, gilt nicht mehr: es gilt der Schritt oben („Positionen bis 1.199 px als gestapelte Zeilen“; nach der Bestätigung auf eine Fassung gebracht, Bericht 14, Auflage 10). `position-preis-fehlt` hält keine Prüfung fest — eigene Prüfung „bleibt gleich“. Fehlt im Papier: Titel-/Textzeilen (`colSpan 5`), Rabatthinweis „(aus dem Angebot)“. |
 | D3-2 | Nur die Schriftgröße ändern. Wächter-Selektor um `.position-*` ergänzen (`schriftskala.test.ts:87`), sonst kommt es wieder. Die 15 px sind im Stil als Absicht beschrieben, ohne Entscheidung. |
 | D3-3 | „Bleibt gleich“: alle Zeilen des `tfoot` (Zwischensumme, Rabatt, Netto, „Übergang der Steuerschuld“, „Gesamtleistung brutto“, „abzüglich …“, „Restforderung brutto“, „Rechnungsbetrag“); Prüfungen suchen diese Wörter (`InvoicesView.test.tsx:1206, 3698–3769`). |
 | D3-7 | Einfacher und ohne Wirkung auf die fünf Verwender des Bausteins: `zeile-zahlen-betrag` wie in der Rechnungsliste und ein Platzhalter in Kästchenbreite. |
@@ -2642,7 +2992,7 @@ Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18, E-F21.
 | D3-T19 | „Zwischenstand“ bleibt an der Zahl im Fenster. |
 | D3-P3 | Für das Tablet (gestapelte Zeile) eine Form nach Regel 5 in Abschnitt 7.3. Das Rechnungsdatum bleibt am Handy in der Zeile (E-W1). |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2655,7 +3005,7 @@ Entscheidungen E-P, E-R9, E-R14, E-R15, E-R18, E-F21.
 | D3-13 | der Weg `?neu=`, „Neue Rechnung“ bei geschlossenem Formular an derselben Stelle. |
 | D3-C3 | Vorwahl nur bei „Zugeordnet“, Rückfrage vor dem Verbuchen, ⋯-Eintrag bleibt. Rückschritt: Grund der Zuordnung nicht mehr auffindbar |
 | D3-C5 | freie Daten, die drei Dateien und ihre Namen |
-| D3-C11 | Enter im mehrzeiligen Bezeichnungsfeld bleibt Zeilenumbruch |
+| D3-C11 | Enter im mehrzeiligen Bezeichnungsfeld bleibt Zeilenumbruch — **gilt nicht, siehe Vorgabe D3-C11:** der Satz ist sachlich falsch; Enter fügt heute keinen Zeilenwechsel ein (`WachsendesTextfeld.tsx:59`, geprüft), und das bleibt so |
 | D3-P3 | Stempel, Zustand, Betrag rechts |
 | D3-P4 | beide Beträge, wenn sie sich unterscheiden |
 | D3-P5 | Zahlen und Reihenfolge |
@@ -2682,6 +3032,11 @@ suchen. **Aufwand:** 12–15 Tage.
 **Voraussetzung:** Pakete 1, 6 und 8 bis 11. Entscheidung E-P.
 **Schritte:**
 
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): das Lager-Artikelfenster (die doppelte Linie und
+  die Kennwerte sind in Paket 9 am Baustein berichtigt — hier das Bild vorher und nachher und der
+  Abstand zwischen Zahlen und Knöpfen); die Arbeitszeile der Anforderungen (Flucht aus Paket 9 —
+  hier die Textflucht der Zeile und `bewegungen.spec.ts:1041 ff.`); „+ Material“ im Blattkopf
+  wird zum Kreis nach E76 (D3-B15).
 - **Anforderungen** (`AdminOrdersView.tsx`): Zustand mit Auslassung, der volle Name im Fenster
   (D3-10); überfälliger Liefertermin mit Zeichen (D3-16); Filter und Suche im Blatt (D3-B14);
   Pfeil an der Zeile (D3-B16); „4 Stk frei“ in Zeile und Fenster, „Auf die Einkaufsliste“ als
@@ -2711,7 +3066,7 @@ suchen. **Aufwand:** 12–15 Tage.
 | D3-P7 | Am Handy drei Zeilen. |
 | D3-P11 | Am Handy keine Tabelle. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2733,12 +3088,20 @@ zurückgestellt). **Risiko:** gering bis mittel. **Aufwand:** 6–8 Tage.
 #### Paket 17 — Planung: Woche, Monat, Tag und ihre Fenster
 
 **Ziel:** Planen am Handy und Tablet zeigt zuerst den Bestand; Verschieben ist auffindbar; der
-Monat ist unter 1.200 px mit dem Finger bedienbar.
+Monat ist von 760 bis 1.199 px mit dem Finger bedienbar (am Handy ist der Monat ein eigener
+Kalender und bleibt).
 **Punkte:** P-11, D4-A1, D4-A2, D4-A8, D4-A10, D4-A14, D4-B6, D4-B13, D4-C2, D4-T6, D4-T7, D4-T12, D4-T14, D4-P4, D4-P5, D4-P9, N-D4-2. **Dazu Teile von:** V-3 (Stelle `/assignments/tag`); V-9 (Einsatz-Vorschau im Monat); D4-A11 und D4-T21 (Tag-Fenster); D4-C1 (c) (Fenster „Einsatz bearbeiten“ in Abschnitten); D4-P12 (Rüstlistenzeile „Lager: 4 · Rohrleitungen“).
 **Voraussetzung:** Pakete 8 bis 11 (Fuß und Ungespeichertes aus Paket 9). Verdacht P-5 geklärt.
-Entscheidungen E-M, E-N, E-R8, E-F9, E-V5.
+Entscheidungen E-M, E-N, E-R8, E-F9, E-V5. Der Monat von 760 bis 1.199 px (E-M) wird dem
+Auftraggeber vor dem PR im Bild vorgelegt — beide Wege des Papiers nebeneinander (Abschnitt 10.6).
 **Schritte:**
 
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): das Fenster „Termin anlegen“ auf den Baustein
+  für Ungespeichertes umstellen (D2-B3, E-F11); den Fuß von Termin, Tag-Fenster und Einsatz nach
+  der Regel aus Paket 9 (D4-B8) — keine Aktion wird dabei verlegt; `/assignments/tag` — den
+  Abstand der Blätter berichtigen (V-3; der Abstand von 2,25 rem ist im Code begründet, E24 —
+  zuerst prüfen, ob der Grund noch gilt) und den Eintrag aus der Ausnahmeliste von
+  `raster.spec.ts` streichen.
 - **Tag-Planung am Handy** (`AssignmentsView.tsx`): Bestand zuerst, „Einsatz planen“ als Blatt
   (D4-A1); Datum nur einmal in den Titeln (D4-T14); Abstand der Blätter (V-3 Teil).
 - **Fenster „Einsatz bearbeiten“** (`EinsatzFormular.tsx`, `EinsatzFenster.tsx`): Fuß in einer
@@ -2746,8 +3109,11 @@ Entscheidungen E-M, E-N, E-R8, E-F9, E-V5.
   ansehen“ (D4-C2); Fenster in Abschnitten (D4-C1 Teil c); Rüstliste (D4-A14, D4-T7, D4-P12
   Teil); Hinweise (D4-T6); Unterzeile (D4-P9).
 - **Woche und Monat** (`WochenRaster.tsx`): Ansichtswahl als zwei erkennbare Gruppen (D4-B6);
-  Pfeiltasten im Raster (D4-C2); Monat unter 1.200 px seitlich rollend mit Spalten ab 44 px
-  (D4-A10); zwei Baustellen desselben Kunden am selben Tag bleiben unterscheidbar (N-D4-2);
+  Pfeiltasten im Raster (D4-C2); Monat von 760 bis 1.199 px seitlich rollend mit Spalten ab
+  44 px — die Namensspalte klebt, beim Öffnen steht „heute“ im Bild, Pfeiltasten und Ziehen (E96,
+  Mitrollen) wie heute; am Handy bleibt der Monat der eigene Kalender mit „Für wen“
+  (D4-A10); zwei Baustellen desselben Kunden in einer Zeile oder am selben Tag bleiben
+  unterscheidbar (N-D4-2);
   Uhrzeit je Person (P-11); Termin-Kachel (D4-T12); Beschriftungen der Einsatz-Vorschau (V-9 Teil).
 - **Termine und Tag-Fenster** (`TerminFormular.tsx`): „Bis“ neben „Von“ (D4-A8); Termin öffnet
   überall auf dieselbe Art (D4-B13); Zeilen (D4-P4, D4-P5, D4-A11 Teil, D4-T21 Teil).
@@ -2759,25 +3125,25 @@ Entscheidungen E-M, E-N, E-R8, E-F9, E-V5.
 | P-11 | Breite am Handy im Bild prüfen. |
 | D4-A1 | `EinsatzFenster` wählt den Tag nur unter den geladenen Tagen und trägt „Ganzen Tag ansehen“ (auf der Tag-Seite ein Kreis). Bleibt: jeder beliebige Tag aus dem Kalender der Tag-Seite planbar; die Sprünge „In ‚Tag‘ öffnen“ und „Bearbeiten“ aus der Einsatz-Vorschau öffnen am Handy das Blatt mit gewählter Baustelle; die Rüstliste im Blatt. Den Wächter erst nach Prüfung auf Falschtreffer um „planen“ erweitern (Tag-Fenster, Woche, Startseite laufen dann darüber). |
 | D4-A2 | Der lange Name steht auch in „Einsatz planen“, sobald eine Baustelle gewählt ist. Die Meldung „Einsatz und Rüstliste gespeichert“ bleibt; Prüfungen und Funktionsinventar suchen den Knopf beim Namen. 390 px nicht gemessen. |
-| D4-A10 | Entschieden (E-M): unter 1.200 px rollt der Monat seitlich mit Spalten ab 44 px. Bleibt: Monat als Personen × Tage, Vorschau je Tag und je Einsatz („Vorheriger/Nächster Tag“), ganzer Monat ohne Rollen ab 1.200 px. `rand.spec.ts` nimmt das Monatsraster heute aus (E88) — die Ausnahme gilt danach nur noch ab 1.200 px. |
+| D4-A10 | Entschieden (E-M): unter 1.200 px rollt der Monat seitlich mit Spalten ab 44 px. Bleibt: Monat als Personen × Tage, Vorschau je Tag und je Einsatz („Vorheriger/Nächster Tag“), ganzer Monat ohne Rollen ab 1.200 px. `rand.spec.ts` nimmt das Monatsraster heute aus (E88) — die Ausnahme gilt danach nur noch ab 1.200 px. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflage 7):** gemeint ist „von 760 bis 1.199 px“ — am Handy ist der Monat ein eigener Kalender mit „Für wen“ und bleibt; die Namensspalte klebt; beim Öffnen steht „heute“ im Bild; Pfeiltasten und Ziehen (E96, Mitrollen) wie heute. Der Verlust im Klartext: am Tablet steht danach nicht mehr der ganze Monat im Bild. Gemessen: bei 834 px heute 30 Tagesspalten zu 18,4 px (Namensspalte 120 px, Raster 672 px) — mit 44 px sind rund 12½ von 30 Tagen im Bild; bei 1.194 px (iPad quer) heute 30,4 px, danach rund 20 Tage. Bei 1.200 px sind die Spalten 23,3 px breit (schmäler als bei 1.199 px mit 31,2 px, weil die Seitenleiste breit wird) und bleiben nach E-M so. Vor dem PR im Bild vorlegen — beide Wege des Papiers nebeneinander (Abschnitt 10.6). |
 | D4-A14 | Bleibt: der Zustand „frei“/„Bestand unbekannt“ an der Zeile und die Deutung „fehlt“ gegen offene Anforderungen. |
 | D4-B6 | Gemerkte Ansicht und Unteradressen bleiben. |
-| D4-C2 | Das Feld verschiebt nichts: „Verschieben …“, „Auf … kopieren“, „Entfernen …“ ins ⋯ des Fensters (öffnet `VerschiebenFenster`, das die Rüstliste mitnimmt); das Feld heißt „Tag ansehen“ oder entfällt — in „Einsatz planen“ bleibt es. Pfeiltasten im Raster nach dem Muster des Monatsrasters. |
+| D4-C2 | Das Feld verschiebt nichts: „Verschieben …“, „Auf … kopieren“, „Entfernen …“ ins ⋯ des Fensters (öffnet `VerschiebenFenster`, das die Rüstliste mitnimmt); das Feld heißt „Tag ansehen“ — „oder entfällt“, was hier als zweite Möglichkeit stand, gilt nicht mehr: es gilt der Schritt oben (nach der Bestätigung auf eine Fassung gebracht, Bericht 14, Auflage 10); in „Einsatz planen“ bleibt es. Pfeiltasten im Raster nach dem Muster des Monatsrasters. |
 | D4-T6 | Der zweite bleibt (er trägt das Überschreiben). |
 | D4-T12 | Die dritte Zeile ist der Ort des Termins — nur weglassen, wenn er der Baustelle gleicht. |
 | D4-P4 | Nicht für die Wochenkachel (86 + 57 px passen nicht in 120 px) — dort bleibt es gestapelt. |
 | D4-P5 | Nicht für die Kachel. |
 | D4-P9 | Der Titel bricht bei 375 px um — nicht schlechter als heute. |
-| N-D4-2 | Steht derselbe Kundenname am selben Tag in einer Zeile zweimal, zeigt die Kachel auch unter 1.200 px die Kurzbezeichnung, sonst die Nummer. Sonst bleibt die Kachel, wie sie ist (E-R8). |
+| N-D4-2 | Steht derselbe Kundenname in der Zeile **oder** am Tag zweimal, zeigt die Kachel auch unter 1.200 px die Kurzbezeichnung, sonst die Nummer (nach der Bestätigung auf den Wortlaut von Bericht 12 gebracht, Bericht 14, Auflage 12 b — zuvor stand enger „am selben Tag in einer Zeile“). Sonst bleibt die Kachel, wie sie ist (E-R8). |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | D4-A1 | ab 760 px das Formular neben dem Kalender; `?datum=`/`?baustelle=`-Adressen aus Woche und Startseite; Rüstliste im Formular. Rückschritt: wenn „In ‚Tag‘ öffnen“ aus dem Tag-Fenster am Handy nicht mehr mit vorgewählter Baustelle ankommt. |
 | D4-A2 | Speichern schreibt Einsatz und Rüstliste wie bisher; „Ganzen Tag ansehen“ bleibt. Rückschritt: wenn der Fuß bei 390 px wieder umbricht (Prüfung: Fußhöhe ≤ 80 px auf drei Breiten). |
 | D4-A8 | Uhrzeit entfernen“. Rückschritt: keiner. |
-| D4-A10 | ab 1 200 px der ganze Monat ohne Rollen; Balken über mehrere Tage; Vorschau-Fenster. Rückschritt: wenn am Tablet nicht mehr der ganze Monat auf einen Blick steht — deshalb vor dem Bau entscheiden lassen. |
+| D4-A10 | ab 1 200 px der ganze Monat ohne Rollen; Balken über mehrere Tage; Vorschau-Fenster. Rückschritt: wenn am Tablet nicht mehr der ganze Monat auf einen Blick steht — deshalb vor dem Bau entscheiden lassen. (**Dieser Satz des Papiers gilt nicht mehr als „bleibt gleich“ — durch E-M entschieden:** von 760 bis 1.199 px steht nicht mehr der ganze Monat im Bild; siehe Vorgabe D4-A10 und Abschnitt 10.7.) |
 | D4-A14 | Menge direkt eingeben, Löschen, Bestand je Lagerort. Rückschritt: `RuestlistePlanen`-Tests (Menge, Deckung). |
 
 **Prüfungen mit Gegenprobe:** Tag-Planung bei 390 px: die Einsätze des Tags stehen vor dem
@@ -2803,6 +3169,14 @@ kürzer, der nächste Schritt steht in der Meldung.
 E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
 **Schritte:**
 
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): die Fenster „Neuer Kunde“, „Neue Baustelle“,
+  „Neuer Eingang“, „Neue Wartung“, „Neue Liegenschaft“, „Liegenschaft bearbeiten“ (Akte) und
+  „Kunde bearbeiten“ (Liste) auf den Baustein für Ungespeichertes umstellen (D2-B3, E-F11:
+  „Neu“-Fenster behalten den Entwurf und sagen es, Rückfrage nur beim Bearbeiten, ein leeres
+  Fenster schließt ohne Frage); der Kopf der Kunden-, Angebots- und Baustellenakte (V-15, in
+  Paket 9 ins Raster gebracht — hier je Akte das Bild und `handyInhalt.spec.ts`); das
+  Rechnungsfenster in Kunden- und Baustellenakte bleibt die Lese-Fassung ohne Knöpfe (mit
+  Paket 15).
 - **Akten** (`KundenakteView.tsx`, `BaustellenakteView.tsx`, `LiegenschaftView.tsx`): die
   Liegenschaftsakte bekommt `AktenKopf` und Kontextspalte und lädt vollständig nach (D2-B1,
   D2-A18, Grenze 16 in 4.10); Kennwerte im Kopf der Kundenakte (D2-C4, D2-I2); Reiter „Belege“
@@ -2813,10 +3187,13 @@ E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
   (D2-P6, nach D2-A6); Zeile bleibt markiert, solange ihr Fenster offen ist (D2-I7).
 - **Formulare:** „Neuer Kunde“, „Neue Baustelle“, „Neue Wartung“, „Kunde bearbeiten“ mit Fuß im
   Bild (D2-A20); ein Formular für „Kunde bearbeiten“ (D2-B2); Vorschläge statt Vorbelegung der
-  Baustellenadresse (D2-C5); Beschriftungen aus dem Baustein (V-11 Teil).
+  Baustellenadresse — nur bei Kundenart Hausverwaltung oder Unternehmen; Privatkunden und Kunden
+  ohne Kundenart behalten die Vorbelegung (D2-C5); Beschriftungen aus dem Baustein (V-11 Teil).
 - **Listen** (Baustellen, Wartungen, Angebote, Eingang, Scheine): Pfeil bzw. Stift nach E-F25
-  (D2-A8); kürzere Zeilen (D2-C9, D2-T2, D2-T3, D2-T19, D2-P1, D2-P4, D2-P5, D2-P8, D2-P9); feste
-  Spalten der Angebotsliste ab dem Schreibtisch (D2-A12); Kartentitel über den Segmenten (D2-B8,
+  (D2-A8) — die Knöpfe der Angebots-, Wartungs- und Scheinzeile bleiben dabei in der Zeile (E-R1,
+  E-W1); kürzere Zeilen (D2-C9, D2-T2, D2-T3, D2-T19, D2-P1, D2-P4, D2-P5, D2-P8, D2-P9); feste
+  Spalten der Angebotsliste ab dem Schreibtisch (D2-A12) — nur, wenn sie mit den Knöpfen in der
+  Zeile gehen (nicht gemessen; sonst bleibt die Zeile); Kartentitel über den Segmenten (D2-B8,
   D2-T4); Kleinigkeiten (D2-B11); Knöpfe in einer Größe (D2-A19); Nummern ohne Umbruch (D2-A17);
   Tablet (D2-A13); Scheinliste (D2-C10, D2-T6, D1-T15, D1-P14); Verweis zum Papierkorb (D2-C14).
 - **Angebote** (`QuotesView.tsx`, `AngebotView.tsx`): Formular als Arbeitsbereich mit zwei Zonen
@@ -2836,18 +3213,18 @@ E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
 
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
-| A-12 | Ins Formular nur bei neuem Angebot bzw. Entwurf; meldet `eingangZuAngebot` „gab es schon“ und ist das Angebot kein Entwurf mehr, wie heute auf die Akte. Die Schritte an der angenommenen Akte („Zur Baustelle“, „Einsatz planen“, „Anzahlung stellen“) gehören dazu. Ein PR mit A-17 und D2-A10. |
+| A-12 | Ins Formular nur bei neuem Angebot bzw. Entwurf; meldet `eingangZuAngebot` „gab es schon“ und ist das Angebot kein Entwurf mehr, wie heute auf die Akte. Die Schritte an der angenommenen Akte („Zur Baustelle“, „Einsatz planen“, „Anzahlung stellen“) gehören dazu. Ein PR mit D2-A10. (Nach der Bestätigung berichtigt, Bericht 14, Auflage 5: hier stand „mit A-17 und D2-A10“ — A-17 wird nicht gebaut, es bleibt, wie es ist: Liste 8.3, E-R4.) |
 | V-12 | `text-lg` an `RowMenu.tsx:171`, `IconButton.tsx:44` (Zeichengröße) und am Startpasswort ist gewollt — nicht in die Titelrolle zwingen. |
 | D2-A4 | Im Wächter „Verwerfen“ nicht in die Liste der roten Wörter aufnehmen (trägt bewusst `primary`, der Papierkorb ist umkehrbar). |
 | D2-A7 | Mit D2-P2 abstimmen (dieselbe Zeile) — einmal umbauen. |
-| D2-A8 | Entschieden (E-F25): Zeilen, die ein Lesefenster oder eine Akte öffnen, bekommen den Pfeil (E99); die Top-Zeile öffnet das Änderungsformular und bekommt den Stift (E74). |
+| D2-A8 | Entschieden (E-F25): Zeilen, die ein Lesefenster oder eine Akte öffnen, bekommen den Pfeil (E99); die Top-Zeile öffnet das Änderungsformular und bekommt den Stift (E74). **Nach der Bestätigung (Bericht 14, Auflage 5):** die Knöpfe der Angebots-, Wartungs- und Scheinzeile bleiben in der Zeile (E-R1, E-W1). Die Sätze des Papiers gelten nicht („Knöpfe ins Fenster, Pfeil in die Zeile“, Papier 10, D2-A8; „‚Erledigt‘ und ‚Baustelle anlegen‘ bleiben mit höchstens einem Tipp mehr erreichbar“). Prüfung: jede Aktion der Zeile ist mit derselben Tippzahl erreichbar wie heute. |
 | D2-A10 | Gebaut wird nur die Überdeckung am Handy (die schwebende Aktion verdeckt ein Viertel von „Annehmen → Baustelle“). Hauptaktion, Verlauf und das zweite ⋯ bleiben, wie am 15.11. gebaut (E-R4). Bleibt: Meldung mit „Rückgängig“ (F15), `leerNichtAnnehmen`, „Wiederherstellen“ im Papierkorb-Stand. |
 | D2-A11 | Vorbild ist die Belegzeile (`small` 12 px), nicht die Baustellenliste (13 px). |
-| D2-A12 | Am Handy darf der Stand nicht entfallen. |
+| D2-A12 | Am Handy darf der Stand nicht entfallen. **Nach der Bestätigung (Bericht 14, Auflage 5):** die Zeilenknöpfe der Angebotsliste bleiben in der Zeile (E-R1, E-W1); der Satz des Papiers („Die Zeilenknöpfe wandern ins ⋯ der Zeile“, „Annehmen … in höchstens zwei Tipps“) gilt nicht — „Annehmen → Baustelle“ braucht aus der Liste dieselbe Tippzahl wie heute. Bedingung: ob die festen Spalten mit den Knöpfen in der Zeile überhaupt gehen, hat niemand gemessen — vor dem Bau am Schreibtisch messen; gehen sie nicht, bleibt die Zeile, wie sie ist. |
 | D2-A13 | Teil „Suchfeld eingerückt“ ist eine Regel am Baustein (`lot.css:592`) und gehört zu Paket 9. Die Form D2-P2 löst den Umbruch am Tablet nicht in einer Zeile — dort die zweizeilige Handyform. |
 | D2-A15 | Bleibt: die Stände „neuere Fassung“ und „ungültig“ haben keine Aktion. |
 | D2-A17 | `OhneUmbruch` behebt es. |
-| D2-A18 | Teil (b) ändert `PageHeader` für alle Seiten (E31) — nur zusammen mit dem Kopf-Baustein. |
+| D2-A18 | Teil (b) ändert `PageHeader` für alle Seiten (E31) — nur zusammen mit dem Kopf-Baustein. Nach der Bestätigung (Bericht 14, Auflage 10): in welchem Paket das geschähe, stand nirgends. Gebaut wird hier nur Teil (a) — die Liegenschaftsakte über `AktenKopf`. Teil (b) (am Handy Hilfe und ⋯ in die Ortszeile) berührt E31 wie E-B17 und steht in Abschnitt 10.6 — vor dem PR im Bild vorzulegen; bis dahin wird er nicht gebaut. |
 | D2-A20 | Trägt nur sinngemäß U1 Muster 3. Die `Speicherleiste` der Akten bleibt. |
 | D2-B1 | Die Liegenschaftsakte bekommt `AktenKopf` und Kontextspalte. Der Stempel der Baustellenakte bleibt, wo E99 ihn festgelegt hat (E-R3). Das Modul „Liegenschaften und Tops“ ist schaltbar; die Prüfung braucht die Attrappen aus Paket 8. |
 | D2-B2 | Beide Feldlisten prüfen. |
@@ -2859,14 +3236,14 @@ E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
 | D2-C2 | Geklärt: die Rückfrage sperrt „Annehmen“ am leeren Entwurf, die Datenbank weist Versand und Link ohne Position ab. |
 | D2-C3 | Der Schritt in der Meldung ist gewollt. |
 | D2-C4 | Siehe D2-I2 (Grenze 500, Rechte). |
-| D2-C5 | Die Regel „nach Kundenart“ greift nicht, solange die Kundenart fehlt (nach einem Import die Regel). `LiegenschaftVorschlaege` gibt es in „Neue Baustelle“ schon. |
+| D2-C5 | Die Regel „nach Kundenart“ greift nicht, solange die Kundenart fehlt (nach einem Import die Regel). `LiegenschaftVorschlaege` gibt es in „Neue Baustelle“ schon. **Nach der Bestätigung (Bericht 14, Auflage 5):** Vorschläge statt Vorbelegung nur bei Kundenart Hausverwaltung oder Unternehmen; Privatkunden und Kunden ohne Kundenart behalten die Vorbelegung (Papier 10: „Gleich bleiben: Privatkunden behalten die Vorbelegung“). Dafür eine eigene Prüfung „bleibt gleich“. |
 | D2-C6 | Bleibt: `naechsterSchritt` prüft Rolle und Modul. |
 | D2-C10 | Siehe D2-T6. |
 | D2-C13 | Rechtlich berührt (Reihenfolge einer verbindlichen Erklärung): wartet auf die Kanzlei (K-8) und gilt nicht als entschieden. |
 | D2-C14 | Offen ist nur der Verweis aus der Liste. |
 | D2-I2 | Die Summe in der Datenbank rechnen; die Zelle weglassen, wo Recht oder Modul fehlen (nicht „€ 0“). |
 | D2-I3 | Anbieten, nicht wegführen: aus der Liste angenommen wirft der Sprung aus der Arbeit; „Rückgängig“ (F15) muss den Seitenwechsel überleben. |
-| D2-I4 | Das Tablet (760–1199 px) braucht eine eigene Aussage. |
+| D2-I4 | Das Tablet (760–1199 px) braucht eine eigene Aussage. Sie fehlt; die Form steht in Abschnitt 10.6 (vor dem PR im Bild vorzulegen) — bis dahin bleibt das Formular von 760 bis 1.199 px, wie es ist. |
 | D2-I5 | Enter heißt in anderen Formularen „anlegen“ — im Handbuch nennen. |
 | D2-I9 | „Einsatz planen ›“ im Leersatz der Baustellenakte wäre die Hauptaktion ein zweites Mal (U3). |
 | D2-I10 | Nur als Reihenfolge am Handy, kein Zusammenlegen: E99 hat die leeren Karten „Nachrichten“ und „Einsätze“ bewusst gelassen (sie tragen den nächsten Schritt). Die vorgeschlagene Zeile mit zwei Punkten verstieße gegen die Punktregel. |
@@ -2884,20 +3261,20 @@ E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
 | D2-T19 | „abgelaufen“ nur dort weglassen, wo die Liste wirklich gruppiert ist. |
 | D2-P1 | Handy: Name allein in Zeile 1, Zustand und Stempel darunter. Spaltenform erst ab dem Schreibtisch. Messung auf 375 und 834 px ist Bedingung. |
 | D2-P4 | Das Datum bleibt Schlüssel (E91). |
-| D2-P5 | Zustand und ⋯ bleiben in der Zeile (die Gruppe sagt den Stand nicht). Für 760–1199 px fehlt eine Form — vor dem Bau festlegen. |
+| D2-P5 | Zustand und ⋯ bleiben in der Zeile (die Gruppe sagt den Stand nicht). Für 760–1199 px fehlt eine Form — sie steht in Abschnitt 10.6 (vor dem PR im Bild vorzulegen); nach Regel 5 bleibt dort bis dahin die heutige Zeile. |
 | D2-P6 | D2-A6 zuerst, sonst entsteht der Höhenfehler an neuen Stellen. |
 | D2-P8 | Seitenkopf: siehe D2-T5. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | D2-A4 | die Felder der Rückfrage, „Nächster Termin: …“, der Ablauf. Rückschritt: eine Lösch-Rückfrage wird versehentlich petrol. |
 | D2-A7 | Sortierung, die Baustellennummer je Rechnung, Rechnung öffnet das Fenster, Angebot führt in die Angebotsakte. Rückschritt: die Baustellennummer fehlt. |
-| D2-A8 | ganze Zeile bleibt das Ziel; „Erledigt“ und „Baustelle anlegen“ bleiben mit höchstens einem Tipp mehr erreichbar (sie stehen heute schon zusätzlich im Fenster). Rückschritt: eine Aktion ist nur noch über zwei Fenster erreichbar. |
-| D2-A10 | jede heutige Aktion bleibt erreichbar, höchstens ein Tipp mehr für „Annahme-Link“; die Hinweise im Verlauf („Noch ohne Position …“, „Die Fassung … ist schon angenommen“); die Buchhaltung sieht weiter nur „PDF herunterladen“. Rückschritt: „PDF herunterladen“ … (weiter im Papier) |
+| D2-A8 | ganze Zeile bleibt das Ziel; „Erledigt“ und „Baustelle anlegen“ bleiben mit höchstens einem Tipp mehr erreichbar (sie stehen heute schon zusätzlich im Fenster) — **„höchstens ein Tipp mehr“ gilt nicht, siehe Vorgabe D2-A8:** die Knöpfe bleiben in der Zeile, mit derselben Tippzahl wie heute (E-R1, E-W1). Rückschritt: eine Aktion ist nur noch über zwei Fenster erreichbar. |
+| D2-A10 | jede heutige Aktion bleibt erreichbar, höchstens ein Tipp mehr für „Annahme-Link“ (**gilt nicht — siehe Vorgabe D2-A10 und E-R4:** gebaut wird nur die Überdeckung am Handy; „Annahme-Link“ bleibt, wo er ist, ohne Tipp mehr); die Hinweise im Verlauf („Noch ohne Position …“, „Die Fassung … ist schon angenommen“); die Buchhaltung sieht weiter nur „PDF herunterladen“. Rückschritt: „PDF herunterladen“ … (weiter im Papier) |
 | D2-A11 | netto und brutto bleiben in der Liste unterscheidbar. Rückschritt: Zeile wird höher. |
-| D2-A12 | Annehmen → Baustelle“ aus der Liste in höchstens zwei Tipps (⋯ → Annehmen; am Handy ist es für den Entwurf heute schon so). Rückschritt: Annehmen braucht drei Tipps. |
+| D2-A12 | Annehmen → Baustelle“ aus der Liste in höchstens zwei Tipps (⋯ → Annehmen; am Handy ist es für den Entwurf heute schon so) — **gilt nicht, siehe Vorgabe D2-A12:** die Zeilenknöpfe wandern nicht ins ⋯; „Annehmen → Baustelle“ braucht dieselbe Tippzahl wie heute (E-R1, E-W1). Rückschritt: Annehmen braucht drei Tipps. |
 | D2-A13 | Schreibtisch und Handy unverändert. Rückschritt: am Schreibtisch rutscht das Suchfeld unter die Segmente. |
 | D2-A15 | PDF bleibt ohne Annahme ladbar, auch nach der Entscheidung. Rückschritt: der Knopf fehlt im Stand „angenommen“. |
 | D2-A18 | drei feste Zeilen des Kopfs ab dem Tablet (E31), Tastflächen 44 px, die Insel oben zeigt beim Rollen weiter den Namen. Rückschritt: Hilfe oder ⋯ rutschen am Schreibtisch aus der Titelzeile. |
@@ -2911,8 +3288,14 @@ E-F25, E-F29, E-W1. D2-C13 wartet auf die Kanzlei (K-8).
 **Prüfungen mit Gegenprobe:** „Fuß im Bild“ für die vier Fenster (heute Knopf bei y 1063 / 1852 /
 994 / 1046 bei 785 px sichtbar); `akten.spec.ts`; Kennwert „offen € …“ stimmt bei mehr als 500
 Rechnungen und fehlt ohne Recht oder Modul; Prüfung „jede Aktion der Angebots-, Wartungs- und
-Scheinzeile bleibt in höchstens zwei Tipps erreichbar“; `flucht.spec.ts` mit den Karten ohne
-Titel; beide Feldlisten von „Kunde bearbeiten“ sind im einen Formular enthalten.
+Scheinzeile bleibt mit derselben Tippzahl erreichbar wie heute“ (nach der Bestätigung
+verschärft, Bericht 14, Auflage 5 — zuvor „in höchstens zwei Tipps“); eigene Prüfung
+„Privatkunden und Kunden ohne Kundenart behalten die Vorbelegung der Baustellenadresse“
+(D2-C5); `flucht.spec.ts` mit den Karten ohne
+Titel; beide Feldlisten von „Kunde bearbeiten“ sind im einen Formular enthalten. Grenze 16 aus
+4.10 (die Liegenschaftsakte lädt vollständig nach, wie die Kundenakte seit A12): Prüfung mit
+Gegenprobe und „bleibt gleich“ sind vor dem Bau festzulegen — das Papier nennt keine, und die
+Bewertung der Grenze ist nicht gegengeprüft (12.3).
 **Bleibt gleich:** E99 (Zeitstrahl, Rechnungen im Fenster, Belegzeile, leere Karten „Nachrichten“
 und „Einsätze“, „geschrieben von“, Stempel der Baustellenakte); E74 (Stift und Tonne in Zeilen);
 das zweite ⋯ und die Schritte im Verlauf der Angebotsakte; Hauptaktion der Angebotsakte; „Quelle“
@@ -2935,6 +3318,8 @@ geht es weiter.
   Tabelle auf den Baustein (V-8); Pfeil an der Zeile (D4-A11); Steuerungen am Handy verdichtet
   (D4-C10); Radius im Personenkalender (D4-A13 Teil 2); Person-Fenster (D4-I6, D4-T10); Stand der
   Auswertung einmal (D4-T11, D4-P10); Zeile (D4-P7); Leersatz 15 px (D4-A4 Teil).
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): der Kopf der Benutzerakte (V-15, in Paket 9 ins
+  Raster gebracht) — hier das Bild bei 390, 834 und 1440 px.
 - **Benutzer und Benutzerakte** (`UserMgmtView.tsx`, `BenutzerakteView.tsx`): Meldung mit „Akte
   öffnen“ (D4-C3); Klammerzusätze als `hint` (D4-A7); Wochenstunden nur an einer Stelle (D4-T8);
   „Geburtsdatum“ als Zeile (D4-I11).
@@ -2964,7 +3349,7 @@ geht es weiter.
 | D4-P10 | Teil Plattform in Paket 20. |
 | D4-P12 | Die Tastfläche des Verweises mitnehmen (V-5). Teil Rüstliste in Paket 17. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -2989,11 +3374,22 @@ Person-Fensters mit Buchungen; der Notzugang in der Plattform-Zeile.
 **Ziel:** Eine Einstellung ist auffindbar; Speichern ist erkennbar; Sackgassen haben einen Weg
 weiter.
 **Punkte:** V-7, V-10, D1-T18, D2-T16, D3-C12, D3-T21, D3-P12, D4-A3, D4-A4, D4-A12, D4-B1, D4-B7, D4-B9, D4-B12, D4-B14, D4-C6, D4-C7, D4-C8, D4-C9, D4-C13, D4-I2, D4-I3, D4-I4, D4-I8, D4-I9, D4-T4, D4-T5, D4-T15, D4-T16, D4-T17, D4-T18, D4-T19. **Dazu Teile von:** D4-A7 (Schalterzeile der Rechnungsvorgaben); D4-P10 (Plattform-Zeile); V-8 (Beispielrechnung in den Sätzen).
-**Voraussetzung:** Pakete 8 bis 11. Entscheidungen E-E, E-T.
+**Voraussetzung:** Pakete 8 bis 11. Entscheidungen E-E, E-T. „Willkommen“, erstes Passwort,
+Wiederherstellungscodes und die Fehlertafel hat bisher niemand im Bild gesehen — sie werden erst
+umgebaut, wenn Paket 8 (Schritt 1) sie zeigt und ihre zweite Durchsicht vorliegt (nach der
+Bestätigung benannt, Bericht 14, Auflage 11). Nicht entschieden: „Deaktivieren“ ins ⋯ (E-B20),
+die Speicherleiste ab 1.200 px (E-B23). Vor dem PR im Bild vorzulegen (Abschnitt 10.6): die
+Gliederung der Einstellungen am Tablet (D4-I2) und die Reihenfolge beim Tabben im
+Mahnspesen-Raster (D3-P12).
 **Schritte:**
 
+- **Aus Paket 9 nachzuziehen** (Abschnitt 9.3): „+ Steuersatz“, „+ Anzahlungskonto“ und
+  „Warengruppe hinzufügen“ im Blattkopf werden zum Kreis nach E76 (D3-B15); der Fuß des Fensters
+  „… verwalten“ der Plattform nach der Regel aus Paket 9 (D4-B8) — „Deaktivieren“ bleibt, wo es
+  ist, und wartet auf E-B20; das Grund-Pflichtfeld vor jedem Schritt bleibt erreichbar.
 - **Einstellungen** (`SettingsView.tsx`, `FirmendatenView.tsx`, `ModulesView.tsx`): Zusatz „noch
-  nicht gespeichert“ an der Schalterzeile; am Handy klebt nur die Leiste des zuletzt geänderten
+  nicht gespeichert“ an der Schalterzeile (er steht danach auch auf `/_muster`); am Handy klebt
+  nur die Leiste des zuletzt geänderten
   Blatts (D4-B1); Gliederung statt 15 gleichrangiger Reiter (D4-C9, D4-I2); die Suche kennt die
   Stichworte (D4-I3); Briefkopf-Vorschau (D4-C6, D4-I4); Module mit eingerückten Unterfähigkeiten
   und aufklappbarem „Betrifft“ (D4-I8, D4-T5); Betragsfelder mit Einheit, Mahnspesen-Raster
@@ -3020,7 +3416,7 @@ weiter.
 | D1-T18 | Der Name steht in `CLAUDE.md`, `style.md` (Dark Mode), E92 und im Handbuch — dort mitziehen. |
 | D3-C12 | Einheit als Beigabe, nicht als Wert („78,00 €/h“ liest `leseZahl` nicht). |
 | D3-T21 | Die 33 Halbjahre stehen in einer zugeklappten Auswahl, nicht als Text — kein zweites Bedienelement „Frühere anzeigen“ (Grundsatz 4). |
-| D3-P12 | „Tabben zeilenweise“ wäre eine Änderung (heute erst alle Firmen-, dann alle Privatfelder). Mit „Pauschale 40 € nach § 458 UGB“ entfallen die drei Firmenfelder — das Raster verliert eine Spalte. |
+| D3-P12 | „Tabben zeilenweise“ wäre eine Änderung (heute erst alle Firmen-, dann alle Privatfelder). Mit „Pauschale 40 € nach § 458 UGB“ entfallen die drei Firmenfelder — das Raster verliert eine Spalte. Welche Reihenfolge beim Tabben gilt, ist offen und steht in Abschnitt 10.6 (vor dem PR vorzulegen); bis dahin bleibt die heutige Reihenfolge (erst alle Firmen-, dann alle Privatfelder). |
 | D4-A3 | „Zur Startseite“ muss für jede Rolle ein erlaubtes Ziel sein (Plattformkonto). Der Verweis auf „Module“ nur für die Administration bleibt. |
 | D4-A4 | Den Satz der Datensicherung nicht mit umstellen; Zustände stehen laut E97 in 13 px. Teil Mitarbeiterübersicht in Paket 19. |
 | D4-A12 | „Abmelden“ ohne Passwort erreichbar halten. |
@@ -3029,7 +3425,7 @@ weiter.
 | D4-C6 | Über D4-I4. |
 | D4-C7 | Die gleiche Antwort für vorhandene und fehlende Konten bleibt. |
 | D4-C13 | Die alten Weiterleitungen (`/admin-orders`, `/stock`, `/notifications`, `/modules`) bleiben. |
-| D4-I2 | Jede Rolle sieht andere Reiter — Gruppen dürfen nicht leer stehen. Jede Adresse `/settings/…` bleibt; `UNTER`, `pruefen:links`, Strg+K-Einträge bleiben. |
+| D4-I2 | Jede Rolle sieht andere Reiter — Gruppen dürfen nicht leer stehen. Jede Adresse `/settings/…` bleibt; `UNTER`, `pruefen:links`, Strg+K-Einträge bleiben. Nach der Bestätigung (Bericht 14, Abschnitt 5 und 7 Nr. 7): das ist der größte Umbau der Navigation in Stufe C, und für das Tablet (760–1.199 px) nennt das Papier keine Form (am Schreibtisch die Liste links neben dem Inhalt, am Handy ist die Übersicht die Liste). Am Handy führt der Wechsel zwischen zwei Einstellungsseiten danach über die Übersicht — die Tippzahl „vorher n, nachher m“ gehört nach Regel 11 in den PR. Die Form am Tablet und die Tippzahl am Handy stehen in Abschnitt 10.6 (vor dem PR im Bild vorzulegen). |
 | D4-I3 | Treffer nur für Seiten, die die Rolle sehen darf (E91). |
 | D4-I4 | Nur aus `belegLayout.ts`. Von 760 bis 1.199 px ist daneben kein Platz. |
 | D4-I9 | Das Zwei-Faktor-Blatt und die Pflicht für den Betrieb bleiben eigene Blätter. |
@@ -3039,14 +3435,14 @@ weiter.
 | D4-T18 | Aufklappen ist in Ordnung, solange die Zeile ohne Anmeldung erreichbar bleibt. |
 | D4-T19 | Das Sternchen ist der allgemeine Baustein der Pflichtfelder — bleibt. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
 | V-7 | die Tafel hängt von nichts ab, was selbst abstürzen kann (keine Datenschicht, kein Kontext); „Erneut versuchen“, „Zur Startseite“, „Problem melden“, technische Einzelheiten zugeklappt. |
 | V-10 | der veröffentlichte Rechtstext wörtlich und in seiner Gliederung. |
 | D3-C12 | gespeicherte Werte; Eingabe „78“ gilt weiter |
-| D3-P12 | sechs Felder, Reihenfolge beim Tabben zeilenweise |
+| D3-P12 | sechs Felder, Reihenfolge beim Tabben zeilenweise — **„Tabben zeilenweise“ gilt nicht als „bleibt gleich“, siehe Vorgabe D3-P12:** es wäre eine Änderung (heute erst alle Firmen-, dann alle Privatfelder) |
 | D4-A3 | Texte, Rollenname im Satz, wer einschalten darf. Rückschritt: wenn die Linkprüfung (`pruefen:links`) die Tafel als toten Weg meldet. |
 | D4-A4 | Wortlaut. Rückschritt: keiner zu erwarten (Blatt wird je Satz 4–5 px höher; `raster.spec.ts` läuft mit). |
 | D4-A12 | Abmelden ohne Passwort erreichbar (Prüflauf L3). Rückschritt: Tastfläche unter 44 px. |
@@ -3068,7 +3464,9 @@ Weiterleitungen (`/admin-orders`, `/stock`, `/notifications`, `/modules`); jeder
 Anmeldewegs und „Abmelden“ auf jeder Zwischenseite; die gleiche Antwort für vorhandene und
 fehlende Konten bei „Passwort vergessen“; das Sternchen der Pflichtfelder; die Fehlertafel hängt
 von nichts ab, was abstürzen kann; die Stichwortketten als Suchstoff; die Speicherleiste am
-Schreibtisch bleibt, wie sie ist (N-D4-1 ist zurückgestellt).
+Schreibtisch bleibt, wie sie ist (N-D4-1 ist zurückgestellt — nach der Bestätigung neu vorgelegt
+als E-B23); „Deaktivieren“ im Fenster „… verwalten“ der Plattform bleibt als Knopf, wo es ist
+(E-B20).
 **Risiko:** die Gliederung der Einstellungen berührt Navigation, Suche und Linkprüfung; jede Rolle
 sieht andere Reiter. **Aufwand:** 10–12 Tage.
 
@@ -3088,7 +3486,10 @@ aus Abschnitt 2.2.
 vorkommen; das Zeitkonto kennt die Auszahlung.
 **Punkte:** Z-3, Z-5, Z-6, Z-7, Z-8, Z-9, Z-10, Z-11, Z-12, Z-13, Z-14, D4-C4, N-Z-3, N-Z-4.
 **Voraussetzung:** Paket 1 (Z-1, Z-2, Wächter Textersatz). Verdacht Z-2, Z-3, Z-5, Z-7 geklärt.
-Entscheidungen E-Z3, E-Z11 (gelten), E-Z14, E-F6. Für (g) und (h) die Kanzlei.
+Entscheidungen E-Z3, E-Z11 (gelten), E-Z14, E-F6. Für (g) und (h) die Kanzlei. Nach der
+Bestätigung: E-Z11 kann sich nach der Auskunft zu K-9 noch ändern (K-9 fragt auch, ob die
+Einstellung so angeboten werden soll); die zweite Hälfte der Frage hinter E-F6 — ob Eintritt und
+Saldo-Start Pflicht werden — ist neu vorgelegt (E-B6) und hält Schritt (i) nicht auf.
 **Schritte, in dieser Reihenfolge:**
 
 - **(a) Monatsabschluss:** Z-6 — der Korrekturantrag kann nachtragen und löschen, mit den Grenzen
@@ -3131,7 +3532,7 @@ Entscheidungen E-Z3, E-Z11 (gelten), E-Z14, E-F6. Für (g) und (h) die Kanzlei.
 | N-Z-3 | Papier 1, Grenze 1.10: nicht sperren, aber im Verlauf des Abschlusses festhalten und die Aufzählung der benannten Grenze vervollständigen. |
 | N-Z-4 | Meldung berichtigen; vor dem Bau nachstellen. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3152,6 +3553,17 @@ gerechnet; `zeitkontoSaldo.test.ts`, `gesamtsalden.test.ts`, `zeitkontoZwischens
 die Monats-CSV ohne Abschluss zeichengleich; für Z-8 eine eigene Prüfung über den gewachsenen
 Bestand (der Altbestand ergibt auf die Minute dieselben Zahlen); E-F6: `akten.spec.ts` (nur der
 Name geändert → Eintritt bleibt leer; heute wird er „heute“).
+
+**Neue Befunde und Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der
+Bestätigung ergänzt, Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer
+gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-Z-3 | der in Bericht 1 (Abschnitt 5) nachgestellte Fall: Oktober abgeschlossen, Austritt bzw. Eintritt nachträglich geändert (Soll 168 → 96 bzw. 112 Std.) — danach steht die Änderung im Verlauf des Abschlusses (heute bleibt keine Spur). Die Prüfdatei ist vor dem Bau festzulegen | die Änderung selbst bleibt möglich (nicht sperren — Papier 1, Grenze 1.10) |
+| N-Z-4 | vor dem Bau nachstellen (vom Prüfer nur gelesen) und dann festlegen | das Speichern scheitert weiter, wenn Betriebsurlaub in einem abgeschlossenen Monat liegt (fachlich richtig) — nur die Meldung ändert sich |
+| Grenze 5 (Vorschau beim Kürzen in Arbeitstagen) | im Papier nicht eigens benannt — vor dem Bau festzulegen; nach Z-2 | vor dem Bau festzulegen |
+| Grenze 11 (Schalter „führt ein Zeitkonto“ für die Rolle Administrator) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen |
 **Risiko:** Z-3, Z-5 und Z-11 greifen in Saldo und Urlaub — je eigener PR, Z-5 vor Z-11.
 **Aufwand:** (a)–(d) 9–11 Tage; (e) 5–7; (f) 6–8; (g) rund 3 nach der Auskunft; zusammen 23–29.
 
@@ -3173,15 +3585,16 @@ Preise“ für den Monteur. (g) A-11: Vorschläge aus der Liegenschaft in Eingan
 der Beteiligte „Rechnungsempfänger“ als Kundenvorschlag (E-F5). (h) A-13: Zusatzrecht je Person
 „Angebote schreiben“. (i) A-15: Dublettenfrage über alle Treffer. (j) A-16: Startseite der
 Leitung nennt Angebote mit ablaufender Bindefrist und liegen gebliebene Entwürfe. (k) N-A-1,
-N-A-2: Kundenseite nach der Rücknahme; Datum erst nach geglücktem Versand.
+N-A-2: Kundenseite nach der Rücknahme (gebaut wird der Zustand; der Wortlaut des Satzes an den
+Kunden wartet auf die Kanzlei, K-8); Datum erst nach geglücktem Versand.
 
 **Vorgaben aus der Gegenprüfung:**
 
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
 | A-2 | „Nur geänderte Felder“ ist keine Fassungsprüfung: ändern beide dasselbe Feld, gewinnt weiter still der Letzte. Entschieden (E-F14): zusätzlich eine Standprüfung über `updated_at` mit Rückfrage wie im Einsatzformular (`EinsatzFormular.tsx:562–571`). Kundenakte: geht der Name nicht mehr mit, wechselt der Schreibweg von `kunde_umbenennen` auf die Tabelle (`null` leert dort) — deshalb geht der Name immer mit. |
-| A-5 | Für Altangebote ist der Name schon eingefroren (`q.customerName`); es fehlen nur Anschrift und UID. Entschieden (E-F31): Altangebote drucken den eingefrorenen Namen mit der heutigen Anschrift und UID; das wird als Grenze (Altdaten) benannt. `person_auskunft`/`person_loeschen` leben von Textersatz über mehrere Migrationen: Ergänzung auf dem Endstand, nach dem Wächter aus Paket 1. Der Auslöser `app.aussteller_angebot` hat drei Zweige (Dienst, Rücknahme, Versand) — der Empfängerstand tut in allen dreien dasselbe. |
-| A-6 | Die Migration setzt auf der Fassung von `app.baustelle_abschluss_zaehlen` aus Paket 1 auf; „bleibt gleich“ heißt „wie nach Paket 1“. |
+| A-5 | Für Altangebote ist der Name schon eingefroren (`q.customerName`); es fehlen nur Anschrift und UID. Entschieden (E-F31): Altangebote drucken den eingefrorenen Namen mit der heutigen Anschrift und UID; das wird als Grenze (Altdaten) benannt. `person_auskunft`/`person_loeschen` leben von Textersatz über mehrere Migrationen: Ergänzung auf dem Endstand, nach dem Wächter aus Paket 1. Der Wächter Textersatz wird durch die Neudefinition von `person_auskunft` bestimmungsgemäß rot — sie bekommt einen Eintrag mit Grund in seiner Ausnahmeliste, und die Tabelle „muss enthalten“ führt ein Merkmal der Funktion (nach der Bestätigung ergänzt, Bericht 13, Auflage 6). Der Auslöser `app.aussteller_angebot` hat drei Zweige (Dienst, Rücknahme, Versand) — der Empfängerstand tut in allen dreien dasselbe. |
+| A-6 | Die Migration setzt auf der Fassung von `app.baustelle_abschluss_zaehlen` aus Paket 1 auf; „bleibt gleich“ heißt „wie nach Paket 1“. Nach der Bestätigung: Schritt 8 von Paket 1 wartet auf E-B2 — ist er noch nicht gebaut, setzt die Migration auf dem dann geltenden Endstand auf (Regel 13), und der spätere Schritt 8 baut auf dieser Fassung auf. |
 | A-7 | Der Baustein entsteht neu am Angebot; die Rechnung wechselt erst mit ihrem Seitenpaket darauf (kein Herausziehen aus `InvoicesView`). Ein geänderter Nachlass meldet einen offenen Link wie bisher als „geändert“. |
 | A-8 | Nach Änderungen an `shared/` `node scripts/edge-shared-uebernehmen.mjs`; Kundenseite und Edge Function lesen alte Schnappschüsse (`fassung: 1`) weiter. |
 | A-9 | Der Platz für den Text hängt nicht an der Kanzlei, nur sein Inhalt (K-4) — der Bau wartet nicht. |
@@ -3191,12 +3604,12 @@ N-A-2: Kundenseite nach der Rücknahme; Datum erst nach geglücktem Versand.
 | A-15 | „Bleibt gleich“ für alle drei Aufrufer (`CustomersView.tsx:372`, `LiegenschaftView.tsx:225`, `EingangView.tsx:260`). |
 | A-16 | Die neue lesende Funktion gehört in dieselben drei Listen wie bei A-10. |
 | P-12 | Wie A-6: auf der Fassung aus Paket 1 aufbauen. `baustelleAbschliessen.test.ts:61` nutzt `toMatchObject` — ein zusätzlicher Schlüssel bricht die Prüfung nicht. |
-| N-A-1 | Entschieden (E-F20): die Kundenseite zeigt nach einer Rücknahme „inzwischen zurückgenommen“ mit Datum; der Nachweis der Annahme bleibt gespeichert. |
+| N-A-1 | Entschieden (E-F20): die Kundenseite zeigt nach einer Rücknahme „inzwischen zurückgenommen“ mit Datum; der Nachweis der Annahme bleibt gespeichert. Nach der Bestätigung genauer gefasst (Bericht 13, Abschnitt 6 Nr. 3): gebaut wird der Zustand (der Link meldet nicht mehr „angenommen“); der **Wortlaut** des Satzes an den Kunden stammt aus dem Plan, es ist ein Satz zu einer verbindlichen Erklärung — er geht mit K-8 an die Kanzlei und wartet auf ihre Auskunft. |
 | N-A-2 | Datum erst nach geglücktem Versand setzen. |
 | N-P-4 | Offen ist nur, ob die Oberfläche ein offenes Formular bei einer Live-Meldung zurücksetzt (nicht im Browser geprüft). Dieselbe Fehlerart wie A-2. |
 | N-P-6 | Mit A-2 und N-P-4 nach derselben Regel. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3219,6 +3632,16 @@ Team-Listen ohne Rücksicht auf die Reihenfolge; `AngebotView` mit `listFassunge
 Annahme-Link meldet einen geänderten Nachlass als „geändert“; alte Schnappschüsse (`fassung: 1`)
 bleiben lesbar; Annehmen, Rücknahme und Link bleiben bei der Führung. Das Angebots-PDF steht
 nicht in der Belegreferenz — A-5, A-7 und A-8 brauchen eine eigene Prüfung des PDFs.
+
+**Neue Befunde — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der Bestätigung ergänzt,
+Bericht 13, Auflage 7):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-A-1 | der in Bericht 2 (Abschnitt 5) nachgestellte Fall (`v2_v4.sql`): nach „Annahme zurücknehmen“ melden `app.angebot_link_zustand` und `app.angebot_link_kundensicht` nicht mehr „angenommen“ (heute beide „angenommen“, bis zu 30 Tage). Die Prüfdatei ist vor dem Bau festzulegen | der Nachweis der Annahme bleibt gespeichert (E-F20) |
+| N-A-2 | am Code bestätigt, nicht nachgestellt: scheitert der Versand (auch an der 6-MB-Grenze), behält der Entwurf sein Datum (heute hat er das Datum von heute). Die Prüfdatei ist vor dem Bau festzulegen | vor dem Bau festzulegen |
+| N-P-4 | der in Bericht 3 (Abschnitt 5) nachgestellte Fall (`v2.sql`): das Speichern eines vor dem „Erledigt“ geöffneten Formulars setzt die Fälligkeit nicht mehr zurück (heute: wieder fällig 20.11.2026, obwohl erledigt). Die Prüfdatei ist vor dem Bau festzulegen; ob die Oberfläche ein offenes Formular bei einer Live-Meldung zurücksetzt, ist nicht im Browser geprüft | wie A-2 („Bleibt gleich (Paket)“ oben) |
+| N-P-6 | nicht nachgestellt — vor dem Bau nachstellen und dann festlegen (mit A-2 und N-P-4 nach derselben Regel) | vor dem Bau festzulegen |
 **Risiko:** A-2 ändert den Schreibweg zweier Akten. **Aufwand:** 13–16 Tage in vier PRs.
 
 #### Paket 23 — Planung: aktuell, vollständig
@@ -3253,7 +3676,7 @@ Einsätze von heute und vom nächsten Arbeitstag auf dem Gerät — erst nach de
 | N-P-5 | Entschieden (E-F19): Einsätze auf abgeschlossenen Baustellen bleiben möglich (Nacharbeit) und werden benannt; das Einsatzformular und „Kopieren“ zeigen den Hinweis „Baustelle ist abgeschlossen“. |
 | N-M-3 | Mit L-7. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3269,25 +3692,45 @@ Einsätze von heute und vom nächsten Arbeitstag auf dem Gerät — erst nach de
 jede offene Live-Liste einmal ab (gebündelt über 50 ms); der Grund einer Abwesenheit steht
 nirgends, wo er heute nicht steht; die Felder `heute`/`morgen`/`termine_morgen` des
 Push-Ereignisses.
+
+**Neue Befunde und Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der
+Bestätigung ergänzt, Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer
+gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-P-5 | Komponentenprüfung: das Einsatzformular und „Kopieren“ zeigen bei einer abgeschlossenen Baustelle den Hinweis (ohne die Änderung: kein Hinweis). Die Prüfdatei ist vor dem Bau festzulegen; der Wortlaut des Hinweises steht in keinem Bericht — Abschnitt 10.6 | der Einsatz lässt sich weiter anlegen, kopieren und auf Folgetage legen (E-F19; nachgestellt in Bericht 3, `v4.sql`) |
+| N-M-3 | mit L-7: `eigeneAenderung.test.ts` für den umgestellten Weg — die Lagerliste gleicht nach einer geänderten Rüstliste ab („Reserviert“ stimmt). Nicht im Browser nachgestellt; vor dem Bau festzulegen | wie L-7: fremde Änderungen kommen weiter über den Kanal |
+| Grenze 23 (Folgetage direkt gegen `app.abwesenheiten`) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen |
+
 **Risiko:** L-7 ohne die Warteschlange macht Verdacht L-1 häufiger. **Aufwand:** 10–13 Tage ohne
 P-8.
 
-#### Paket 24 — Geld: Rücknahme, Gutschrift, Festschreiben, Konditionen
+#### Paket 24 — Geld: Rücknahme, Rückgabe nach der Rechnung, Festschreiben, Konditionen
 
 **Ziel:** Eine Mahnung lässt sich zurücknehmen; offene Mahnkosten bleiben sichtbar; der Export
-merkt sich, was übergeben wurde.
+merkt sich, was übergeben wurde; eine Rückgabe nach der Rechnung bleibt sichtbar (G-10, Teil 1).
+Die Rechnungskorrektur als eigener Beleg (G-10, Teil 2) baut dieses Paket nicht: sie ist nicht
+entschieden und wartet auf die Kanzlei (E-B3, K-10).
 **Punkte:** G-3, G-7, G-8, G-9, G-10, G-11, G-12, G-13, G-17, N-G-3, N-G-6.
 **Voraussetzung:** Paket 3 (G-2 vor G-11; G-1 vor G-12). Verdacht G-1, G-6 geklärt.
 Entscheidungen E-G12 (gilt), E-G13 (gilt: erst nach der Kanzlei). G-3 und G-13 warten auf die
-Kanzlei (K-2, K-1).
+Kanzlei (K-2, K-1). Nach der Bestätigung warten außerdem: G-10, Teil 2 auf E-B3 und K-10;
+Schritt (h) (N-G-6) auf E-B7.
 **Schritte:** (a) G-7 und G-8 zusammen: Mahnung zurücknehmen; offene Mahnkosten bleiben sichtbar.
-(b) G-11: Zahlungsziel, Skonto, Nachlass je Kunde als Vorgabe. (c) G-10, Teil 1: die Meldung
-nennt den vorhandenen Weg, eine Rückgabe nach der Rechnung bleibt sichtbar; Teil 2: Gutschrift
-als Beleg — beide Teile desselben Pakets. (d) G-9: der Export merkt sich den übergebenen
+(b) G-11: Zahlungsziel, Skonto, Nachlass je Kunde als Vorgabe. (c) G-10, **nur Teil 1:** die
+Meldung nennt den vorhandenen Weg, eine Rückgabe nach der Rechnung bleibt sichtbar. **Teil 2
+(Rechnungskorrektur als Beleg) wartet auf E-B3 und K-10 und wird bis dahin nicht gebaut** — das
+Papier nennt ihn „groß, Entscheidung nötig“, mit Folgen in Zahlstand, Mahnlauf, PDF,
+E-Rechnung, Nachkalkulation und beiden Exporten (`analyse/4-geld.md:298–303`). (d) G-9: der
+Export merkt sich den übergebenen
 Zeitraum. (e) G-12 mit N-G-3: Nummernschema einstellbar, nur für künftige Nummern; der Abgleich
-folgt dem Schema. (f) G-17: PDF mit festem Erstellungsdatum und fester Kennung. (g) Handgriff
+folgt dem Schema. (f) G-17: PDF mit festem Erstellungsdatum und fester Kennung — damit ändern
+sich zwingend vier Prüfsummen der Belegreferenz; sie werden bewusst und einmalig neu geschrieben
+(Vorgabe G-17). (g) Handgriff
 „Zahlstand neu rechnen“; die App schickt kein Rechnungsdatum mehr (Grenzen 29 und 30 in 4.10).
-(h) N-G-6: „Überfällig“ hängt nicht mehr am Öffnen der Rechnungsliste. (i) G-3: Rücklass — nach
+(h) N-G-6: „Überfällig“ hängt nicht mehr am Öffnen der Rechnungsliste — **wartet auf E-B7**
+(wie: beim Lesen rechnen statt als gespeicherter Stand). (i) G-3: Rücklass — nach
 der Auskunft der Kanzlei. (j) G-13: Einnahmen-Ausgaben-Rechner und Istbesteuerung — nach dem
 Gespräch mit der Kanzlei.
 
@@ -3298,14 +3741,14 @@ Gespräch mit der Kanzlei.
 | G-3 | Für die „Toleranz: beide Grundlagen zulässig“ eine Frist nennen. Eine durch Bankgarantie abgelöste Teilrechnung wird nicht noch einmal angefasst. Fachlich zuerst K-2. |
 | G-7 | Rechnungen, die vor dem 10.10.2026 gemahnt wurden, tragen eine Stufe ohne Zeile in `mahnungen` — „zurück auf den Stand der vorigen Mahnung“ dort festlegen, mit eigener Prüfung. Zusammen mit G-8 bauen. |
 | G-8 | Die neue Zahl „Mahnkosten offen“ nimmt zurückgenommene Mahnungen aus (mit G-7). |
-| G-10 | Teil 1 nach dem Papier: die Meldung nennt den vorhandenen Weg, und eine Rückgabe nach der Rechnung bleibt als Zeile für Buchhaltung und Spitze sichtbar. Teil 2: Gutschrift als Beleg. Negative Zeilen gibt es technisch schon (`pauschale.ts:76–85`); den Satz im Grenzen-Dokument (Z. 644–648) berichtigen. |
+| G-10 | Teil 1 nach dem Papier: die Meldung nennt den vorhandenen Weg, und eine Rückgabe nach der Rechnung bleibt als Zeile für Buchhaltung und Spitze sichtbar. Negative Zeilen gibt es technisch schon (`pauschale.ts:76–85`); den Satz im Grenzen-Dokument (Z. 644–648) berichtigen. **Teil 2 — nach der Bestätigung (Bericht 13, Auflage 2):** hier stand „Teil 2: Gutschrift als Beleg“, als Teil desselben Pakets, ohne Entscheidungszeile und ohne Frage an die Kanzlei. Papier 4 nennt Stufe 2 „groß, **Entscheidung nötig**“ mit einem Vorbehalt (neuer Belegtyp mit Folgen in Zahlstand, Mahnlauf, PDF, E-Rechnung, Nachkalkulation und beiden Exporten); Bericht 0 (8 Nr. 5) sagt nur, die zweite Stufe dürfe nicht „später“ werden — nicht, dass sie entschieden sei. Das Wort des Papiers ist „Rechnungskorrektur“, nicht „Gutschrift“ (der Unterschied ist steuerlich nicht gleichgültig und gehört in die Frage an die Kanzlei). Teil 2 ist neu vorgelegt (E-B3: wird gebaut, aber erst nach der Auskunft der Kanzlei, K-10); bis dahin wartet er. |
 | G-11 | Nach G-2 (Paket 3). |
 | G-12 | Der Kontoauszug-Abgleich folgt dem eingestellten Nummernschema (G-1), Prüfung in `kontoauszugAbgleich.test.ts`. Den Meldungstext „die nächste ist 0001“ berichtigen (N-G-3). |
-| G-17 | Die Stellen sind `pdf.ts:144`, `stornoPdf.ts:63`, `mahnungPdf.ts:227`, `angebotPdf.ts:61` (`setCreationDate`, `setFileId`). „Bitgleich“ gilt nur, solange Stammdaten und Gestaltung gleich bleiben — so in den Text der Grenze schreiben. |
+| G-17 | Die Stellen sind `pdf.ts:144`, `stornoPdf.ts:63`, `mahnungPdf.ts:227`, `angebotPdf.ts:61` (`setCreationDate`, `setFileId`). „Bitgleich“ gilt nur, solange Stammdaten und Gestaltung gleich bleiben — so in den Text der Grenze schreiben. **Nach der Bestätigung (Bericht 13, Auflage 3) — G-17 widerspricht „bleibt gleich: die Belegreferenz“:** die Belegreferenz hasht die **ganze Datei** samt `/CreationDate` und `/ID` (dafür stehen Uhr und `Math.random` in der Prüfung fest: `tests/unit/belegReferenz.test.ts:16–21, 260–261`). G-17 ändert also zwingend die Prüfsummen von `rechnung.pdf`, `stornorechnung.pdf`, `mahnung.pdf` und `belegarchiv.zip` in `docs/ui-umbau/referenz.json`. Der Schritt schreibt diese vier Prüfsummen **bewusst und einmalig** neu (`REFERENZ_SCHREIBEN=1`), mit dem Nachweis „Textstrom und Aussehen gleich“ im PR; die übrigen sechs Dateien der Referenz bleiben Byte für Byte. Sonst ließe sich G-17 nicht bauen, oder die Referenz würde still neu geschrieben. |
 | N-G-3 | Mit G-12. |
-| N-G-6 | Keine Migration und kein Zeitauftrag setzt den Stand. Lösung vor dem Bau festlegen (im Papier nur als Hinweis geführt). |
+| N-G-6 | Keine Migration und kein Zeitauftrag setzt den Stand. Lösung vor dem Bau festlegen (im Papier nur als Hinweis geführt). Nach der Bestätigung (Bericht 13, Auflage 7): die Lösung ist als Frage vorgelegt (E-B7) — Empfehlung: „überfällig“ wird beim Lesen aus Fälligkeit und Zahlstand gerechnet, wie Startseite und Mahnlauf es schon tun, statt als gespeicherter Stand, der erst beim Öffnen der Liste entsteht (gesetzt wird er heute nur in `InvoicesView.tsx:893–904`); vor dem Bau die Lesestellen zählen. Bis zur Entscheidung wird Schritt (h) nicht gebaut. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3317,22 +3760,40 @@ Gespräch mit der Kanzlei.
 | G-11 | Papier 4, Befund G-11 (Aufwand dort: m) | `konditionen.test.ts` (Reihenfolge Rechnung > Kunde > Betrieb), Ansichtstest, Datenbankprüfung, die jedes neue Feld einmal schreibt und zurückliest (das Muster aus A2). | Kunden ohne Angaben rechnen wie heute; G-2 gilt weiter (Wechsel der Baustelle setzt auf Kunde bzw. Betrieb zurück). |
 | G-12 | Papier 4, Befund G-12 (Aufwand dort: m) | `nummernkreisNurMitBeleg`/`regeln` (Beginn 1, durchlaufend über den Jahreswechsel), `buchhaltungExport` (keine falsche Lücke). | ohne Einstellung jede Nummer wie heute (eigener Test über den Jahreswechsel). |
 | G-13 | Papier 4, Befund G-13 (Aufwand dort: m) | neue Einheitstests mit Teilzahlung, Skonto, Rückzahlung, Reverse Charge. | die drei bestehenden Exporte unverändert. |
-| G-17 | Papier 4, Befund G-17 (Aufwand dort: k) | Einheitstest, der dieselbe Rechnung zweimal mit Abstand erzeugt und die Prüfsummen vergleicht (vorher verschieden). | Inhalt und Aussehen der Belege (bestehende PDF-Prüfungen). |
+| G-17 | Papier 4, Befund G-17 (Aufwand dort: k) | Einheitstest, der dieselbe Rechnung zweimal mit Abstand erzeugt und die Prüfsummen vergleicht (vorher verschieden). | Inhalt und Aussehen der Belege (bestehende PDF-Prüfungen) — die Prüfsummen der Belegreferenz für `rechnung.pdf`, `stornorechnung.pdf`, `mahnung.pdf` und `belegarchiv.zip` bleiben dabei **nicht** gleich (siehe Vorgabe G-17). |
+
+**Neue Befunde und Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der
+Bestätigung ergänzt, Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer
+gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-G-3 | der in Bericht 4 nachgestellte Fall (`g10_g12.sql`): im neuen Jahr nennt die Abweisung einer Wunschnummer die Nummer, die gezogen wird (heute „die nächste ist 0001“, gezogen wird 1001). Mit G-12; die Prüfdatei ist vor dem Bau festzulegen | wie G-12: ohne Einstellung jede Nummer wie heute |
+| N-G-6 | wartet auf E-B7 — Prüfung und „bleibt gleich“ werden mit der Entscheidung festgelegt (vor dem Bau die Lesestellen zählen) | wartet auf E-B7 |
+| Grenze 29 (Handgriff „Zahlstand neu rechnen“) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen |
+| Grenze 30 (die App schickt kein Rechnungsdatum mehr) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen; eine ältere App-Fassung, die das Datum noch schickt, bleibt bedienbar (Regel 14) |
 
 **Bleibt gleich (Paket):** jede Rechnung ohne zurückgenommene Mahnung rechnet und druckt wie
 heute; ohne jeden Vermerk verhalten sich alle drei Exporte wie heute; ausgestellte Nummern
-bleiben; die Belegreferenz. Zeilenschutz, Datenauskunft und Löschung der Tabellen
+bleiben; die Belegreferenz — **mit einer benannten Ausnahme (G-17):** die vier Prüfsummen von
+`rechnung.pdf`, `stornorechnung.pdf`, `mahnung.pdf` und `belegarchiv.zip` werden einmalig und
+bewusst neu geschrieben (`REFERENZ_SCHREIBEN=1`, Nachweis „Textstrom und Aussehen gleich“); die
+übrigen sechs Dateien bleiben Byte für Byte. Zeilenschutz, Datenauskunft und Löschung der Tabellen
 `bank_buchungen` und `beleg_versand` sind bisher nicht geprüft (Abschnitt 12) — vor diesem Paket
 nachholen.
 **Risiko:** G-7: fünf Lesestellen müssen denselben Filter tragen (Wächter über alle Abfragen auf
-`mahnungen`). **Aufwand:** 23–28 Tage ohne G-3 und G-13.
+`mahnungen`). G-17: die Referenz darf sich nur an diesen vier Prüfsummen ändern — und nur
+bewusst, nie still.
+**Aufwand:** 23–28 Tage ohne G-3 und G-13. Darin ist G-10, Teil 2 (groß) noch mitgezählt; er
+wartet (E-B3, K-10).
 
 #### Paket 25 — Material: Preise, Verbrauch, Fahrzeug, Bestellung
 
 **Ziel:** Verkaufspreise folgen dem Einkauf; offene Verbrauchsentscheidungen gehen nicht unter;
 die Bestellung ist ein Beleg; die Einkaufsliste wird einmal umgebaut.
 **Punkte:** M-5, M-6, M-7, M-9, D3-C6, D3-C10, D3-T16, D3-P8, D3-P9. **Dazu Teile von:** D3-16 (überfälliger Liefertermin in der Einkaufsliste).
-**Voraussetzung:** Paket 6 (M-3 vor M-5), Pakete 8 bis 11 für die Einkaufsliste. Verdacht M-6.
+**Voraussetzung:** Paket 6 (M-3 vor M-5), Pakete 8 bis 11 für die Einkaufsliste. Verdacht M-6
+(nach Abschnitt 4.9 schon vor Paket 15 zu klären; dort jetzt ebenfalls als Voraussetzung geführt).
 Entscheidungen E-M7 (gilt), E-P, E-W1.
 **Schritte:** (a) M-5: nach einem Preisupdate schlägt der Laufbericht neue Verkaufspreise vor
 (Merker „kalkuliert / fest“), übernommen wird nach Bestätigung. (b) M-6: Zähler und Liste
@@ -3348,7 +3809,7 @@ Teil). (e) CSV des Inventur-Protokolls mit Einkaufspreis für die Spitze (Grenze
 
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
-| M-5 | Der Merker „kalkuliert / fest“ ist der Schutz. Vorgeschlagen wird im Laufbericht nach der Übernahme, nicht im Probelauf. Voraussetzung M-3; Artikel mit abweichender Einheit werden nicht nachgezogen. Dem Auftraggeber sagen: Altpreise gelten als „fest“, die Funktion zieht im ersten Jahr fast nichts nach. |
+| M-5 | Der Merker „kalkuliert / fest“ ist der Schutz. Vorgeschlagen wird im Laufbericht nach der Übernahme, nicht im Probelauf. Voraussetzung M-3; Artikel mit abweichender Einheit werden nicht nachgezogen. Dem Auftraggeber sagen: Altpreise gelten als „fest“, die Funktion zieht im ersten Jahr fast nichts nach. (Nach der Bestätigung, Bericht 13, Abschnitt 6 Nr. 7: das stand nur hier als Vorgabe — es steht jetzt auch in Abschnitt 10.7 und im Risiko dieses Pakets.) |
 | M-6 | Teil (1) des Vorschlags ist gebaut — nicht noch einmal bauen. Zu bauen bleiben Zähler und Liste „Verbrauch offen“ und der Fall ohne Netz. |
 | M-7 | `app.eigenes_fahrzeug` allein reicht nicht: `schein_verbrauch_vorschlag`, `laden_umschalten`, `person_auskunft`, `person_loeschen`, `fahrzeug_speichern` fragen `standardfahrer_uid` direkt; in der App `eigeneFahrzeugOrte`, `abhakOrte`, `OrderView`, `MeinFahrzeug`. Die Regel von `laden_umschalten` für Poolfahrzeuge ohne Standardfahrer bleibt. |
 | M-9 | Der Weg über das Mailprogramm bleibt daneben stehen — ein Betrieb ohne eingerichteten Versand muss weiter per Mail bestellen können. |
@@ -3356,7 +3817,7 @@ Teil). (e) CSV des Inventur-Protokolls mit Einkaufspreis für die Spitze (Grenze
 | D3-C10 | Entschieden (E-F32): die Leerzustände tragen den ersten Schritt; „Material dazusetzen“ bleibt als Blatt im Reiter „Einkauf“ (die Hauptaktion der Seite gehört D3-C13). Das Formular „Material dazusetzen“ bleibt unverändert. |
 | D3-P8 | Bei 375 px brechen die drei Zeilenknöpfe heute schon in zwei Reihen; Form nach Regel 5 in Abschnitt 7.3, die Knöpfe bleiben. |
 
-**Bleibt gleich laut Papier, je Punkt:**
+**Bleibt gleich laut Papier, je Punkt — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bleibt gleich (Wortlaut des Papiers; die Vorgaben oben gehen vor) |
 |---|---|
@@ -3365,12 +3826,12 @@ Teil). (e) CSV des Inventur-Protokolls mit Einkaufspreis für die Spitze (Grenze
 | D3-P8 | drei Zeilenaktionen bzw. D3-C6 |
 | D3-P9 | – |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
 | M-5 | Papier 5, Befund M-5 (Aufwand dort: m) | Datenbankprüfung (kalkuliert folgt, fest bleibt, Vorschau ändert nichts); Gegenprobe: ohne Merker bleibt der alte Preis (rot). | `katalogLagerAufschlag.test.ts` („nur wo keiner steht“), ausgestellte Belege (Preise stehen in den Positionen fest). |
-| M-6 | Papier 5, Befund M-6 (Aufwand dort: k–m) | Datenbankprüfung (Zahl sinkt nach Buchen und nach „nicht abbuchen“; Rechte), Komponentenprüfung für das Öffnen nach dem Unterschreiben. Gegenprobe: heutiger Stand öffnet nichts (rot). | nichts wird von selbst gebucht; `scheinVerbrauch.test.ts`; ohne Netz unterschreibt der Schein wie bisher (die Frage entfällt dann und steht später in der Zeile). |
+| M-6 | Papier 5, Befund M-6 (Aufwand dort: k–m) | Datenbankprüfung (Zahl sinkt nach Buchen und nach „nicht abbuchen“; Rechte), Komponentenprüfung für das Öffnen nach dem Unterschreiben. Gegenprobe: heutiger Stand öffnet nichts (rot) — **gilt nicht, siehe Vorgabe M-6:** das Öffnen nach dem Unterschreiben ist schon gebaut (Teil 1 des Vorschlags), die Gegenprobe wäre am heutigen Stand nicht rot; zu prüfen bleiben Zähler und Liste „Verbrauch offen“ und der Fall ohne Netz. | nichts wird von selbst gebucht; `scheinVerbrauch.test.ts`; ohne Netz unterschreibt der Schein wie bisher (die Frage entfällt dann und steht später in der Zeile). |
 | M-7 | Papier 5, Befund M-7 (Aufwand dort: m) | Datenbankprüfung (weiterer Fahrer liest, lagert zurück, bucht Verbrauch; ein Dritter nicht), `eigeneFahrzeugOrte` als Einheitenprüfung; Gegenprobe: ohne Tabelle abgewiesen (rot). | der Standardfahrer und seine Vorbelegungen (Zeiterfassung, Rüstliste); `lagerorte`-Prüfungen. |
 | M-9 | Papier 5, Befund M-9 (Aufwand dort: g) | Datenbankprüfungen (Nummer lückenlos je Jahr, Stand eingefroren, Storno und Teillieferung je Zeile), `Einkaufsliste.test.tsx`; Gegenprobe: ohne Migration fehlt der Beleg. | Zeilen, die vor dem Umbau bestellt wurden (ohne `bestellung_id`), laufen wie heute bis „Geliefert“; `einkauf.test.ts`, `bestellungStornoTeillieferung.test.ts`, `wareneingangBestellung.test.ts`. |
 
@@ -3379,7 +3840,18 @@ Teil). (e) CSV des Inventur-Protokolls mit Einkaufspreis für die Spitze (Grenze
 `einkauf.test.ts`, `bestellungStornoTeillieferung.test.ts`, `wareneingangBestellung.test.ts`;
 Rechnung und Angebot gehen über den Belegversand unverändert hinaus;
 `WorkSheetsListView.test.tsx:1301` („öffnet den markierten Schein im Fenster“).
-**Risiko:** M-9 berührt den Belegversand (Edge Function, Prüfregel der Art). **Aufwand:** (a) 3–4;
+
+**Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der Bestätigung ergänzt,
+Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| Grenze 37 („Buchung zurücknehmen“, solange der Schein nicht verrechnet ist) | im Papier nicht eigens benannt — vor dem Bau festzulegen (mit M-6) | wie M-6: nichts wird von selbst gebucht; `scheinVerbrauch.test.ts` |
+| Grenze 38 (CSV des Inventur-Protokolls mit Einkaufspreis für die Spitze) | im Papier nicht eigens benannt — vor dem Bau festzulegen | den Einkaufspreis liest weiter nur die Geschäftsführung (Preisrecht, siehe D3-C9); die Bewertungsmethode bleibt bei der Kanzlei |
+
+**Risiko:** M-9 berührt den Belegversand (Edge Function, Prüfregel der Art). M-5: Altpreise gelten
+als „fest“ — die Funktion zieht im ersten Jahr fast nichts nach; das ist gewollt (der Merker ist
+der Schutz), der Auftraggeber sollte es wissen (Abschnitt 10.7). **Aufwand:** (a) 3–4;
 (b) 2–3; (c) 4–5; (d) 10–12 samt Einkaufsliste; zusammen 19–24.
 
 #### Paket 26 — Plattform, Datenschutz, Härtung
@@ -3406,12 +3878,13 @@ weiter keine Scheine und bearbeitet keine Eingänge — der Text in `Supportzuga
 | S-4 | Entschieden (E-F17): der Push nennt den Grund nicht (er ist Freitext der Plattform und stünde am Sperrbildschirm); der Grund steht auf der Startseite der Leitung. Monteure und Büro ohne Leitungsrolle bekommen nichts. Push hängt am Gerät (E69) — benannte Grenze. |
 | S-7 | Die Ausnahme „oder es gibt ihn noch nicht“ lässt weiter jedes Konto Dateien unter beliebiger Schein-Kennung ablegen — benennen. Die Regel fürs Anlegen braucht zusätzlich „Schein offen oder noch nicht da“ (N-S-3). |
 | S-8 | Grund der Grenze: der Anmeldedienst führt eine Adresse einmal. |
-| S-11 | `vite.config.ts:117` und `sicherheitsKopfzeilen.test.ts` lesen `firebase.json` direkt: wird die Datei erzeugt, prüft die Prüfung die erzeugte Fassung. Den vorhandenen Baustein `vorschauKopfzeilen` nehmen. |
-| S-12 | „Als Ganzes neu schreiben“ ist richtig; der Vergleich „alle bisherigen Einträge unverändert“ als eigene Prüfung. |
+| S-11 | `vite.config.ts:117` und `sicherheitsKopfzeilen.test.ts` lesen `firebase.json` direkt: wird die Datei erzeugt, prüft die Prüfung die erzeugte Fassung. Den vorhandenen Baustein `vorschauKopfzeilen` nehmen. `connect-src https://*.googleapis.com` bleibt dabei genauso weit wie heute — welche Hosts Push braucht, hat der Prüfer nicht nachgesehen (nach der Bestätigung nachgetragen, Bericht 6; Bericht 13, Auflage 10 e). |
+| S-12 | „Als Ganzes neu schreiben“ ist richtig; der Vergleich „alle bisherigen Einträge unverändert“ als eigene Prüfung. Der Wächter Textersatz aus Paket 1 wird durch die Neudefinition von `person_loeschen` bestimmungsgemäß rot — sie bekommt einen Eintrag mit Grund in seiner Ausnahmeliste, und die Tabelle „muss enthalten“ führt ein Merkmal der Funktion (nach der Bestätigung ergänzt, Bericht 13, Auflage 6). |
 | N-S-3 | Mit S-7: die Regel fürs Anlegen braucht „Schein offen oder noch nicht da“. |
 | N-S-4 | Jede Rollenprüfung in angefassten Funktionen als `… is not true` oder mit `coalesce(…, false)`. Schon in Paket 1 für die dort angefassten Funktionen. |
+| N-S-5 | Nach der Bestätigung ergänzt (Bericht 13, Abschnitt 5: die Höhe der Obergrenze fehlte): `uid_pruefung_vorbereiten` zählt und begrenzt heute nichts; in `uid-pruefen/index.ts` steht nur die Zeitgrenze für VIES. Die Höhe ist neu vorgelegt (E-B8) — Empfehlung: an der bestehenden Begrenzung des Belegversands ausrichten (`beleg_versand_vorbereiten`, gerufen von der Edge Function `beleg-mail`: 30 je Person und Stunde, 100 je Betrieb und Stunde, 400 je Betrieb und Tag; Abweisung mit `P0429`, hinter einer Sperre je Betrieb). Bis zur Entscheidung wird die Obergrenze nicht gebaut. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3425,6 +3898,19 @@ weiter keine Scheine und bearbeitet keine Eingänge — der Text in `Supportzuga
 **Bleibt gleich (Paket):** der Notzugang selbst (Grund, 1–24 Stunden, nur lesend), Widerruf durch
 den Betrieb; `supportzugang.test.ts`, `supportArbeitetMit.test.ts`;
 `betriebeDeaktivierenLoeschen.test.ts`; mit „ansehen“ ändert kein Aufruf eine Zeile.
+
+**Neue Befunde und Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der
+Bestätigung ergänzt, Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer
+gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-S-3 | der in Bericht 6 (Abschnitt 5) nachgestellte Fall (`71_v2.sql`): am **unterschriebenen** Schein legt ein Kollege keine Datei mehr an (heute legt er eine unter freiem Namen an). Mit S-7; die Prüfdatei ist vor dem Bau festzulegen | Überschreiben und Löschen einer vorhandenen Datei bleiben abgewiesen (heute 0 Zeilen); Anlegen am offenen Schein und bevor es den Schein gibt |
+| N-S-4 | der in Bericht 6 (Abschnitt 2b) nachgestellte Fall: mit der Freigabe „ansehen“ hält die Rollenprüfung jeder angefassten Funktion selbst (heute kommen sechs Funktionen an ihr vorbei; gehalten wird nur am Auslöser der Tabelle). Die Prüfdatei ist vor dem Bau festzulegen | mit „ansehen“ ändert kein Aufruf eine Zeile; für Konten des Betriebs ändert sich kein Ergebnis |
+| N-S-5 | wartet auf E-B8 (Höhe der Obergrenze) — Prüfung und „bleibt gleich“ werden mit der Entscheidung festgelegt | wartet auf E-B8 |
+| Grenze 47 (Sitzungsdauer und Ratenbegrenzung in `config.toml` und in einer Prüfung) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen |
+| Grenze 51 (`passwort_hilfe_anfragen` zählt je Betrieb) | im Papier nicht eigens benannt — vor dem Bau festzulegen; am Endstand zählen die 200 je Stunde heute ohne `company_id` über alle Betriebe (Bericht 6) | vor dem Bau festzulegen |
+
 **Risiko:** S-11: wird `firebase.json` zur erzeugten Datei, ist die ausgelieferte Kopfzeile
 ungeprüft, solange die Prüfung die Quelle liest. **Aufwand:** 7–9 Tage (Fassung 1: 5–6, laut
 Prüfer knapp).
@@ -3440,18 +3926,24 @@ Prüfer knapp).
 beschrieben und einmal durchgeführt); L-10 (Node 22 und feste Werkzeugfassungen überall); L-15
 (Wächter für die Reihenfolge der Migrationen); S-9 vollständig (im Auftrag `einspielen` entfällt
 `npm ci`; fremde Actions auf Commit-Kennung; Secrets an eine GitHub-Umgebung; die Grenze mit Grund
-in `CLAUDE.md` und `DEPLOYMENT.md`; Wächter über die Workflow-Dateien).
+in `DEPLOYMENT.md`; Wächter über die Workflow-Dateien). **Nach der Bestätigung (Bericht 13,
+Auflage 8):** `CLAUDE.md` wird in diesem Paket nicht angefasst. Die Regel dort sagt „Geheimnisse
+(Supabase-Dienstschlüssel u. ä.) nie ins Repository und nie in GitHub-Secrets“ (`CLAUDE.md:82`);
+in `supabase-migrationen.yml:122–158` liegen Zugangstoken und Datenbankpasswort in
+GitHub-Secrets. Ob die Praxis bleibt und der Wortlaut der Regel genauer gefasst wird, oder ob
+die Zugangsdaten aus GitHub genommen werden, entscheidet der Auftraggeber (E-B4). Die Härtung
+selbst hängt daran nicht und wird gebaut.
 
 **Vorgaben aus der Gegenprüfung:**
 
 | Punkt | Vorgabe aus der Gegenprüfung (gilt beim Bau) |
 |---|---|
-| S-9 | Im Auftrag `einspielen` kann `npm ci` ganz entfallen (`edge-shared-uebernehmen.mjs` importiert nur `node:`-Module). Dazu: fremde Actions auf Commit-Kennung, Secrets an eine GitHub-Umgebung, die Grenze in `CLAUDE.md` und `DEPLOYMENT.md` mit Grund benennen, Wächter über die Workflow-Dateien. `npm run gemeinsames` steht in Zeile 154. |
+| S-9 | Im Auftrag `einspielen` kann `npm ci` ganz entfallen (`edge-shared-uebernehmen.mjs` importiert nur `node:`-Module). Dazu: fremde Actions auf Commit-Kennung, Secrets an eine GitHub-Umgebung, die Grenze in `CLAUDE.md` und `DEPLOYMENT.md` mit Grund benennen, Wächter über die Workflow-Dateien. `npm run gemeinsames` steht in Zeile 154. **Nach der Bestätigung (Bericht 13, Auflage 8):** „die Grenze in `CLAUDE.md` benennen“ ändert den Wortlaut einer Regel des Auftraggebers — das ist seine Entscheidung und neu vorgelegt (E-B4); bis dahin wird `CLAUDE.md` nicht angefasst, die Grenze steht mit Grund nur in `DEPLOYMENT.md`. Die Härtung (kein `npm ci` im Auftrag `einspielen`, Actions auf Commit-Kennung, Umgebung, Wächter) hängt daran nicht. |
 | L-8 | Der Prüfschritt nach dem Rücksprung braucht die erwartete Kennung als Eingabe. In den Text: der nächste Merge liefert den kaputten Stand wieder aus, solange er nicht zurückgenommen ist. |
 | L-10 | `firebase-tools` als `devDependency` zieht mehrere hundert Pakete in jedes `npm ci`; die genaue Fassung am `npx`-Aufruf ist der kleinere Eingriff (Abwägung). |
 | L-15 | Der Vergleich mit `origin/main` braucht im Auftrag die Geschichte des Zielzweigs. Dicht wird es erst mit „Zweig muss aktuell sein“ am Zielzweig oder derselben Prüfung auf `main` vor `db push`. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3472,6 +3964,10 @@ beschreiben den heutigen Stand.
 Frist erhöhen); L-14 (toter Code: je Fund entscheiden); L-16 und L-5 (Texte); das
 Grenzen-Dokument auf den Stand von Abschnitt 4.10 bringen (überholte Zeilen streichen, unbenannte
 Grenzen mit Grund nachtragen, Begründungen ersetzen); die Sätze fürs Handbuch (geteiltes Tablet).
+Nach der Bestätigung: für die acht Grenzen ohne gültigen Grund (4.10 Nr. 6, 14, 15, 27, 34, 39,
+42, 43) entscheidet der Auftraggeber mit E-B9 bis E-B16, ob gebaut wird oder welcher der sechs
+Gründe im Grenzen-Dokument stehen soll; bis dahin trägt das Grenzen-Dokument für sie, was die
+Spalte „Paket oder gültiger Grund“ in 4.10 sagt.
 
 **Vorgaben aus der Gegenprüfung:**
 
@@ -3480,7 +3976,7 @@ Grenzen mit Grund nachtragen, Begründungen ersetzen); die Sätze fürs Handbuch
 | L-13 | Den Suchverzug nur im Helfer überbrücken, nicht in `setup.ts` für alle Ansichtsprüfungen: sechs Prüfungen bauen auf den Verzug. |
 | L-14 | `monthly_stats` nicht entfernen (`person_auskunft` und `person_loeschen` lesen sie, die alte App auch). Je Fund entscheiden; `zeitkonto_monate` und `monatsbilanzen_alle` stehen in `LESENDE_FUNKTIONEN` — beim Entfernen mitnehmen. Über `zeitkontoMonate` entscheidet erst die Idee I-L1. Bedingung: eine noch im Gerät liegende App-Fassung ruft die Funktion nicht mehr. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3514,8 +4010,9 @@ Messung; die Grenzen des Leistungsbudgets werden nicht angehoben).
 | L-3 | `KOPF_SPALTEN` enthält `company_id` — bleibt. Die Gesamtzahl braucht eine eigene Zählung (das `limit` deckelt auch `count`). Die Baustellenakte braucht weiter alle Köpfe (`abschlussReif`). |
 | L-6 | Die Baustellenauswahl zeigt heute alle laufenden Baustellen, fremde „wählbar“. „Bleibt gleich“: fremde Baustelle ohne Umweg wählbar, vorgegebene Baustelle aus dem Link, Ausweichweg bei keiner laufenden, „pausiert getrennt“. |
 | N-L-3 | Welche Felder Streifen, Fenster, Tagesnachweis und Lohn-CSV lesen, ist nicht zusammengetragen — zuerst das. |
+| L-12 (Nachladen) | Nach der Bestätigung nachgetragen (Bericht 7, Abschnitt 4; Bericht 13, Auflage 10 e): `ansicht()` erwartet einen Pfad (`ansichten.ts:65`) und ist für Routen gebaut — für das Nachladen eines Fensters ist sie so nicht der Baustein. Jedes nachgeladene Fenster ist ein Baustein mehr (vier brächten 258 von 260); nur nach Messung, die Grenzen des Leistungsbudgets werden nicht angehoben. |
 
-**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier:**
+**Prüfung mit Gegenprobe und „bleibt gleich“ laut Papier — wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe:**
 
 | Punkt | Bauanleitung | Prüfung mit Gegenprobe (Wortlaut des Papiers) | Bleibt gleich (Wortlaut des Papiers) |
 |---|---|---|---|
@@ -3528,6 +4025,16 @@ Messung; die Grenzen des Leistungsbudgets werden nicht angehoben).
 **Bleibt gleich (Paket):** Reihenfolge und Inhalt der Zeilen der Akten; `importierenEinstieg = 0`;
 `leistungswaechter.test.ts`; `InvoicesView.test.tsx` beim Nachladen der Fenster (die Prüfungen
 dürfen das Fenster nicht im selben Zug erwarten — sonst bleibt es fest eingebunden).
+
+**Neue Befunde und Bauten aus 4.10 — Prüfung mit Gegenprobe und „bleibt gleich“** (nach der
+Bestätigung ergänzt, Bericht 13, Auflage 7; die Bewertungen der Grenzen hat kein Prüfer
+gegengeprüft, Abschnitt 12.3):
+
+| Punkt | Prüfung mit Gegenprobe | Bleibt gleich |
+|---|---|---|
+| N-L-3 | im Bericht nicht eigens benannt — vor dem Bau festzulegen, nachdem zusammengetragen ist, welche Felder Streifen, Fenster, Tagesnachweis und Lohn-CSV lesen | die Belegreferenz (Stundennachweis und Lohn-Datei Byte für Byte); sonst vor dem Bau festzulegen |
+| Grenze 44 („zuletzt angefordert“ als kleine Datenbankabfrage) | im Papier nicht eigens benannt — vor dem Bau festzulegen | vor dem Bau festzulegen |
+
 **Risiko:** je Punkt eine Messung vorher und nachher. **Aufwand:** 8–10 Tage.
 
 ---
@@ -3547,6 +4054,22 @@ klaren, belegten Gewinn ohne Verlust. Wo ein Prüfer eine Empfehlung der Fassung
 steht seine Fassung. Ideen ohne Befund, deren Nutzen ohne Verlust nicht belegt ist, sind
 „zurückgestellt — neue Entscheidung nötig“.
 
+**Nach der Bestätigung (Berichte 13 und 14)** kommen drei Abschnitte dazu. Die Erklärung des
+Auftraggebers („alle offenen und überdachten entscheidungen wie von dir neu empfohlen“) deckt die
+Zeilen der Abschnitte 10.2 und 10.3, **wie sie ihm vorlagen**. Was die Bestätiger daran geändert
+oder neu aufgeworfen haben, ist davon nicht gedeckt:
+
+- Eine **reine Präzisierung** — die Zeile sagt genauer, was schon gemeint war, oder nennt einen
+  bisher verschwiegenen Verlust — steht in der bestehenden Zeile, mit dem Zusatz „(nach der
+  Bestätigung genauer gefasst, Bericht 13/14)“.
+- Jede Empfehlung, die sich **inhaltlich ändert**, und jede **neue** Frage steht in **10.5 — nicht
+  entschieden**. Die alte Zeile bleibt stehen und verweist dorthin („→ neu vorgelegt als E-B…;
+  bis dahin nicht bauen“).
+- **10.6** sammelt, was vor dem PR im Bild (oder im Wortlaut) vorzulegen ist, weil eine Vorgabe
+  eine Wahl offenlässt.
+- **10.7** nennt Folgen schon entschiedener Punkte, die bisher nur als Vorgabe in einem Paket
+  standen.
+
 ### 10.1 Teil 1 — entschieden am 23.11.2026 und von der Gegenprüfung nicht beanstandet
 
 Wortlaut des Auftraggebers: „alles wie von dir empfohlen, aber noch nicht mit der umsetzung
@@ -3559,7 +4082,7 @@ starten“. Diese sechs gelten.
 | E-G12 | Nummernschema der Rechnung einstellbar (durchlaufend, Startwert)? | ja, nur für künftige Nummern | Bericht 0: der Kontoauszug-Abgleich muss dem Schema folgen — Schritt in Paket 24 |
 | E-G13 | Einnahmen-Ausgaben-Rechner und Istbesteuerung unterstützen? | erst nach dem Gespräch mit der Kanzlei | bleibt so (K-1) |
 | E-Z3 | Auszahlung von Überstunden als Abgang im Zeitkonto bauen? | ja | Bericht 1: Pflichteingang oder Prüfung über jeden Aufrufer; die Spalte der Lohn-Datei entsteht hier — Vorgabe in Paket 21 |
-| E-Z11 | Arbeitsjahr je Person als Urlaubsjahr? | ja, als Einstellung je Betrieb | Bericht 1: vor dem Bau die Kanzlei zu Fundstelle und Verfall (K-9); der Umgang mit laufenden Ansprüchen wird vor dem Bau festgelegt |
+| E-Z11 | Arbeitsjahr je Person als Urlaubsjahr? | ja, als Einstellung je Betrieb | Bericht 1: vor dem Bau die Kanzlei zu Fundstelle und Verfall (K-9); der Umgang mit laufenden Ansprüchen wird vor dem Bau festgelegt. K-9 fragt auch, ob die Einstellung so angeboten werden soll — die Entscheidung kann sich nach der Auskunft noch ändern (nach der Bestätigung genauer gefasst, Bericht 13) |
 
 ### 10.2 Teil 2 — neu vorgelegt nach der Gegenprüfung
 
@@ -3569,12 +4092,12 @@ Startsignal ist das nicht.**
 
 | Nr. | Zuerst entschieden (Empfehlung der Fassung 1) | Was die Gegenprüfung gefunden hat | Neue Empfehlung |
 |---|---|---|---|
-| E-T | „Textregel (Abschnitt 5) in `style.md` aufnehmen; Untertitel der Seitenköpfe in die Hilfe? — ja“ | Regel 1 ändert E86 („ab dem Tablet bleibt der Plankopf“) und stößt an E25, ohne es zu sagen (Bericht 12, Abschnitt 4 Nr. 7; Bericht 0, 6.2 Nr. 8 — dort: „in Ordnung; als ‚ändert E86‘ kennzeichnen“). Der Weg in die Hilfe ist am Handy seit E86 gebaut; der Dateiname des Kontoauszugs verschwände mit (Berichte 10 und 11). Regel 5 „höchstens zwei Textzeilen“ ist mit langen Namen nicht haltbar (Bericht 10, Abschnitt 4; Berichte 9, 11, 12). Regel 6 stößt an E99 (Bericht 0, 6.2 Nr. 3). Muster 4 enthielt das widerlegte D3-T4 (Bericht 11) | Die Textregel kommt in der Fassung von Abschnitt 6.3 in `style.md`: die Beschreibung steht auch ab dem Tablet in der Hilfe (das ändert E86 an dieser einen Stelle), die vier Seiten aus E25 behalten ihren Untertitel, eine Handy-Zeile trägt den Namen und höchstens zwei Angaben, Karten mit nächstem Schritt im Leersatz bleiben offen (E99), und der Zahlungsblock der Rechnung behält seine festen Zeilen |
-| E-P | „Punktregel (Abschnitt 6) in `style.md` aufnehmen; Wächter ‚höchstens ein Punkt je Zeile‘? — ja“ | Mehrere Ersatzformen tragen bei 375 px mit langen Namen nicht (D1-P1, P4, P10: Bericht 9; D2-P1, P3, P5: Bericht 10; D4-P2: Bericht 12); feste Spalten passen nicht in die halbe Breite aus E98 (D3-P1, P2: Bericht 11); „Zähler rechts“ stößt an E98 und E99 (Berichte 9, 12); Papier 8 nennt „höchstens zwei“; die Zählweise war nicht festgelegt; `Angaben` gibt es nicht (Bericht 0, 4.3 Nr. 21; 6.1 Nr. 5, 6; 6.2 Nr. 9) | Die Punktregel kommt in der Fassung von Abschnitt 7.3 in `style.md`: höchstens ein Punkt je sichtbarer Textzeile, ein Wächter mit Ausnahmeliste der heutigen Fundstellen, und eine Ersatzform wird nur gebaut, wenn sie bei 375 und 834 px nicht mehr Zeilen braucht als die heutige Zeile — sonst bleibt die Zeile und steht als benannte Ausnahme in der Liste |
+| E-T | „Textregel (Abschnitt 5) in `style.md` aufnehmen; Untertitel der Seitenköpfe in die Hilfe? — ja“ | Regel 1 ändert E86 („ab dem Tablet bleibt der Plankopf“) und stößt an E25, ohne es zu sagen (Bericht 12, Abschnitt 4 Nr. 7; Bericht 0, 6.2 Nr. 8 — dort: „in Ordnung; als ‚ändert E86‘ kennzeichnen“). Der Weg in die Hilfe ist am Handy seit E86 gebaut; der Dateiname des Kontoauszugs verschwände mit (Berichte 10 und 11). Regel 5 „höchstens zwei Textzeilen“ ist mit langen Namen nicht haltbar (Bericht 10, Abschnitt 4; Berichte 9, 11, 12). Regel 6 stößt an E99 (Bericht 0, 6.2 Nr. 3). Muster 4 enthielt das widerlegte D3-T4 (Bericht 11) | Die Textregel kommt in der Fassung von Abschnitt 6.3 in `style.md`: die Beschreibung steht auch ab dem Tablet in der Hilfe (das ändert E86 an dieser einen Stelle), die vier Seiten aus E25 behalten ihren Untertitel, eine Handy-Zeile trägt den Namen und höchstens zwei Angaben, Karten mit nächstem Schritt im Leersatz bleiben offen (E99), und der Zahlungsblock der Rechnung behält seine festen Zeilen. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflagen 1 b und 3):** die vier Seiten aus E25 behalten den Untertitel ab dem Tablet — am Handy ist er heute schon ausgeblendet und bleibt es; und Regel 5 hat einen Wortlaut für 6.3 und 7.3 (Name allein in der ersten Zeile; darunter Zustand, Stempel und höchstens zwei weitere Angaben, der Wert rechts in dieser zweiten Zeile; von 760 bis 1.199 px bleibt die heutige Zeile; gemessen je Zeilenart; die Baustellenzeile ist benannte Ausnahme). **Der Teil „die Beschreibung steht auch ab dem Tablet in der Hilfe“ → neu vorgelegt als E-B17; bis dahin nicht bauen:** er ändert nicht nur E86 „an dieser einen Stelle“, sondern berührt auch E31 („alle Seiten beginnen auf derselben Höhe“) |
+| E-P | „Punktregel (Abschnitt 6) in `style.md` aufnehmen; Wächter ‚höchstens ein Punkt je Zeile‘? — ja“ | Mehrere Ersatzformen tragen bei 375 px mit langen Namen nicht (D1-P1, P4, P10: Bericht 9; D2-P1, P3, P5: Bericht 10; D4-P2: Bericht 12); feste Spalten passen nicht in die halbe Breite aus E98 (D3-P1, P2: Bericht 11); „Zähler rechts“ stößt an E98 und E99 (Berichte 9, 12); Papier 8 nennt „höchstens zwei“; die Zählweise war nicht festgelegt; `Angaben` gibt es nicht (Bericht 0, 4.3 Nr. 21; 6.1 Nr. 5, 6; 6.2 Nr. 9) | Die Punktregel kommt in der Fassung von Abschnitt 7.3 in `style.md`: höchstens ein Punkt je sichtbarer Textzeile, ein Wächter mit Ausnahmeliste der heutigen Fundstellen, und eine Ersatzform wird nur gebaut, wenn sie bei 375 und 834 px nicht mehr Zeilen braucht als die heutige Zeile — sonst bleibt die Zeile und steht als benannte Ausnahme in der Liste. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflage 2):** die Regel nimmt Ketten weg, die vielen einzelnen Punkte bleiben — bei 375 px haben 7 von 126 punkttragenden Textblöcken zwei oder mehr Punkte in einer Textzeile, auf `/time` tragen 58 von 59 Zeilen genau einen Punkt und behalten ihn; der Wächter ist ohne Ausnahmeliste nur an den Ketten rot; der Quelltext-Teil verbietet auch `join(' · ')` außerhalb des Verbinders. **Ob zwischen einer Wortangabe und etwas Gemessenem statt des Punkts ein fester Abstand steht („Regel 2 geht vor Regel 1“) → neu vorgelegt als E-B18;** bis zur Entscheidung gilt Regel 1 (ein einzelner Punkt bleibt) |
 | E-D | „Anrede überall ‚du‘ (heute im Kontoauszug ‚Ihrer‘)? — ja“ | Wörtlich genommen eine Verschlimmbesserung: die Kundenseite der Annahme, Mailtexte und Belege sprechen den Kunden des Betriebs an (Bericht 0, 6.2 Nr. 10; Abschnitt 11 Nr. 13). D3-T22 meint nur die Bedienoberfläche; eine weitere Stelle ist `InvoicesView.tsx:3640` (Bericht 11) | „du“ gilt in der Bedienoberfläche für angemeldete Nutzer; die Kundenseite der Annahme, alle Mailtexte und alle Belege bleiben beim „Sie“ — mit einer eigenen Prüfung für beide Seiten |
-| E-N | „‚Neu in dieser Liste‘: runder Kreis (E76) bleibt in Listen; im Fenster neben einer gefüllten Hauptaktion gerahmt (U4)? — ja“ | E76 nennt „Termin anlegen“ im Tagesfenster und in der Handy-Woche ausdrücklich als Auftrag; die Empfehlung nahm das im Fenster zurück, ohne es zu sagen, und regelte das Handy nicht (Bericht 12, D4-B15 und Abschnitt 4 Nr. 5; Bericht 0, 6.2 Nr. 1 und 7). Der Vorschlag D2-A9 (a) widerspricht E76 (Bericht 10) | E76 bleibt unverändert: der runde Kreis bleibt in Listen, in Kartenköpfen, im Tagesfenster und in der Handy-Woche; D2-A9 und D4-B15 werden nicht gebaut; die abweichenden Text-Knöpfe im Blattkopf einer Liste (D3-B15) werden nach E76 zum Kreis |
+| E-N | „‚Neu in dieser Liste‘: runder Kreis (E76) bleibt in Listen; im Fenster neben einer gefüllten Hauptaktion gerahmt (U4)? — ja“ | E76 nennt „Termin anlegen“ im Tagesfenster und in der Handy-Woche ausdrücklich als Auftrag; die Empfehlung nahm das im Fenster zurück, ohne es zu sagen, und regelte das Handy nicht (Bericht 12, D4-B15 und Abschnitt 4 Nr. 5; Bericht 0, 6.2 Nr. 1 und 7). Der Vorschlag D2-A9 (a) widerspricht E76 (Bericht 10) | E76 bleibt unverändert: der runde Kreis bleibt in Listen, in Kartenköpfen, im Tagesfenster und in der Handy-Woche; D2-A9 und D4-B15 werden nicht gebaut; die abweichenden Text-Knöpfe im Blattkopf einer Liste (D3-B15) werden nach E76 zum Kreis. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflage 8):** die Berichte 0 und 12 haben die erste Entscheidung (Kreis im Fenster gerahmt) nicht beanstandet, sondern nur den Satz „ändert E76“ verlangt; mit dieser Empfehlung bleiben im Tagesfenster zwei gefüllte Aktionen stehen (U4: höchstens eine) und im Reiter „Termine“ der Baustellenakte am Handy zwei gleiche „+“ (D2-A9 b) — siehe Abschnitt 10.7 |
 | E-E | „Einstellungen: ein Speichermodell (Speicherleiste je Seite; sofort nur Module und Mein Konto)? — ja“ | Die Trennung „sofort nur Module und Mein Konto“ ist schon der Stand; der Schalter, der mit „Speichern“ gilt, ist von E95 verlangt; die Leiste je Blatt ist die geschriebene Regel (`style.md` U1, Muster 3); eine Leiste je Seite stünde am Schreibtisch bis zu 1.650 px unter dem Feld und verlöre „Verwerfen je Blatt“, den Teilerfolg, die Rechte je Blatt (Bericht 12, Abschnitt 3; Bericht 0, 4.3 Nr. 16 und 6.2 Nr. 4) | Der Schalter bleibt überall Schalter (E95) und die Speicherleiste bleibt je Blatt (`style.md` U1); neu kommen nur der Zusatz „noch nicht gespeichert“ an der Schalterzeile und am Handy die Regel, dass nur die Leiste des zuletzt geänderten Blatts klebt; der Absatz „Schalter und Kästchen“ in `style.md` wird auf E95 berichtigt |
-| E-M | „Monatsansicht am Tablet: Tag öffnet das Tag-Fenster statt Tastflächen unter 44 px? — ja“ | Die Fassung stand in keinem Papier, behebt die 18 px breiten Tagesköpfe nicht und ersetzt die Vorschau, die Paket 12 unter „bleibt gleich“ führte. Das Papier nennt zwei Wege: seitlich rollen mit Spalten ab 44 px, oder die Handyform bis 1.199 px (Bericht 12, Abschnitt 3; Bericht 0, 4.3 Nr. 14). Papier 8 und Bericht 8: das Monatsraster ist als dichtes Raster entschieden (E88) | Unter 1.200 px rollt der Monat seitlich mit Spalten ab 44 px; er bleibt Personen × Tage, die Vorschau je Tag und je Einsatz bleibt, und ab 1.200 px steht der ganze Monat ohne Rollen wie heute |
+| E-M | „Monatsansicht am Tablet: Tag öffnet das Tag-Fenster statt Tastflächen unter 44 px? — ja“ | Die Fassung stand in keinem Papier, behebt die 18 px breiten Tagesköpfe nicht und ersetzt die Vorschau, die Paket 12 unter „bleibt gleich“ führte. Das Papier nennt zwei Wege: seitlich rollen mit Spalten ab 44 px, oder die Handyform bis 1.199 px (Bericht 12, Abschnitt 3; Bericht 0, 4.3 Nr. 14). Papier 8 und Bericht 8: das Monatsraster ist als dichtes Raster entschieden (E88) | Unter 1.200 px rollt der Monat seitlich mit Spalten ab 44 px; er bleibt Personen × Tage, die Vorschau je Tag und je Einsatz bleibt, und ab 1.200 px steht der ganze Monat ohne Rollen wie heute. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflage 7):** gemeint ist „von 760 bis 1.199 px“ (am Handy ist der Monat ein eigener Kalender mit „Für wen“ und bleibt); die Namensspalte klebt; beim Öffnen steht „heute“ im Bild; Pfeiltasten und Ziehen (E96, Mitrollen) wie heute. **Der Verlust im Klartext:** am Tablet steht danach nicht mehr der ganze Monat im Bild — gemessen 12 bis 20 von 30 Tagen (834 px: rund 12½; 1.194 px: rund 20); ab 1.200 px bleiben Spalten von 23 bis 31 px. Vor dem PR im Bild vorzulegen, beide Wege des Papiers nebeneinander (Abschnitt 10.6); siehe auch 10.7 |
 | E-S | „Supportzugang: sollen Scheine und Auftragseingänge im Einblick sichtbar sein? — ‚Nur ansehen‘: ja, wie Baustellen; sonst als Grenze benennen“ | Die Frage war falsch gestellt: sichtbar sind beide schon. Offen war, ob der Support mit „Mitarbeiten“ Scheine schreiben und Eingänge bearbeiten darf, und ob „Umplanen geht im Einblick nicht“ in die Grenzen-Übersicht kommt (Bericht 6, Abschnitt 4) | Es bleibt, wie es ist: der Support mit „Mitarbeiten“ schreibt keine Scheine und bearbeitet keine Eingänge; das und „Umplanen geht im Einblick nicht“ werden im Text des Supportzugangs und in der Grenzen-Übersicht benannt (Grund: ein Schein ist ein Beleg mit Unterschrift, über Aufträge entscheidet der Betrieb; Abwesenheiten liest nur der Betrieb) |
 | E-A13 | „Darf die Verwaltung Angebote schreiben (Führung gibt frei)? — als Einstellung je Betrieb“ | Das Papier schlägt ein Zusatzrecht je Person vor (wie `kundenPflegen`), entschieden wurde „je Betrieb“ (Bericht 2, A-13) | Die Verwaltung schreibt Angebote über ein Zusatzrecht je Person (wie `kundenPflegen`); Annehmen, Rücknahme und Link bleiben bei der Führung |
 | E-Z14 | „‚Wegzeit zählt als Arbeitszeit‘ als Einstellung je Betrieb? — ja“ | Geht weiter als das Papier (nur benennen; die Einstellung erst nach fachlicher Klärung); sie änderte Saldo, Überstunden, Arbeitszeitgrenzen und die Monats-CSV und berührt E63; die Frage an die Kanzlei fehlte (Bericht 1, Abschnitt 4 Nr. 6) | Die Grenze „Wegzeit zählt nicht als Arbeitszeit“ wird jetzt benannt; **die Einstellung wartet auf die Kanzlei (K-5) und gilt nicht als entschieden** |
@@ -3603,32 +4126,32 @@ Startsignal ist das nicht.**
 | E-F2 | Eine Form für Gruppen- und Abschnittsköpfe? | Bleibt, wie es ist — die vorhandenen Formen werden in `style.md` als Rollen benannt, umgestellt wird nichts | Bericht 8, V-B5 („beides ist entschieden“, E92); Bericht 12, D4-B2 (Wächter deckt die normale Form); Bericht 0, 6.1 Nr. 7 |
 | E-F3 | Kalkulierte Stunden und Budget („240 h“) auf „HH:MM Std“ umstellen? | Bleibt, wie es ist — Kalkulation und Budget in Dezimalstunden, gebuchte Zeit in „HH:MM Std“ | Bericht 0, 7.3 (Paket 6): „eine Entscheidung, keine Formatierung“; Bericht 9, D1-B5 |
 | E-F4 | Die Liste „Später“ (Kontextmenü, Blatt in zwei Höhen, Zahl am App-Zeichen, Startbild, Timer-Leiste „bereit“, Weiterblättern, Zustand nach Rückkehr, Kennzahlen ziehen) | Zurückgestellt — neue Entscheidung nötig; nur D1-I8 (falscher Hinweis „Quer halten“) wird in Paket 14 gebaut | Bericht 0, Abschnitt 8 Nr. 1 und 2; Bericht 9, 2.4; Bericht 10, D2-I6 |
-| E-F5 | Abweichender Rechnungsempfänger und Sammelrechnung? | Zurückgestellt — neue Entscheidung nötig; gebaut wird nur der Beteiligte „Rechnungsempfänger“ als Kundenvorschlag (mit A-11, Paket 22), und im Grenzen-Dokument entfällt der Grund „kommt mit M13“ | Papiere 2 und 4, je Abschnitt 4; Bericht 4, Abschnitt 4 Nr. 8; Bericht 0, 2.5 |
-| E-F6 | Benutzerakte: leerer Eintritt wird beim Speichern „heute“ (Stand §117/§118) | Das Formular füllt einen leeren Eintritt und Saldo-Start nicht mehr von selbst und schreibt sie nicht mit, wenn sie nicht geändert wurden; die Felder werden nicht Pflicht; Paket 21 | `docs/stand-2026-10-03.md` §117/§118 („Offen — Entscheidung nötig“); Bericht 0, 2.5 |
+| E-F5 | Abweichender Rechnungsempfänger und Sammelrechnung? | Zurückgestellt — neue Entscheidung nötig; gebaut wird nur der Beteiligte „Rechnungsempfänger“ als Kundenvorschlag (mit A-11, Paket 22), und im Grenzen-Dokument entfällt der Grund „kommt mit M13“. Ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B9) | Papiere 2 und 4, je Abschnitt 4; Bericht 4, Abschnitt 4 Nr. 8; Bericht 0, 2.5 |
+| E-F6 | Benutzerakte: leerer Eintritt wird beim Speichern „heute“ (Stand §117/§118) | Das Formular füllt einen leeren Eintritt und Saldo-Start nicht mehr von selbst und schreibt sie nicht mit, wenn sie nicht geändert wurden; die Felder werden nicht Pflicht; Paket 21. Nach der Bestätigung: das beantwortet die Hälfte der im Stand gestellten Frage („ob das Feld dann leer bleibt und Pflicht wird“) — „leer bleibt leer“ wird gebaut; die Hälfte „Pflicht“ → neu vorgelegt als E-B6 | `docs/stand-2026-10-03.md` §117/§118 („Offen — Entscheidung nötig“); Bericht 0, 2.5 |
 | E-F7 | Empfänger „Büro“ in den Nachrichten (D1-C7)? | Zurückgestellt — neue Entscheidung nötig | Bericht 9, D1-C7: neue Funktion, der Vorbehalt „fachlich“ des Papiers; Bericht 0, 4.2 Nr. 10 |
 | E-F8 | „Aufteilen“ schon im neuen Zeiteintrag (D1-C2)? | Zurückgestellt — neue Entscheidung nötig | Bericht 9, D1-C2: fachlich offen (ohne Netz, Jugendschutz, Abschluss je Teil) |
 | E-F9 | Ein gemeinsamer Kalenderbaustein für die vier Kalender (D4-B4)? | Nein — die vier Kalender bleiben; gebaut wird nur der Radius des Personenkalenders | Bericht 0, Abschnitt 8 Nr. 9; Bericht 12, D4-B4 |
 | E-F10 | Radius der Rückfrage: 16 oder 24 px? | Bleibt bei 16 px; `style.md` nennt die Rückfrage bei „Blatt 16 px“ | Papier 8, Abschnitt 9; Bericht 0, Abschnitt 11 Nr. 24 |
 | E-F11 | Ungespeichertes in Fenstern: fragen oder Entwurf behalten (D2-B3)? | „Neu“-Fenster behalten den Entwurf und sagen es; eine Rückfrage gibt es nur beim Bearbeiten; ein leeres Fenster schließt ohne Frage | Papier 10, D2-B3; Bericht 10, Abschnitt 4; Bericht 0, 4.3 Nr. 15 |
 | E-F12 | Die eigenen Einsätze von heute und vom nächsten Arbeitstag auf dem Gerät (P-8)? | **Wartet auf die Kanzlei (K-6) und gilt nicht als entschieden** | Bericht 3, P-8 und Abschnitt 4 |
-| E-F13 | Welche Form des Fokusrings gilt (D4-A6)? | Zurückgestellt — neue Entscheidung nötig; Farbe, Breite und Versatz der drei Fokusformen bleiben, gebaut wird nur V-13 | Bericht 12, D4-A6 (`style.md` und E95 nennen Verschiedenes); Bericht 8, Abschnitt 4 |
+| E-F13 | Welche Form des Fokusrings gilt (D4-A6)? | Zurückgestellt — neue Entscheidung nötig; Farbe, Breite und Versatz der drei Fokusformen bleiben, gebaut wird nur V-13. → neu vorgelegt als E-B22; bis dahin nicht bauen | Bericht 12, D4-A6 (`style.md` und E95 nennen Verschiedenes); Bericht 8, Abschnitt 4 |
 | E-F14 | A-2: nur geänderte Felder speichern — oder auch den Stand prüfen? | Beides: nur geänderte Felder, dazu eine Standprüfung über `updated_at` mit der Rückfrage des Einsatzformulars; in der Kundenakte geht der Name immer mit | Bericht 2, A-2 |
 | E-F15 | M-3: harte Sperre oder Rückfrage beim Ändern der Einheit? | Von Hand eine Rückfrage mit den Zahlen; harte Abweisung nur für den stillen Weg (Import, alte App) | Bericht 5, M-3 (Rat des Prüfers) |
 | E-F16 | P-6: soll die Buchhaltung Tag, Art und Uhrzeit von Terminen sehen? | Bleibt, wie es ist — der Hinweis auf Termine erscheint nur für Rollen, die Termine lesen dürfen | Bericht 3, P-6 |
 | E-F17 | S-4: nennt der Push den Grund des Notzugangs? | Nein — der Push nennt den Grund nicht; er steht auf der Startseite der Leitung | Bericht 6, S-4 |
 | E-F18 | P-3: zählt „am Budgetlimit“ auch pausierte Baustellen? | Bleibt, wie es ist — die Zahl zählt aktive und pausierte Baustellen | Bericht 3, P-3 |
-| E-F19 | Einsätze auf abgeschlossenen Baustellen (N-P-5)? | Bleiben möglich und werden benannt; das Einsatzformular und „Kopieren“ zeigen den Hinweis „Baustelle ist abgeschlossen“ | Bericht 3, Abschnitt 5 (Verdacht P-4) |
-| E-F20 | Was zeigt die Kundenseite nach einer zurückgenommenen Annahme (N-A-1)? | Sie zeigt „inzwischen zurückgenommen“ mit Datum; der Nachweis der Annahme bleibt gespeichert | Papier 2, Verdacht V-2; Bericht 2, Abschnitt 5 |
-| E-F21 | Eine aus der Vorschau entfernte Stundenposition sperrt ihre Buchungen (Verdacht G-2) | Bleibt, wie es ist, und wird benannt; beim Entfernen zeigt die Vorschau den Hinweis, dass die Stunden damit ohne Betrag verrechnet sind | Bericht 4, Abschnitt 5 (als Tatsache bestätigt) |
-| E-F22 | Z-1: `satz` in die Ausnahme aufnehmen oder abgeschlossene Monate nicht nachziehen? | `app.satz_nachziehen` lässt Buchungen abgeschlossener Monate aus | Bericht 1, Abschnitt 2a Nr. 1 |
+| E-F19 | Einsätze auf abgeschlossenen Baustellen (N-P-5)? | Bleiben möglich und werden benannt; das Einsatzformular und „Kopieren“ zeigen den Hinweis „Baustelle ist abgeschlossen“ (nach der Bestätigung genauer gefasst, Bericht 14: der Wortlaut des Hinweises steht in keinem Bericht — er wird vor dem PR vorgelegt, Abschnitt 10.6) | Bericht 3, Abschnitt 5 (Verdacht P-4) |
+| E-F20 | Was zeigt die Kundenseite nach einer zurückgenommenen Annahme (N-A-1)? | Sie zeigt „inzwischen zurückgenommen“ mit Datum; der Nachweis der Annahme bleibt gespeichert. Nach der Bestätigung genauer gefasst (Bericht 13): der Vorschlag stammt aus Papier 2, der Wortlaut aus dem Plan — es ist ein Satz an den Kunden zu einer verbindlichen Erklärung; gebaut wird der Zustand, der Wortlaut geht mit K-8 an die Kanzlei und wartet auf ihre Auskunft (Abschnitt 10.4) | Papier 2, Verdacht V-2; Bericht 2, Abschnitt 5 |
+| E-F21 | Eine aus der Vorschau entfernte Stundenposition sperrt ihre Buchungen (Verdacht G-2) | Bleibt, wie es ist, und wird benannt; beim Entfernen zeigt die Vorschau den Hinweis, dass die Stunden damit ohne Betrag verrechnet sind. → neu vorgelegt als E-B5 (Empfehlung des Plans, von keinem Prüfer getragen); bis dahin nicht bauen | Bericht 4, Abschnitt 5 (als Tatsache bestätigt) |
+| E-F22 | Z-1: `satz` in die Ausnahme aufnehmen oder abgeschlossene Monate nicht nachziehen? | `app.satz_nachziehen` lässt Buchungen abgeschlossener Monate aus. → neu vorgelegt als E-B1 (die Empfehlung hat sich geändert: sie hätte ein heutiges Verhalten verschlechtert); bis dahin nicht bauen | Bericht 1, Abschnitt 2a Nr. 1 |
 | E-F23 | „* Pflichtfeld“-Legende in allen Formularen (D1-B4)? | Bleibt, wie es ist | Bericht 9, D1-B4 (keine Regel); Bericht 11, D3-T14 |
 | E-F24 | Vorgabe „Telefon“ für die Quelle eines Eingangs (D2-C1)? | Nein — „Quelle“ bleibt Pflicht ohne Vorgabe | Bericht 10, D2-C1 |
 | E-F25 | Welches Zeichen trägt die Top-Zeile (D2-A8)? | Zeilen, die ein Lesefenster oder eine Akte öffnen, tragen den Pfeil (E99); die Top-Zeile öffnet das Änderungsformular und trägt den Stift (E74) | Bericht 10, D2-A8 |
-| E-F26 | Die 58 Ideen zum Zusammenspiel (Abschnitt 4.11) | Was sich mit einem Befund deckt, wird in dessen Paket gebaut; jede eigene Idee ist zurückgestellt — neue Entscheidung nötig | Papiere 1 bis 7, je Abschnitt 5 (von den Prüfern nicht bewertet); Bericht 0, 2.5 |
-| E-F27 | Eigene Nummer für Handwerksscheine? | Bleibt, wie es ist (Scheine ohne eigene Nummer) — zurückgestellt, neue Entscheidung nötig | Papier 3, Abschnitt 4 (bittet, die Frage noch einmal vorzulegen) |
-| E-F28 | Reservierung an einem zweiten Lager; Fahrer zählt sein Fahrzeug vor? | Zurückgestellt — neue Entscheidung nötig | Papier 5, Abschnitt 4 |
+| E-F26 | Die 58 Ideen zum Zusammenspiel (Abschnitt 4.11) | Was sich mit einem Befund deckt, wird in dessen Paket gebaut; jede eigene Idee ist zurückgestellt — neue Entscheidung nötig. Drei dieser Ideen (I-Z2, I-G5, I-M2) sind zugleich die Antwort auf eine Grenze ohne gültigen Grund — dazu E-B13, E-B15, E-B16 | Papiere 1 bis 7, je Abschnitt 5 (von den Prüfern nicht bewertet); Bericht 0, 2.5 |
+| E-F27 | Eigene Nummer für Handwerksscheine? | Zurückgestellt — neue Entscheidung nötig; bis dahin bleiben Scheine ohne eigene Nummer (nach der Bestätigung genauer gefasst, Bericht 13: die Zeile nannte zwei Zustände, „bleibt“ und „zurückgestellt“). Ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B10) | Papier 3, Abschnitt 4 (bittet, die Frage noch einmal vorzulegen) |
+| E-F28 | Reservierung an einem zweiten Lager; Fahrer zählt sein Fahrzeug vor? | Zurückgestellt — neue Entscheidung nötig. Ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B11 für das Zählen, E-B12 für das zweite Lager) | Papier 5, Abschnitt 4 |
 | E-F29 | Regel „der nächste Schritt wird angeboten“ in `style.md`? | Ja, in der Fassung von Abschnitt 6.5: die Meldung trägt den nächsten Schritt als Verweis; die App wechselt die Seite nur, wo sie es heute schon tut oder wo kein zweiter Vorgang derselben Art folgt | Bericht 0, 7.3 (Paket 14) und Abschnitt 11 Nr. 17 |
-| E-F30 | Speicherleiste am Schreibtisch nicht im Bild (N-D4-1)? | Zurückgestellt — neue Entscheidung nötig; die Speicherleiste bleibt ab 1.200 px, wie sie ist | Bericht 12, Abschnitt 3 Nr. 4 (keine sichere Lösung genannt) |
+| E-F30 | Speicherleiste am Schreibtisch nicht im Bild (N-D4-1)? | Zurückgestellt — neue Entscheidung nötig; die Speicherleiste bleibt ab 1.200 px, wie sie ist. → neu vorgelegt als E-B23; bis dahin nicht bauen | Bericht 12, Abschnitt 3 Nr. 4 (keine sichere Lösung genannt) |
 | E-F31 | A-5: wie drucken Altangebote ohne festgehaltenen Empfänger? | Mit dem eingefrorenen Namen und der heutigen Anschrift und UID; das wird als Grenze (Altdaten) benannt | Bericht 2, A-5 |
 | E-F32 | Hauptaktion der Seite „Anforderungen“ (D3-C10 gegen D3-C13)? | „Material anfordern“ kommt in den Seitenkopf; „Material dazusetzen“ bleibt als Blatt im Reiter „Einkauf“, die Leerzustände tragen den ersten Schritt | Bericht 11, D3-C10 (Widerspruch zu C13) |
 | E-F33 | Derselbe Einsatz in einer Anordnung (D1-B1): drei oder vier Wege? | Am Handy bekommt der Einsatz im Einsatzplan die dreigeteilte Leiste der Startseite; „Zeit erfassen“ bleibt dort als eigener Knopf über der Leiste | Bericht 9, D1-B1 |
@@ -3640,11 +4163,11 @@ Startsignal ist das nicht.**
 | E-R1 | Stift und Tonne aus Listenzeilen nehmen; Knöpfe aus der Zeile ins Fenster (D2-B7 Teil, D2-B10, D2-C12, D2-P3) | E74 | Bleibt, wie es ist | Bericht 10, D2-B7, B10, C12; Bericht 0, 6.1 Nr. 8 und 12 |
 | E-R2 | Abschluss-Knopf des Scheins einzeilig (D1-A13) | E82 | Bleibt, wie es ist | Bericht 9, D1-A13 |
 | E-R3 | Leere Karten der Akte zusammenlegen; „geschrieben von“ streichen; Belegzeile neu; Stempel der Akten einheitlich (D2-I10, D2-T13, D2-P2, D2-B1) | E99 | Bleibt, wie es ist — gebaut wird nur die andere Reihenfolge der Karten am Handy (D2-I10) | Bericht 10, D2-I10, T13, P2, B1; Bericht 0, 6.2 Nr. 3 |
-| E-R4 | Zweites ⋯ der Angebotsakte in den Seitenkopf; Hauptaktion = nächster Schritt; Positionen vor dem Verlauf (A-17, V-4, D2-A10, D2-I1, D2-C11) | Anordnung vom 15.11.2026 (U1/U4) | Bleibt, wie am 15.11. gebaut — gebaut wird nur, dass die schwebende Aktion am Handy den Schritt nicht mehr verdeckt; das zweite ⋯ steht als benannte Ausnahme im Wächter | Bericht 2, A-17; Bericht 10, D2-A10, C11; Bericht 8, V-4 |
+| E-R4 | Zweites ⋯ der Angebotsakte in den Seitenkopf; Hauptaktion = nächster Schritt; Positionen vor dem Verlauf (A-17, V-4, D2-A10, D2-I1, D2-C11) | Anordnung vom 15.11.2026 (U1/U4) | Bleibt, wie am 15.11. gebaut — gebaut wird nur, dass die schwebende Aktion am Handy den Schritt nicht mehr verdeckt; das zweite ⋯ steht als benannte Ausnahme im Wächter. **Nach der Bestätigung genauer gefasst (Bericht 14, Auflage 8):** damit bleibt ein ⋯ außerhalb des Seitenkopfs stehen (gegen `CLAUDE.md`, Oberfläche: „⋯ nur im Seitenkopf“; `AngebotView.tsx:516`); die Ausnahme kommt in `style.md` (Paket 11), nicht nur in die Liste des Wächters. Ob auch der Wortlaut von `CLAUDE.md` einen Verweis auf benannte Ausnahmen bekommt → neu vorgelegt als E-B21; siehe auch Abschnitt 10.7 | Bericht 2, A-17; Bericht 10, D2-A10, C11; Bericht 8, V-4 |
 | E-R5 | „Thread“ ersetzen (D1-A16) | Wort der App (Handbuch, `style.md`) | Bleibt, wie es ist | Bericht 9, D1-A16 |
 | E-R6 | Kästchen in „Startseite anpassen“ zu Schaltern (D1-B12) | E95 | Bleibt, wie es ist | Bericht 9, D1-B12 |
 | E-R7 | Darstellungsschalter und Marke aus der Seitenleiste nehmen (D1-A19, weitergehender Teil) | E92, `style.md` | Bleibt, wie es ist — gebaut wird nur „die Seitenleiste rollt in sich“ und das Wort am Schalter | Bericht 9, D1-A19, B13 |
-| E-R8 | Einsatzkachel zweizeilig, Nummer aus der Kachel (D4-I1, D4-T13, D4-B11, D4-C12) | E96, „Kunde nie abgeschnitten“ | Bleibt, wie es ist — gebaut wird nur N-D4-2: steht derselbe Kundenname am selben Tag in einer Zeile zweimal, zeigt die Kachel auch unter 1.200 px die Kurzbezeichnung, sonst die Nummer | Bericht 12, Abschnitt 3 |
+| E-R8 | Einsatzkachel zweizeilig, Nummer aus der Kachel (D4-I1, D4-T13, D4-B11, D4-C12) | E96, „Kunde nie abgeschnitten“ | Bleibt, wie es ist — gebaut wird nur N-D4-2: steht derselbe Kundenname in der Zeile oder am Tag zweimal, zeigt die Kachel auch unter 1.200 px die Kurzbezeichnung, sonst die Nummer (nach der Bestätigung genauer gefasst, Bericht 14: so der Wortlaut von Bericht 12 — zuvor enger „am selben Tag in einer Zeile“) | Bericht 12, Abschnitt 3 |
 | E-R9 | Mahnlauf und „Nicht verrechnet“ in voller Breite für Spalten; Einsatz-Vorschau der Startseite umstellen (D3-P1, D3-P2, D4-I10) | E98 | Bleibt, wie es ist | Bericht 11, D3-P1, P2; Bericht 12, D4-I10 |
 | E-R10 | Kopfinsel mit Rückweg „‹“ (D1-I2) | U3 | Bleibt, wie es ist | Bericht 9, 2.4 |
 | E-R11 | Kennzahl „Resturlaub“ neben dem Arbeitstag (D1-I17) | `style.md` (Kennzahlenleiste) | Bleibt, wie es ist | Bericht 9, 2.4 |
@@ -3679,6 +4202,14 @@ würden. Neue Empfehlung für alle: **bleibt, wie es ist.**
 Künftig gilt Regel 11 (Abschnitt 2.2): ein solcher Vorschlag steht mit „vorher n, nachher m
 Tipps“ im PR und wird ohne Zustimmung des Auftraggebers nicht gebaut.
 
+**Nach der Bestätigung (Bericht 14, Auflage 6):** an zwei Stellen war Regel 11 nicht angewandt —
+„Eintrag löschen“ ins ⋯ des Zeitblatts (D1-A2, Paket 14) und „Deaktivieren“ ins ⋯ im Fenster
+„… verwalten“ der Plattform (D4-B8, Pakete 9 und 20). Beide kosten einen Tipp mehr und standen
+weder in dieser Tabelle noch als Frage. Sie sind neu vorgelegt (E-B19, E-B20), je mit der
+Empfehlung „bleibt, wie es ist“; bis zur Entscheidung wird nichts verlegt. Dazu kommt D4-I2
+(Einstellungen gegliedert): am Handy führt der Wechsel zwischen zwei Einstellungsseiten danach
+über die Übersicht — die Tippzahl gehört in den PR (Abschnitt 10.6).
+
 ### 10.4 Was auf die Kanzlei wartet — gilt nicht als entschieden
 
 | Punkt | Was wartet | Frage |
@@ -3690,9 +4221,92 @@ Tipps“ im PR und wird ohne Zustimmung des Auftraggebers nicht gebaut.
 | A-9 | Inhalt von AGB und Rücktrittsbelehrung auf der Annahmeseite (der Platz dafür wird gebaut) | K-4 |
 | Z-14 | Einstellung „Wegzeit zählt als Arbeitszeit“ (die Grenze wird benannt) | K-5 |
 | P-8 | die eigenen Einsätze auf dem Gerät | K-6 |
-| P-1 | ob eine erneut gesendete Unterschrift als Beleg trägt (der gesicherte Schein wird bis dahin nur aufbewahrt, angezeigt und als PDF ausgegeben) | K-7 |
+| P-1 | ob eine **unverändert** erneut gesendete Unterschrift als Beleg trägt — nur der Handgriff „unverändert erneut senden“ wartet. Bis dahin trägt der Abschnitt „Nicht angekommen“: ansehen, als PDF ausgeben und „Entwurf wieder aufnehmen“ unter der alten Kennung (ändert der Monteur etwas, verfallen die Unterschriften und es wird neu unterschrieben). Das Sichern selbst wartet nicht auf die Kanzlei; K-6 fragt nach Aufbewahrungsdauer und Schutzregel des gesicherten Scheins (nach der Bestätigung genauer gefasst, Bericht 13, Auflage 1) | K-7; dazu K-6 |
 | D2-C13 | Reihenfolge der Kundenseite der Annahme (lesen vor unterschreiben) | K-8 |
-| Z-11 | Fundstelle und Verfall beim Arbeitsjahr je Person (die Entscheidung E-Z11 gilt; der Bau beginnt nach der Auskunft) | K-9 |
+| N-A-1 (E-F20) | der Wortlaut des Satzes an den Kunden nach einer zurückgenommenen Annahme („inzwischen zurückgenommen“) — gebaut wird der Zustand, der Satz wartet (nach der Bestätigung, Bericht 13, Abschnitt 6 Nr. 3) | K-8 |
+| Z-11 | Fundstelle und Verfall beim Arbeitsjahr je Person (die Entscheidung E-Z11 gilt; der Bau beginnt nach der Auskunft — sie kann die Entscheidung noch ändern) | K-9 |
+| G-10, Teil 2 | Rechnungskorrektur als eigener Beleg: Form des Belegs, Buchungssatz im Stapel, E-Rechnung (nicht entschieden: E-B3; nach der Bestätigung, Bericht 13, Auflage 2) | K-10 |
+
+### 10.5 Nach der Bestätigung neu vorzulegen — nicht entschieden
+
+**Diese Zeilen sind von der Erklärung des Auftraggebers vom 23.11.2026 nicht gedeckt.** Sie
+stammen aus den Berichten 13 und 14: Empfehlungen, die sich inhaltlich geändert haben, und Fragen,
+die neu sind. Die Spalte „Empfehlung“ ist ein Vorschlag, keine Entscheidung. Was an einer Zeile
+hängt, wird bis zur Entscheidung nicht gebaut; die Spalte „Was bis zur Entscheidung gilt“ sagt,
+was stattdessen gilt. Die alte Zeile in 10.2 oder 10.3 steht weiter dort und verweist hierher.
+
+| Nr. | Frage | Was der Bestätiger gefunden hat | Empfehlung | Was bis zur Entscheidung gilt | Quelle |
+|---|---|---|---|---|---|
+| E-B1 | Z-1 / N-Z-1 (bisher E-F22): Wie wird der Verrechnungssatz in abgeschlossenen Monaten nachgezogen, wenn Einstufung, Lehrbeginn oder Lehrzeit einer Person geändert werden? | Der Prüfer des Papiers nannte zwei Wege und empfahl keinen; gewählt war „`app.satz_nachziehen` lässt abgeschlossene Monate aus“. Vom Bestätiger nachgestellt (`z1.sql`, `z1b.sql`): heute zieht eine Berichtigung des Lehrbeginns die Satzklasse einer unverrechneten Oktoberbuchung nach (`lj2` → `lj3`); mit E-F22 bliebe sie in einem abgeschlossenen Oktober für immer `lj2` und würde so verrechnet. Betroffen sind Berichtigungen von Lehrbeginn und Lehrzeit und die erste Einstufung; ein gewöhnlicher Wechsel der Einstufung nicht (er gilt ab heute, der Verlauf hält die alte Klasse). Die Begründung „dieselbe Regel wie für das Nacht-Kennzeichen“ setzte Lohnaufzeichnung und Verrechnungssatz gleich. Die bisherige Empfehlung hätte ein heutiges Verhalten verschlechtert | **Geändert:** `satz` kommt in die Ausnahme der Sperre (der Satz ist Verrechnung und Nachkalkulation, nicht Arbeitszeitaufzeichnung — Bericht 1, 2a Nr. 1), und `satz_setzen` rechnet in einem abgeschlossenen Monat nur dann neu, wenn `satz` ausdrücklich geleert wurde (durch `app.satz_nachziehen`); Nacht-Kennzeichen und Baustelle rechnen dort nicht nach. Damit bleibt das heutige Verhalten: der Satz zieht nach | In Paket 1, Schritt 3 wird der Teil „Satz nachziehen / Einstufung ändern“ nicht gebaut; der Rest von Schritt 3 schon. N-Z-1 bleibt bis dahin offen (Einstufung ändern scheitert nach dem ersten Monatsabschluss weiter) | Bericht 13, Abschnitt 6 Nr. 1 und Abschnitt 5; Bericht 1, 2a Nr. 1 |
+| E-B2 | A-1 / P-10: Soll der Abschluss einer Pauschalbaustelle nennen, was nach der Schlussrechnung dazugekommen ist? | Nach dem Umbau warnt der Abschluss einer Pauschalbaustelle nicht mehr vor einem Schein oder Stunden, die **nach** der Schlussrechnung dazukamen (Zusatzarbeit). Der Prüfer schreibt „bewusst sehen … der Abschluss ist die letzte Stelle, an der es auffiele“. Im Plan stand das als Vorgabe, nicht als Frage | Der Abschluss zählt wie die Rechnungsansicht (keine Warnung „nicht verrechnet“), nennt aber auf einer Pauschalbaustelle in einer eigenen Hinweiszeile ohne Sperre, was nach der Schlussrechnung dazugekommen ist (Scheine, Stunden) — damit geht die letzte Stelle, an der Zusatzarbeit auffiele, nicht verloren | Schritt 8 von Paket 1 wird nicht gebaut; N-S-2 im selben Schritt wartet mit. Der Abschluss zählt bis dahin wie heute (A-1 / P-10 und N-S-2 bleiben so lange offen) | Bericht 13, Abschnitt 6 Nr. 5; Vorgabe P-10 in Paket 1 (Bericht 3) |
+| E-B3 | G-10, Teil 2: Wird die Rechnungskorrektur als eigener Beleg gebaut? | Der Plan hatte Teil 2 („Gutschrift als Beleg“) ohne Entscheidungszeile und ohne Frage an die Kanzlei eingeplant und im Aufwand mitgezählt. Papier 4 nennt Stufe 2 „groß, Entscheidung nötig“, mit dem Vorbehalt „neuer Belegtyp mit Folgen in Zahlstand, Mahnlauf, PDF, E-Rechnung, Nachkalkulation und beiden Exporten“. Bericht 0 sagt nur, die zweite Stufe dürfe nicht „später“ werden — nicht, dass sie entschieden sei. Das Papier sagt „Rechnungskorrektur“, der Plan sagte „Gutschrift“ — der Unterschied ist steuerlich nicht gleichgültig | Wird gebaut, aber erst nach der Auskunft der Kanzlei (K-10: Form des Belegs — Rechnungskorrektur oder Gutschrift —, Buchungssatz im Stapel, E-Rechnung) | Paket 24 baut nur Teil 1 (die Meldung nennt den vorhandenen Weg; eine Rückgabe nach der Rechnung bleibt sichtbar). Teil 2 wartet; im Aufwand von Paket 24 ist er noch mitgezählt | Bericht 13, Auflage 2; `analyse/4-geld.md:298–303`; Bericht 0, 8 Nr. 5 |
+| E-B4 | S-9: Zugangstoken und Datenbankpasswort liegen in GitHub-Secrets — gegen den Wortlaut von `CLAUDE.md` („Geheimnisse … nie in GitHub-Secrets“). Bleibt die Praxis und wird die Regel genauer gefasst, oder kommen die Zugangsdaten aus GitHub heraus? | Der Plan behielt die Praxis und änderte den Wortlaut einer Regel des Auftraggebers („die Grenze mit Grund in `CLAUDE.md` benennen“), ohne Entscheidungszeile (`CLAUDE.md:82`; `supabase-migrationen.yml:122–158`). Die Härtung selbst hängt daran nicht | Die Praxis bleibt — ohne die Zugangsdaten gäbe es kein automatisches Einspielen der Migrationen und damit keine Kette Schema → Functions → App —, sie wird gehärtet (Paket 27 wie geplant), und der Wortlaut der Regel in `CLAUDE.md` wird genauer: der Supabase-Dienstschlüssel und externe Zugangsdaten nie; einzige benannte Ausnahme Zugangstoken und Datenbankpasswort für das Einspielen, nur in einer geschützten GitHub-Umgebung. **Alternative:** die Zugangsdaten aus GitHub nehmen und die Migrationen von Hand einspielen | Paket 27 baut die Härtung; `CLAUDE.md` wird nicht angefasst | Bericht 13, Auflage 8 |
+| E-B5 | E-F21: Eine aus der Vorschau entfernte Stundenposition sperrt ihre Buchungen (sie gelten ohne Betrag als verrechnet) — bleibt das, mit einem Hinweis? | „Bleibt, mit Hinweis“ ist die Empfehlung des Plans, nicht eines Prüfers; Papier und Bericht nennen es „fachliche Entscheidung“. Es geht um Stunden, die ohne Betrag als verrechnet gelten und danach gesperrt sind. Der Wortlaut des Hinweises steht in keinem Bericht | Unverändert: bleibt, wie es ist, und wird benannt; beim Entfernen zeigt die Vorschau den Hinweis, dass die Stunden damit ohne Betrag verrechnet sind. **Empfehlung des Plans, von keinem Prüfer getragen — bestätigen oder anders entscheiden.** Der Wortlaut des Hinweises wird mit vorgelegt | Der Hinweis wird nicht gebaut (Paket 15); das Verhalten bleibt, wie es heute ist | Bericht 13, Abschnitt 6 Nr. 2; Bericht 14, Abschnitt 7 Nr. 8; Bericht 4, Abschnitt 5 (V-2) |
+| E-B6 | E-F6, zweite Hälfte: Werden Eintritt und Saldo-Start in der Benutzerakte Pflicht? | Der Stand (§117/§118, Zeile „Benutzerakte: leerer Eintritt wird beim Speichern ‚heute‘“) lässt offen, „ob das Feld dann leer bleibt und Pflicht wird“. E-F6 beantwortet die erste Hälfte (leer bleibt leer); „nicht Pflicht“ ist eigene Abwägung des Plans (Änderungsprotokoll C.6: die Pflicht blockierte bei Altkonten jedes Speichern), kein Prüfer trägt sie | Die Felder werden nicht Pflicht, wie in E-F6 — bestätigen oder anders entscheiden | Paket 21 (i) baut „leer bleibt leer“ (das Formular füllt nicht mehr von selbst und schreibt nicht mit); die Felder bleiben freiwillig wie heute | Bericht 13, Abschnitt 6 Nr. 10; Bericht 14, Abschnitt 7 Nr. 8; `docs/stand-2026-10-03.md` §117/§118 |
+| E-B7 | N-G-6: Wie entsteht „überfällig“ an einer Rechnung? | Für N-G-6 stand im Plan nur „Lösung vor dem Bau festlegen“. Am Code bestätigt: gesetzt wird der Stand nur in `InvoicesView.tsx:893–904`, keine Migration und kein Zeitauftrag setzt ihn — bis jemand mit Schreibrecht die Rechnungsliste öffnet, zeigt die Kundenakte „Offen“, während Startseite und Mahnlauf selbst rechnen | „Überfällig“ wird beim Lesen aus Fälligkeit und Zahlstand gerechnet (wie Startseite und Mahnlauf es schon tun), statt als gespeicherter Stand, der erst beim Öffnen der Liste entsteht; vor dem Bau die Lesestellen zählen | Paket 24, Schritt (h) wird nicht gebaut; „überfällig“ entsteht bis dahin wie heute | Bericht 13, Auflage 7; Bericht 7, Abschnitt 5 (V-6) |
+| E-B8 | N-S-5: Wie hoch ist die Obergrenze für die UID-Prüfung? | Die Höhe fehlte im Plan. Am Code: `uid_pruefung_vorbereiten` zählt und begrenzt nichts; in `uid-pruefen/index.ts` steht nur die Zeitgrenze für VIES | An der bestehenden Begrenzung einer vergleichbaren Edge Function ausrichten: der Belegversand (`beleg-mail`) begrenzt in `beleg_versand_vorbereiten` auf 30 je Person und Stunde, 100 je Betrieb und Stunde und 400 je Betrieb und Tag (am Endstand nachgesehen); die genauen Zahlen für die UID-Prüfung nennt der Auftraggeber oder bestätigt diese | N-S-5 wird nicht gebaut; die übrigen Punkte von Paket 26 warten nicht | Bericht 13, Abschnitt 5 (Paket 25, 26) und Auflage 7; Bericht 6, Abschnitt 5 (V-3) |
+| E-B9 | Grenze ohne gültigen Grund — 4.10 Nr. 15 (E-F5): keine abweichende Rechnungsanschrift bei Liegenschaften; „Sammelrechnung kommt mit M13“. Bauen oder einen der sechs Gründe aus Grundsatz 6 nennen? | „Zurückgestellt — neue Entscheidung nötig“ ist keiner der sechs Gründe; die Papiere 2 und 4 halten „kommt später“ ausdrücklich für keinen Grund | Empfehlung der Papiere. Papier 2: mit M13 schließen und bis dahin den Beteiligten „Rechnungsempfänger“ als Kundenvorschlag anbieten (in Paket 22 eingeplant). Papier 4: als offene Lücke führen und entscheiden lassen — Rechnungsempfänger abweichend vom Kunden der Baustelle (Hausverwaltung, Versicherung) und Sammelrechnung über mehrere Baustellen; dort: großer Nutzen für Betriebe mit Liegenschaften, Aufwand groß, Entscheidung nötig | Gebaut wird nur der Kundenvorschlag „Rechnungsempfänger“ (Paket 22); der Rest bleibt eine Grenze ohne gültigen Grund | Bericht 13, Abschnitt 6 Nr. 8; Papier 2, Abschnitt 4; Papier 4, Abschnitte 4 und 5 Nr. 8 |
+| E-B10 | Grenze ohne gültigen Grund — 4.10 Nr. 27 (E-F27): Handwerksscheine ohne eigene Nummer, auch in der Suche. Bauen oder einen der sechs Gründe nennen? | Papier 3 hält den Grund für gültig, solange die Entscheidung beim Auftraggeber liegt, und bittet, sie noch einmal vorzulegen; „zurückgestellt“ ist kein Grund | Dem Auftraggeber vorgelegt — ohne Empfehlung. Papier 3 gibt keine Bauempfehlung, nur den Anlass: „am Telefon mit dem Kunden fehlt eine Nummer zum Nennen“; einen Aufwand nennt es nicht | Scheine bleiben ohne eigene Nummer | Bericht 13, Abschnitt 6 Nr. 8; Papier 3, Abschnitt 4 |
+| E-B11 | Grenze ohne gültigen Grund — 4.10 Nr. 39 (E-F28): zählen und buchen nur Verwaltung und Leitung, nicht der Fahrer. Bauen oder einen der sechs Gründe nennen? | Für das Buchen ist der Grund gültig (fachlich: Kontrolle); für das Zählen ist er „eine Annahme über den Betrieb“ (Papier 5) | Empfehlung des Papiers 5: Einstellung je Betrieb „Fahrer zählt sein Fahrzeug vor, das Lager bucht“ — dort als Idee geführt („Nutzen hängt am Betrieb“); einen Aufwand nennt das Papier nicht | Es bleibt, wie es ist; für das Buchen bleibt der Grund gültig | Bericht 13, Abschnitt 6 Nr. 8; Papier 5, Abschnitt 4 |
+| E-B12 | Grenze ohne gültigen Grund — 4.10 Nr. 42 (E-F28): an weiteren Orten gibt es keine Reservierung. Bauen oder einen der sechs Gründe nennen? | Der Grund („dort ist frei, was liegt“) gilt nur für Fahrzeuge; ein zweites Lager (zweiter Standort) ist kein Fahrzeug, „Aus Lager“ prüft allein das Hauptlager | Empfehlung des Papiers 5: Lager der Art „Lager“ in Zusage und „Aus Lager“ wählbar machen — groß; erst entscheiden, ob Betriebe mit zwei Standorten Zielgruppe sind | Es bleibt, wie es ist | Bericht 13, Abschnitt 6 Nr. 8; Papier 5, Abschnitt 4 |
+| E-B13 | Grenze ohne gültigen Grund — 4.10 Nr. 6: Resturlaub beim Austritt steht nicht da. Bauen oder einen der sechs Gründe nennen? | Für den Betrag und den aliquoten Teil ist der Grund gültig (liegt bei der Kanzlei), nicht für die Tatsachen, die nur die App kennt: genommene Tage im laufenden Urlaubsjahr, offene Tage aus Vorjahren | Empfehlung des Papiers 1: das Austrittsblatt für die Lohnverrechnung (Idee I-Z2) nennt diese Tage, ohne die Ersatzleistung zu rechnen — Aufwand klein bis mittel | Wird nicht gebaut; für den Betrag bleibt der Grund gültig | Bericht 13, Abschnitt 6 Nr. 8; Papier 1, Abschnitte 4 und 5 Nr. 2 |
+| E-B14 | Grenze ohne gültigen Grund — 4.10 Nr. 14: Annahme per Link ohne QR-Code. Bauen oder einen der sechs Gründe nennen? | „Eine neue Bibliothek nur dafür“ ist „einfacher“, kein Grund; auch „kein Bedarf gemeldet“ ist keiner der sechs Gründe. Das Papier sagt dazu: ein Ablauf fehle „tatsächlich kaum“ | Empfehlung des Papiers 2: als Idee führen (Angebot auf Papier mit QR zur Annahme), sonst den Grund ehrlich als „kein Bedarf gemeldet“ benennen; einen Aufwand nennt das Papier nicht | Paket 28 benennt den Grund als „kein Bedarf gemeldet“; der QR-Code wird nicht gebaut | Bericht 13, Abschnitt 6 Nr. 8; Papier 2, Abschnitt 4 |
+| E-B15 | Grenze ohne gültigen Grund — 4.10 Nr. 34: vorgemerkte Umsätze und Rückbuchungen werden nur gezählt. Bauen oder einen der sechs Gründe nennen? | Für Vorgemerktes ist der Grund gültig; eine Rücklastschrift zu einem schon verbuchten Eingang ist aber ein Rechnungsvorgang | Empfehlung des Papiers 4 (Idee I-G5): passt eine Rückbuchung zu einem verbuchten Eingang, sie als negativen Eingang auf dieselbe Rechnung vorschlagen („Bitte prüfen“), statt sie nur zu zählen — Aufwand mittel; Vorbehalt des Papiers: Formate kennzeichnen Rückbuchungen verschieden | Wird nicht gebaut | Bericht 13, Abschnitt 6 Nr. 8; Papier 4, Abschnitte 4 und 5 Nr. 5 |
+| E-B16 | Grenze ohne gültigen Grund — 4.10 Nr. 43: Sollbestand am Artikel, nicht je Ort. Bauen oder einen der sechs Gründe nennen? | Für die Bestellung ist der Grund gültig; die Bestückung eines Fahrzeugs deckt er nicht | Empfehlung des Papiers 5 (Idee I-M2): „Fahrzeug auffüllen“ — Sollbestückung je Fahrzeug, die Liste „fehlt im Fahrzeug“ als vorbereitete Umlagerungen; Aufwand mittel; Vorbehalt des Papiers: nur sinnvoll mit M-6 und M-7 | Wird nicht gebaut | Bericht 13, Abschnitt 6 Nr. 8; Papier 5, Abschnitte 4 und 5 Nr. 2 |
+| E-B17 | E-T, Regel 1 gegen E31: Wandert die Beschreibung im Seitenkopf auch ab dem Tablet in die Hilfe — und was geschieht dann mit der dritten Zeile des Seitenkopfs? | E-T änderte E86 und nannte E31 nicht. E31 (31.10.2026, Wunsch des Auftraggebers) legt „Seitenkopf in drei festen Zeilen“ und „alle Seiten und Unterreiter beginnen auf derselben Höhe“ fest. Gemessen (`kopf2.mjs`): ohne die Beschreibung schrumpft der Kopf bei 834 und 1440 px von 96 auf 72 px, der Inhalt beginnt 24 px höher (`/invoices`, `/customers`, `/lager`: 140 → 116 px bzw. 144 → 120 px); eine Seite mit Beschreibung begänne danach 24 px höher als eine Seite aus E25 oder eine mit Auskunft im Untertitel. Entweder beginnen die Seiten ungleich hoch, oder rund 30 Seitenköpfe tragen eine leere dritte Zeile | Am Bild entscheiden. Vorgelegt werden zwei Fassungen (Paket 8 baut das Werkzeug): **(a)** die dritte Zeile bleibt reserviert und ist auf Seiten ohne Auskunft leer — alle Seiten beginnen gleich hoch (E31 hält, E86 ändert sich); **(b)** die Zeile entfällt — die Seiten beginnen ungleich hoch (E31 ändert sich). Ohne Entscheidung bleibt es, wie es ist | Der Seitenkopf bleibt ab dem Tablet, wie er ist (E86 und E31 gelten); am Handy bleibt alles wie heute. Die vier Seiten aus E25 behalten den Untertitel ab dem Tablet | Bericht 14, Auflage 1 und Abschnitt 7 Nr. 2 |
+| E-B18 | E-P, Regel 1 gegen Regel 2 und 6: Steht zwischen einer Wortangabe und etwas Gemessenem (Zeit, Nummer, Betrag, Menge) ein Punkt? | Für das häufigste Muster — genau ein Punkt zwischen Tag und Zeit, Kunde und Nummer, Art und Uhrzeit — sagt die Regel beides. Gemessen: bei 375 px tragen auf 15 Seiten 126 Textblöcke einen Punkt, nur 7 davon zwei oder mehr in einer Textzeile; auf `/time` 58 von 59 Zeilen genau einen sichtbaren Punkt. Die entschiedene Regel verhindert Ketten, nimmt die vielen einzelnen Punkte aber nicht weg; die Ersatzform der Zeitliste braucht in 44 von 53 Zeilen mehr Zeilen und wird nicht gebaut | „Regel 2 geht vor Regel 1“: zwischen einer Wortangabe und etwas Gemessenem steht kein Punkt, sondern ein fester Abstand, das Gemessene in Mono in der Größe der Zeile (deckt sich mit E-V3 und mit Bericht 8: Mono in Begleitzeilen fast ohne Verschiebung); der Punkt bleibt nur zwischen zwei Wortangaben. Bedingung wie in E-P: nicht mehr Zeilen bei 375 und 834 px, je Zeilenart gemessen, im Bild vorgelegt. Das ist die Fassung, die dem Wunsch des Auftraggebers („statt dieser Punkte“) am nächsten kommt; sie ist noch nicht im Bild geprüft | Es gilt Regel 1: ein einzelner Punkt bleibt | Bericht 14, Auflage 2 b und Abschnitt 7 Nr. 3 |
+| E-B19 | D1-A2: Wandert „Eintrag löschen“ im Zeitblatt ins ⋯ des Blatts? | Der Umbau kostet einen Tipp mehr und war nicht nach Regel 11 benannt; U4 („Unumkehrbares steht immer im ⋯“) wäre die Regel, die ihn trägt. U7 hat das Löschen bewusst ins Blatt gelegt (Bericht 9) | Bleibt, wie es ist: der Knopf „Eintrag löschen“ bleibt im Blatt | Nichts wird verlegt; `TimeView.test.tsx:1368` und `zeitVerlauf.spec.ts:59` bleiben unverändert | Bericht 14, Auflage 6; Bericht 9, D1-A2 |
+| E-B20 | D4-B8: Wandert „Deaktivieren“ im Fenster „… verwalten“ der Plattform ins ⋯? | Ein Tipp mehr, nicht nach Regel 11 benannt; das Papier schlägt „`Fensteraktionen` überall; Löschen/Deaktivieren ins ⋯“ vor — das sind Umbauten an vier Fenstern | Bleibt, wie es ist: ein Tipp mehr, und Deaktivieren ist umkehrbar — U4 verlangt das ⋯ nur für Unumkehrbares. `Fensteraktionen` als Baustein bleibt, soweit er keine Aktion verlegt | Keine Aktion wird verlegt (Pakete 9, 17, 20); das Grund-Pflichtfeld bleibt vor jedem Schritt erreichbar | Bericht 14, Auflage 6; Papier 12, D4-B8 |
+| E-B21 | `CLAUDE.md`, Oberfläche („⋯ nur im Seitenkopf“): Bekommt der Wortlaut einen Verweis auf benannte Ausnahmen? | E-R4 lässt ein zweites ⋯ außerhalb des Seitenkopfs stehen (Angebotsakte, `AngebotView.tsx:516`), ohne das zu sagen; die Ausnahme stand nur in der Liste des Wächters | Ja, ein Halbsatz, der auf die benannten Ausnahmen in `style.md` verweist. Zusammen mit E-B4 entscheiden, weil beide `CLAUDE.md` ändern | `CLAUDE.md` wird nicht angefasst; die Ausnahme kommt in `style.md` (Paket 11) und bleibt in der Liste des Wächters | Bericht 14, Auflage 8 |
+| E-B22 | E-F13 (D4-A6): Welche Farbe trägt der Tastaturfokus? | Ein bestätigter Widerspruch im Regelwerk, keine Idee: `style.md` nennt für den Fokus `--focus-ring`, E95 nennt Petrol. „Zurückgestellt“ beantwortet das nicht | Es gilt E95 (die jüngere Entscheidung: Petrol für den Fokus); `style.md` wird berichtigt; eine Farbe für die drei Fokusformen, Breite und Versatz bleiben je Rolle; gebaut mit V-13 in Paket 9, mit Kontrastmessung auf Petrolflächen und im Bild vorgelegt | Farbe, Breite und Versatz der drei Fokusformen bleiben; gebaut wird nur V-13 | Bericht 14, Abschnitt 7 Nr. 6; Bericht 12, D4-A6 |
+| E-B23 | E-F30 (N-D4-1): Die Speicherleiste ist ab 1.200 px nicht im Bild — bleibt das? | Ein bestätigter Widerspruch im Regelwerk: U1 nennt die Speicherleiste „klebend“, ab 1.200 px ist sie es nicht (Firmendaten: 1.650 px unter dem Feld). „Der Prüfer nennt keine sichere Lösung“ ist nach Grundsatz 6 kein Grund für eine Grenze | Zuerst klären, warum die Speicherleiste ab 1.200 px `position: static` ist (`index.css:1337–1338`, Geschichte der Datei und `entscheidungen.md`). Ist es keine bewusste Entscheidung, klebt die Leiste des geänderten Blatts auch ab 1.200 px, solange das Ende des Blatts nicht im Bild ist (Baustein, Paket 9, mit `raster.spec.ts` und `flucht.spec.ts`); ist es eine, wird der Satz „klebend“ in `style.md` U1 berichtigt | Die Speicherleiste bleibt ab 1.200 px, wie sie ist | Bericht 14, Abschnitt 7 Nr. 6; Bericht 12, Abschnitte 3 und 5 |
+
+Zeilen: 23 (E-B1 bis E-B8 und E-B9 bis E-B16 aus Bericht 13; E-B17 bis E-B23 aus Bericht 14).
+
+### 10.6 Vor dem PR im Bild vorzulegen
+
+Vorgaben, die eine Wahl offenlassen (Bericht 14, Auflage 10), und Punkte, die der Auftraggeber
+laut Bestätigung am Bild entscheiden soll. Wo ein Schritt desselben Pakets die Wahl schon trifft
+(V-5, V-15, D2-A3, D3-1, D4-C2), folgt die Vorgabe dem Schritt und steht nicht hier. Für alles
+Übrige gilt Regel 8: beim Bau wählt niemand stillschweigend — die Fassungen entstehen mit dem
+Bildwerkzeug aus Paket 8 und werden vor dem PR vorgelegt; bis dahin bleibt die Stelle, wie sie
+ist. Die letzten zwei Zeilen sind Wortlaute, keine Bilder.
+
+| Punkt | Die Fassungen | Paket |
+|---|---|---|
+| Seitenkopf ab dem Tablet (E-B17) | (a) die dritte Zeile bleibt reserviert und ist auf Seiten ohne Auskunft leer; (b) die Zeile entfällt, die Seiten beginnen ungleich hoch | 11 (Bilder aus 8) |
+| Punkt oder fester Abstand zwischen Wortangabe und Gemessenem (E-B18) | die heutige Zeile mit Punkt; die Zeile mit festem Abstand und dem Gemessenen in Mono — je Zeilenart bei 375 und 834 px | 11 (Bilder aus 8) |
+| Farbe des Fokusrings (E-B22) | die drei heutigen Formen; Petrol für alle drei, Breite und Versatz je Rolle — mit Kontrastmessung auf Petrolflächen | 9 |
+| Monat von 760 bis 1.199 px (E-M, D4-A10) | beide Wege des Papiers nebeneinander: seitlich rollen mit Spalten ab 44 px (entschieden; 12 bis 20 von 30 Tagen im Bild) und die Kalenderform des Handys bis 1.199 px (behält den ganzen Monat, verliert Personen × Tage) | 17 |
+| Startseite, Zeilen der Themen (D4-P2) | die Fassung für lange Titel („1 Baustelle mit Stunden nicht verrechnet“ wächst sonst von 4 auf 5 Zeilen) und der Ort des Aktionsworts am Handy („verrechnen“, „entscheiden“); sonst bleibt die Zeile | 13 |
+| Timer-Leiste und Inseln auf gleichem Grund (D1-B10) | die Leiste weiß wie heute (kann gewollt sein, um sie von der Navigation zu trennen); die Leiste auf dem Grund der Inseln | 13 |
+| Angebotszeile von 760 bis 1.199 px (D2-P5) | die heutige Zeile; eine Form für das Tablet — das Papier nennt keine; Zustand und ⋯ bleiben in der Zeile | 18 |
+| Angebotsformular von 760 bis 1.199 px (D2-I4) | das heutige Formular; eine Form für das Tablet — das Papier nennt keine (zwei Zonen sind für den Schreibtisch vorgesehen) | 18 |
+| Akten am Handy: Hilfe und ⋯ in die Ortszeile (D2-A18, Teil b) | heute; Hilfe und ⋯ in der Ortszeile — ändert `PageHeader` für alle Seiten und berührt E31, deshalb zusammen mit E-B17 | 11 (Kopf-Baustein), mit 18 |
+| Mahnspesen-Raster: Reihenfolge beim Tabben (D3-P12) | wie heute erst alle Firmen-, dann alle Privatfelder; zeilenweise (eine Änderung) — dazu das Raster, wenn mit „Pauschale 40 € nach § 458 UGB“ die drei Firmenfelder entfallen | 20 |
+| Einstellungen gegliedert (D4-I2) | Schreibtisch: Liste links neben dem Inhalt; Handy: die Übersicht ist die Liste; für 760 bis 1.199 px nennt das Papier keine Form — sie wird vorgelegt. Dazu „vorher n, nachher m Tipps“ für den Wechsel zwischen zwei Einstellungsseiten am Handy (Regel 11) | 20 |
+| Wortlaut des Hinweises „Baustelle ist abgeschlossen“ (E-F19) | der Wortlaut steht in keinem Bericht — vorlegen | 23 |
+| Wortlaut des Hinweises beim Entfernen einer Stundenposition (E-F21) | der Wortlaut steht in keinem Bericht — mit E-B5 vorlegen | 15 |
+
+Zeilen: 13.
+
+### 10.7 Was der Auftraggeber wissen sollte — Folgen entschiedener Punkte
+
+Diese Punkte sind entschieden. Ihre Folge stand bisher nur als Vorgabe in einem Paket oder gar
+nicht in Abschnitt 10; die Bestätiger verlangen, sie dem Auftraggeber zu sagen. Hier wird nichts
+neu entschieden — will der Auftraggeber eine Folge nicht, entscheidet er den Punkt neu.
+
+| Punkt | Folge | Wo es steht | Quelle |
+|---|---|---|---|
+| G-1 (Kontoauszug-Abgleich) | Eine Teilzahlung, deren Zweck die Rechnungsnummer ohne Buchstaben-Vorsatz nennt, ist nicht mehr vorgewählt — bei einem Betrieb ohne Vorsatz ist das jede Teilzahlung. Gewollt — aber der Auftraggeber soll es wissen | Paket 3, Vorgabe G-1 und Risiko | Bericht 13, Abschnitt 6 Nr. 6; Bericht 4, Abschnitt 4 Nr. 10 |
+| M-5 (Verkaufspreise nachziehen) | Altpreise gelten als „fest“: die neue Funktion zieht im ersten Jahr fast nichts nach | Paket 25, Vorgabe M-5 und Risiko | Bericht 13, Abschnitt 6 Nr. 7; Bericht 5 |
+| E-M (Monat am Tablet) | Von 760 bis 1.199 px steht nicht mehr der ganze Monat im Bild, sondern 12 bis 20 von 30 Tagen; ab 1.200 px bleiben Spalten von 23 bis 31 px. Der andere Weg des Papiers (Kalenderform des Handys bis 1.199 px) behielte den ganzen Monat, verlöre aber Personen × Tage | 10.2 E-M; Paket 17, Vorgabe D4-A10; 10.6 | Bericht 14, Auflage 7 und Abschnitt 7 Nr. 1 |
+| E-R4 (Angebotsakte) | Das zweite ⋯ der Angebotsakte bleibt gegen `CLAUDE.md` („⋯ nur im Seitenkopf“) stehen — als benannte Ausnahme in `style.md` | 10.3 c) E-R4; Liste 8.3; E-B21 | Bericht 14, Auflage 8 und Abschnitt 7 Nr. 5 |
+| E-N (runder Kreis, E76) | Im Tagesfenster bleiben zwei gefüllte Aktionen nebeneinander (U4: höchstens eine), und im Reiter „Termine“ der Baustellenakte am Handy zwei gleiche „+“ mit verschiedener Bedeutung. Die erste Entscheidung (Kreis im Fenster gerahmt) hatten die Berichte 0 und 12 nicht beanstandet — sie verlangten nur den Satz „ändert E76“ | 10.2 E-N; Liste 8.3 (D2-A9, D4-B15) | Bericht 14, Auflage 8 und Abschnitt 7 Nr. 4 |
+| E-P (Punktregel) | Die Regel verhindert Ketten, nimmt aber die vielen einzelnen Punkte nicht weg; auf `/time` bleibt alles, wie es ist. Wenn „weniger Punkte“ gemeint war, braucht es E-B18 | 7.2; 10.2 E-P | Bericht 14, Auflage 2 und Abschnitt 7 Nr. 3 |
+| Grenzen, die als „zurückgestellt“ stehen bleiben (4.10 Nr. 6, 14, 15, 27, 34, 39, 42, 43) | Nach Grundsatz 6 bleibt eine Grenze nur mit einem der sechs Gründe; „zurückgestellt — neue Entscheidung nötig“ ist keiner. Solange E-B9 bis E-B16 nicht entschieden sind, lässt der Auftraggeber hier acht Grenzen ohne gültigen Grund stehen | 4.10; 10.5 E-B9 bis E-B16 | Bericht 13, Abschnitt 6 Nr. 8 |
+
+Zeilen: 7.
 
 ---
 
@@ -3700,6 +4314,11 @@ Tipps“ im PR und wird ohne Zustimmung des Auftraggebers nicht gebaut.
 
 Was hier steht, gilt nicht als entschieden (Abschnitt 10.4). Die Rechtsaussagen der Papiere hat
 kein Prüfer am Gesetzestext geprüft; die Fundstellen im Papier 1 stammen aus dem Gedächtnis.
+Eine Stelle ist nach der Bestätigung ausdrücklich abgegrenzt (Bericht 13, Auflage 1): das
+**Sichern** eines nicht angekommenen Scheins (P-1, Paket 5) wartet nicht auf K-6 — der Vorgang
+liegt samt Unterschrift schon heute im Ausgangsfach auf dem Gerät; K-6 fragt für P-1 nur nach
+Aufbewahrungsdauer und Schutzregel, K-7 nur nach „unverändert erneut senden“. Neu ist K-10
+(G-10, Teil 2); K-8 ist um den Wortlaut nach einer zurückgenommenen Annahme ergänzt.
 
 | Nr. | Frage | Betrifft |
 |---|---|---|
@@ -3708,10 +4327,11 @@ kein Prüfer am Gesetzestext geprüft; die Fundstellen im Papier 1 stammen aus d
 | K-3 | Urlaub: Umrechnung bei Wechsel der Arbeitstage; Hinweispflicht vor der Verjährung | Z-10, Z-12 |
 | K-4 | Annahme über den Link gegenüber Verbrauchern: Inhalt von AGB und Rücktrittsbelehrung | A-9 |
 | K-5 | „Wegzeit zählt als Arbeitszeit“: gilt das fachlich für den Betrieb, ab wann, und wie verträgt es sich mit der festgelegten Abrechnungsbedeutung der Standardfelder (E63) | Z-14 |
-| K-6 | Datenschutz: dürfen die eigenen Einsätze von heute und vom nächsten Arbeitstag und ein nicht angekommener Schein samt Unterschrift auf einem (geteilten) Gerät liegen; darf die Push-Meldung zum Einsatzplan den Kundennamen am Sperrbildschirm nennen | P-8, P-1, Grenze 28 in 4.10 |
-| K-7 | Trägt eine Unterschrift des Kunden als Beleg, wenn der Schein unverändert erneut gesendet wird | P-1 |
-| K-8 | Kundenseite der Annahme: Reihenfolge einer verbindlichen Erklärung (lesen vor unterschreiben) | D2-C13 |
+| K-6 | Datenschutz: dürfen die eigenen Einsätze von heute und vom nächsten Arbeitstag auf einem (geteilten) Gerät liegen (P-8); für den nicht angekommenen Schein samt Unterschrift (P-1): wie lange darf der gesicherte Schein auf dem Gerät liegen, und genügt dafür dieselbe Schutzregel wie für das Ausgangsfach (je Konto, beim Abmelden mit Rückfrage) — das Sichern selbst wartet auf diese Antwort nicht, weil der Vorgang samt Unterschrift schon heute im Ausgangsfach in IndexedDB liegt (nach der Bestätigung genauer gefasst, Bericht 13, Auflage 1); darf die Push-Meldung zum Einsatzplan den Kundennamen am Sperrbildschirm nennen | P-8, P-1 (Dauer und Schutzregel), Grenze 28 in 4.10 |
+| K-7 | Trägt eine Unterschrift des Kunden als Beleg, wenn der Schein unverändert erneut gesendet wird | P-1 (nur „unverändert erneut senden“) |
+| K-8 | Kundenseite der Annahme: Reihenfolge einer verbindlichen Erklärung (lesen vor unterschreiben); dazu der Wortlaut, den die Kundenseite nach einer zurückgenommenen Annahme zeigt („inzwischen zurückgenommen“ mit Datum — ein Satz an den Kunden zu einer verbindlichen Erklärung; nach der Bestätigung ergänzt, Bericht 13) | D2-C13, N-A-1 (E-F20) |
 | K-9 | Arbeitsjahr als Urlaubsjahr: Fundstelle (§ 2 UrlG) und wie die Einstellung „verfällt an einem festen Tag“ mit je Person verschiedenen Jahren zusammengeht; ob diese Einstellung so angeboten werden soll | Z-11, Verdacht Z-6 |
+| K-10 | Weniger als verrechnet (Rückgabe oder Minderung nach der Rechnung): in welcher Form entsteht der Beleg — Rechnungskorrektur oder Gutschrift (der Unterschied ist steuerlich nicht gleichgültig) —, mit welchem Buchungssatz steht er im Stapel, und wie in der E-Rechnung (nach der Bestätigung neu, Bericht 13, Auflage 2) | G-10, Teil 2 (E-B3) |
 
 ---
 
@@ -3779,6 +4399,20 @@ Fenster der ersten Zeile. Die Papiere 9 bis 12 nennen zusammen — vom Prüfer g
   Zwischenbreiten gar nicht; der dunkle Satz von den Bereichspapieren nur in Auswahl, von der
   Vermessung überall, aber nur auf Kontrast; WebKit, echte Geräte und die Sicherheitszonen des
   iPhone nicht.
+- **Nach der Bestätigung nachgetragen** (Bericht 14, Auflage 11 — aus den Abschnitten „Nicht
+  angesehen“ der Papiere 8 bis 12, die hier fehlten): PDF-Ausgaben (Angebot, Schein,
+  Stundennachweis), Mailversand bis „Gesendet“, Antragsart Zeitausgleich, Korrekturantrag als
+  Blatt, Anhang und Foto, Überstunden-Ausleitung, Arbeitszeitgrenzen mit Fällen, „Im Dienst“,
+  Sonderurlaub bestätigen, Zeitfelder und Fahrzeuge anlegen, „Storno aufheben“, Belegarchiv,
+  „Belege per Mail“, offene Lieferantenartikel, Liegenschaft-Vorschläge, Stunden nach Person,
+  „Mehr“-Liste, Push-Anmeldung, `/_muster`, Schwebe- und Druckzustände, Bewegung, dunkler Satz
+  in Menüs und Rückfragen.
+- **Bildschirme, die ein Paket umbaut und die bisher niemand im Bild sah** (Bericht 14,
+  Auflage 11): Verbindungsband und „Neue Fassung“-Leiste (Paket 13), Supporteinblick mit der
+  Rolle in der Meta-Zeile (Paket 13), „Willkommen“, erstes Passwort, Wiederherstellungscodes
+  (Paket 20), Fehlertafel (Paket 20), Papierkorb mit Inhalt, Projektleiter mit
+  `rechnungenLesen`. Für sie nennt Paket 8, Schritt 1 eine Attrappe oder einen anderen Weg —
+  ohne das ist die Zusage unten für sie nicht einlösbar.
 
 **Schritt dazu (Paket 8, Schritt 7):** Sobald die Vorschau diese Bildschirme zeigt, folgt eine
 **zweite Durchsicht** nach demselben Verfahren — mit Gegenprüfung. Ihre Befunde gehen in das
@@ -3809,6 +4443,15 @@ Durchsicht vorliegt.
   Bericht 8: als dichtes Raster entschieden, E88) — entschieden in E-M; Form des Gruppenkopfs
   (Bericht 12 gegen Bericht 8) — E-F2: bleibt; die Pause in „Wie zuletzt buchen“ (Bericht 9: ohne
   Einwand; Bericht 0: eine Angabe fiele weg) — bleibt.
+- **Grenzen der Bestätigung (Berichte 13 und 14):** kein Lauf der Prüfungen des Repos, nichts
+  gegen den Supabase-Stapel, PostgREST, Realtime oder die Edge-Runtime, kein WebKit, kein Gerät,
+  kein dunkler Satz. Der Bestätiger des Teils Funktion hat die Proben der bisherigen Prüfer nur
+  an den in seinem Bericht genannten Stellen wiederholt; der Bestätiger des Teils Oberfläche hat
+  die Vorgaben der bestätigten Befunde nur in einer Stichprobe (46) Wort für Wort geprüft, E-V3
+  und die Tippzahlen nicht selbst nachgestellt, und seine Nachbauten der Zeilenformen sind
+  Eingriffe im Browser an den Beispieldaten, kein Umbau. Aufwände hat keiner nachgeschätzt.
+  Zwei Lösungen in diesem Plan stammen aus dem Plan selbst und sind von keinem Prüfer
+  nachgestellt: der Merker für N-G-1 (Paket 3) und die geänderte Empfehlung zu E-B1.
 
 ### 12.4 Belege
 

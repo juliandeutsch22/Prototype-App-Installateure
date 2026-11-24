@@ -8,7 +8,8 @@ bestätigen soll, dass nichts verloren ging.
 „eingearbeitet in …“ oder „nicht übernommen, weil …“ · B — die 32 Änderungen aus
 `0-plan-als-ganzes.md`, Abschnitt 11, einzeln · C — was darüber hinaus geändert wurde · D — die
 vollständige Tabelle aller Entscheidungszeilen aus Teil 2 und Teil 3 mit Frage, neuer Empfehlung
-und Quelle · E — Ergebnis der Skriptprüfung.
+und Quelle · E — Ergebnis der Skriptprüfung · F — nach der Bestätigung (Berichte 13 und 14): wie
+die 22 Auflagen der beiden Bestätiger eingearbeitet sind.
 
 **Vier Dinge vorweg, die für alle Abschnitte gelten:**
 
@@ -1141,3 +1142,179 @@ Skripte unter
 Kürzel je Paket (Punkte-Zeile, ohne „Teile von“): 1: 18, 2: 2, 3: 14, 4: 1, 5: 12, 6: 11, 7: 1, 8: 4, 9: 36, 10: 22, 11: 10, 12: 1, 13: 21, 14: 54, 15: 25, 16: 19, 17: 17, 18: 61, 19: 20, 20: 32, 21: 14, 22: 16, 23: 9, 24: 11, 25: 9, 26: 9, 27: 4, 28: 4, 29: 6.
 
 **Was das Skript nicht prüft:** ob ein Kurztext den Befund richtig wiedergibt, ob eine Vorgabe den Prüfbericht richtig wiedergibt und ob die Schritte eines Pakets jeden seiner Punkte nennen. Das ist von Hand gelesen, nicht maschinell belegt — eine Stichprobe durch den Prüfer ist dort am meisten wert. Die Papiere und Prüfberichte selbst sind unverändert.
+
+---
+
+## F. Nach der Bestätigung (Berichte 13 und 14)
+
+Zwei unabhängige Bestätiger haben Fassung 2 geprüft: `13-bestaetigung-fassung-2-funktion.md`
+(„bestätigt mit Auflagen“, zehn Auflagen) und `14-bestaetigung-fassung-2-oberflaeche.md`
+(„bestätigt mit Auflagen“, zwölf Auflagen). Dieser Abschnitt hält je Auflage fest, an welcher
+Stelle des Plans was geändert wurde. Der Plan heißt danach „Fassung 2 mit den Auflagen der
+Bestätigung“. Gebaut wurde nichts; geändert sind nur `plan.md` und dieses Protokoll.
+
+**Zum Buchstaben:** der Auftrag nannte diesen Abschnitt „E“. Den Abschnitt E gab es schon
+(Ergebnis der Skriptprüfung); der neue Abschnitt heißt deshalb F, und der Plan verweist auf
+„Änderungsprotokoll, Abschnitt F“.
+
+**Grundregel, nach der eingearbeitet wurde.** Der Auftraggeber hat am 23.11.2026 erklärt: „alle
+offenen und überdachten entscheidungen wie von dir neu empfohlen“. Das deckt die Zeilen von
+Abschnitt 10, wie sie ihm vorlagen. Deshalb:
+
+- Eine reine Präzisierung (die Zeile sagt genauer, was schon gemeint war; ein verschwiegener
+  Verlust wird benannt) steht in der bestehenden Zeile, mit dem Zusatz „nach der Bestätigung
+  genauer gefasst“.
+- Jede Empfehlung, die sich inhaltlich ändert, und jede neue Frage steht im neuen Abschnitt
+  **10.5 „Nach der Bestätigung neu vorzulegen — nicht entschieden“** (E-B1 bis E-B23). Die alte
+  Zeile bleibt stehen und verweist dorthin; der betroffene Schritt des Pakets ist als „wartet auf
+  E-B…“ gekennzeichnet, der Rest des Pakets nicht.
+- **10.6 „Vor dem PR im Bild vorzulegen“** sammelt Vorgaben, die eine Wahl offenlassen.
+- **10.7 „Was der Auftraggeber wissen sollte — Folgen entschiedener Punkte“** nennt Folgen, die
+  bisher nur als Vorgabe in einem Paket standen.
+
+**Wie geändert wurde.** Mit gezielten Ersetzungen einzelner Stellen; kein Abschnitt wurde neu
+erzeugt. Zehn Ersetzungen in den Abschnitten 4.9 und 4.10 liefen über ein kleines Skript, das je
+Stelle genau ein Vorkommen verlangt und nur diese Zeichenkette ersetzt — in der Wirkung dasselbe
+wie die übrigen Einzeländerungen. Die Skriptprüfung aus Abschnitt E wurde nicht wiederholt (das
+Skript erzeugte Fassung 2 und passt nicht mehr auf die von Hand geänderte Datei); von Hand
+nachgezählt ist, was F.6 nennt.
+
+### F.1 Bericht 13 (Funktion) — die zehn Auflagen
+
+| Auflage | Stelle im Plan | Was geändert wurde |
+|---|---|---|
+| 1 — P-1 und die Kanzlei (K-6, K-7) | Paket 5: Voraussetzung, Schritt 1, Vorgabe P-1 (3) und (4), Risiko; 10.4 (Zeile P-1); Abschnitt 11: Vorspann, K-6, K-7 | Eine Aussage: **das Sichern wartet nicht auf K-6** — der Vorgang liegt samt Unterschrift schon heute im Ausgangsfach in IndexedDB (`src/lib/sync/lagerIndexedDB.ts`; Grenze 48 in 4.10), neu ist nur, dass er nach der Ablehnung nicht gelöscht wird; es gilt dieselbe Schutzregel wie für das Ausgangsfach. K-6 fragt für P-1 nach Aufbewahrungsdauer und Schutzregel (für P-8 unverändert). Vor K-7 trägt „Nicht angekommen“: ansehen, als PDF ausgeben, „Entwurf wieder aufnehmen“ unter der alten Kennung (bei Änderung verfallen die Unterschriften, Bericht 3, 3.3). Nur „unverändert erneut senden“ wartet auf K-7. Die frühere Aussage im Protokoll (A.3.2: „beides wartet auf die Kanzlei“) ist damit überholt |
+| 2 — G-10, Teil 2 | Paket 24: Titel, Ziel, Voraussetzung, Schritt (c), Vorgabe G-10, Aufwand; 4.10 Nr. 32; 1.5; 10.4 (neue Zeile); 10.5 E-B3; Abschnitt 11, K-10 (neu) | Paket 24 baut nur Teil 1. Teil 2 heißt jetzt wie im Papier „Rechnungskorrektur“ (nicht „Gutschrift“), ist als E-B3 neu vorgelegt (Empfehlung: wird gebaut, aber erst nach der Auskunft der Kanzlei) und wartet auf die neue Frage K-10 (Form des Belegs, Buchungssatz im Stapel, E-Rechnung). Titel des Pakets: „Rücknahme, Rückgabe nach der Rechnung, Festschreiben, Konditionen“. Beim Aufwand der Satz, dass Teil 2 (groß) noch mitgezählt ist. 1.5 nennt als nicht enthalten G-3, G-13, P-8 und G-10 Teil 2 als „wartet“ |
+| 3 — G-17 gegen „bleibt gleich: die Belegreferenz“ | Paket 24: Schritt (f), Vorgabe G-17, Zelle „bleibt gleich“ G-17, „Bleibt gleich (Paket)“, Risiko | G-17 ändert zwingend die Prüfsummen von `rechnung.pdf`, `stornorechnung.pdf`, `mahnung.pdf` und `belegarchiv.zip` (die Referenz hasht die ganze Datei samt `/CreationDate` und `/ID`). Der Schritt nennt die bewusste, einmalige Neuschrift (`REFERENZ_SCHREIBEN=1`) mit dem Nachweis „Textstrom und Aussehen gleich“; die übrigen sechs Dateien bleiben Byte für Byte |
+| 4 — Paket 3, Schritt 3: drei Bauweisen offen | Paket 3: Schritt 3, Vorgaben G-5, G-16, N-G-1, N-G-4, neue Tabelle „Neue Befunde“, Risiko | (a) G-5: der Stand je Buchung reist in `p_kopf` unter einem eigenen Schlüssel, nie in `p_belege`; fehlt die Angabe, wird nicht verglichen; der Vergleich über `updated_at` ist gestrichen (auch `app.satz_nachziehen` und `baustelle_umnummern` ändern `updated_at`). (b) N-G-1: `rechnung_anlegen` bleibt für `authenticated` aufrufbar; `rechnung_ausstellen` setzt einen transaktionslokalen Merker mit der gezogenen Nummer, `rechnung_anlegen` nimmt eine Nummer nur an, wenn sie dem Merker entspricht (sonst 42501); Prüfung mit den zwei nachgestellten Fällen aus Bericht 4; die Prüfdateien unter `tests/supabase`, die direkt mit Nummer rufen, werden auf `rechnung_ausstellen` umgestellt; dazu der Satz, dass die Lösung aus dem Plan stammt und nicht nachgestellt ist. (c) G-16 (4): ein leeres `subtotal_netto` heißt „die Summe der Zeilen gilt“. Dazu: N-G-4 ist eine Begrenzung in der App, nicht Teil der Migration |
+| 5 — N-S-2 ohne Weg; S-13 Nr. 3 fehlt | Paket 1: Schritt 4, Schritt 8, Vorgabe N-S-2, neue Vorgabe „S-13 (Nr. 3)“ | N-S-2: der Zähler nimmt einen Kern von `ausgegebenes_material` ohne Token-Bezug, der direkte Aufruf bleibt dem Support verschlossen; Prüfung mit „Mitarbeiten“ an einer echten Baustelle, mit „ansehen“ weiter abgewiesen. `baustelle_verwendung`, `baustelle_abschluss_lage`, `artikel_verwendung` und `retoure_rahmen` bekommen im Wächter aus Schritt 4 einen Eintrag „verschlossen“ mit Grund |
+| 6 — Wächter Textersatz gegen spätere Pakete | Paket 1: Schritt 1, Vorgabe Z-15; Paket 3, Schritt 3; Paket 22, Vorgabe A-5; Paket 26, Vorgabe S-12 | Regel ergänzt: eine bewusste Neudefinition vom Endstand (Paket 3 `rechnung_anlegen`, Paket 22 `person_auskunft`, Paket 26 `person_loeschen`) bekommt einen Eintrag mit Grund in der Ausnahmeliste; die Tabelle „muss enthalten“ führt `rechnung_anlegen` → `ruest_position`, `material_je_ausgabe` und je ein Merkmal für `person_auskunft` und `person_loeschen` |
+| 7 — neue Befunde und Bauten aus 4.10 ohne Prüfung; N-P-2 ohne Schritt | je eine neue Tabelle in den Paketen 3, 5, 6, 21, 22, 23, 24, 25, 26, 29; Paket 18 („Prüfungen“, Grenze 16); Paket 5 Schritt 2 und Vorgabe N-P-2; Paket 6 Schritte und neue Vorgabe N-M-2; Paket 24 Vorgabe N-G-6; Paket 26 neue Vorgabe N-S-5; 10.5 E-B7, E-B8 | Je `N-…`-Befund und je Bau aus 4.10 (Nr. 5, 11, 16, 23, 29, 30, 37, 38, 44, 47, 51) eine Zeile „Prüfung mit Gegenprobe / bleibt gleich“. Wo ein Bericht den Fall nachgestellt hat, ist der nachgestellte Fall die Gegenprobe (mit Quelle); sonst steht „vor dem Bau festzulegen“. N-P-2: „kein eigener Bau — der Schaden ist über P-1, S-5 und Z4 begrenzt; `istNetzfehler` wird nicht angefasst“. N-M-2: `inventur_anlegen` sucht wie `lager_liste` über `strpos` statt `ilike` (am Endstand nachgesehen: `lager_liste` Z. 57–60, `inventur_anlegen` Z. 76–78). N-G-6 und die Höhe der Obergrenze von N-S-5 sind als E-B7 und E-B8 neu vorgelegt |
+| 8 — S-9 ändert eine Regel aus `CLAUDE.md` | Paket 27: Schritte, Vorgabe S-9; 4.10 Nr. 52; 10.5 E-B4 | Als E-B4 neu vorgelegt (Empfehlung: Praxis bleibt und wird gehärtet, der Wortlaut der Regel wird genauer; Alternative: Zugangsdaten aus GitHub nehmen, Migrationen von Hand einspielen). Bis zur Entscheidung baut Paket 27 die Härtung; `CLAUDE.md` wird nicht angefasst |
+| 9 — Funktionsinventar entdoppelt je Datei | 2.1 (Zeile Funktionsinventar, neu „(d)“); 2.2 Regel 3; Paket 8, Schritt 5 und „Prüfungen“ | Die Grenze ist benannt (2.338 roh, 2.227 nach dem Entdoppeln, 87 Schlüssel mehrfach in derselben Datei); das Skript liefert zuerst die rohe Liste; zweite Gegenprobe „einen von zwei gleichen Einträgen derselben Datei entfernen → rot“ |
+| 10 a — 1.4, L-1 als Tatsache | 1.4, Zeile L-1 / M-2 / N-L-1 | Zusatz: am Code bestätigt und an der Datenbankhälfte belegt; der Schnitt an PostgREST und der Wert im gehosteten Projekt sind nicht nachgestellt; der Wert wird in Paket 1, Schritt 0 abgelesen |
+| 10 b — 1.5, „nicht enthalten“ | 1.5 | G-3, G-13 und P-8 genannt; G-10 Teil 2 als „wartet“ |
+| 10 c — Paket 3, Risiko zu G-1 | Paket 3: Risiko, Vorgabe G-1; 10.7 | Die größere Folge der Hauptregel benannt: eine Teilzahlung ohne Buchstaben-Vorsatz ist nicht mehr vorgewählt — bei einem Betrieb ohne Vorsatz jede Teilzahlung |
+| 10 d — fünf Zellen „Wortlaut des Papiers“ mit widerlegter Prüfung | Überschrift jeder Tabelle „Prüfung mit Gegenprobe und ‚bleibt gleich‘ laut Papier“ (13 Stellen) und „Bleibt gleich laut Papier, je Punkt“ (14 Stellen); Vorspann Abschnitt 9; Zellen A-1 (Prüfung und „bleibt gleich“) und L-1 in Paket 1, G-1 in Paket 3, M-3 in Paket 6, M-6 in Paket 25 | Jede Überschrift trägt den Zusatz „— wo eine Vorgabe aus der Gegenprüfung oben etwas anderes sagt, gilt die Vorgabe“; die genannten Zellen sind in der Zelle selbst mit „gilt nicht — siehe Vorgabe“ gekennzeichnet |
+| 10 e — Nachträge | Paket 29 (neue Vorgabe „L-12 (Nachladen)“); Paket 26, Vorgabe S-11; Paket 5, Vorgabe P-1 (4) und Schritt 5; 4.9 Verdacht M-6 und Voraussetzung der Pakete 15 und 25; 4.10 Nr. 27 und E-F27; 2.2 Regel 12 | `ansicht()` erwartet einen Pfad (`ansichten.ts:65`); `connect-src https://*.googleapis.com` bleibt gleich weit; `vorgemerkteScheine` trägt die Unterschriften nicht (`vorgemerkt.ts:79–82`); Paket 5, Schritt 5 nennt Schritt 3 des Papiers P-2 ausdrücklich; Verdacht M-6 steht als Voraussetzung bei Paket 15 und 25; E-F27 trägt einen Zustand („zurückgestellt“; bis dahin bleiben Scheine ohne Nummer); Regel 12 nennt Support in Leseregeln und Rollen/`auth.uid()` als `(select …)` |
+
+### F.2 Bericht 13 — weitere Punkte (Abschnitte 4 bis 6)
+
+| Punkt des Berichts | Stelle im Plan | Was geändert wurde |
+|---|---|---|
+| §6 Nr. 1 — E-F22 (Satz in abgeschlossenen Monaten) | Paket 1: Voraussetzung, Schritt 3, Vorgabe N-Z-1; 1.4 (Z-1); 9.1; 10.3 b) E-F22; 10.5 E-B1 | **Empfehlung geändert → E-B1:** `satz` in die Ausnahme der Sperre; `satz_setzen` rechnet im abgeschlossenen Monat nur neu, wenn `satz` ausdrücklich geleert wurde. Grund: der Bestätiger hat nachgestellt, dass die bisherige Empfehlung ein heutiges Verhalten verschlechtert (`lj2` bleibt statt `lj3`). Der Teil „Einstufung ändern“ von Schritt 3 wartet; der Rest nicht |
+| §6 Nr. 2 — E-F21 | Paket 15 (Voraussetzung, Schritt); 10.3 b) E-F21; 10.5 E-B5; 10.6 | Als „Empfehlung des Plans, von keinem Prüfer getragen — bestätigen oder anders entscheiden“ neu vorgelegt; die Empfehlung selbst bleibt; der Hinweis wartet |
+| §6 Nr. 3 — E-F20 | Paket 22: Schritt (k), Vorgabe N-A-1; 10.3 b) E-F20; 10.4 (neue Zeile); Abschnitt 11, K-8 | Gebaut wird der Zustand; der Wortlaut an den Kunden geht mit K-8 an die Kanzlei und wartet |
+| §6 Nr. 5 — A-1 / P-10 | Paket 1: Voraussetzung, Schritt 8, Vorgabe P-10; 9.1; Paket 22, Vorgabe A-6; 10.5 E-B2 | **Neu vorgelegt → E-B2:** eigene Hinweiszeile ohne Sperre für das, was nach der Schlussrechnung dazugekommen ist. Bis zur Entscheidung wird Schritt 8 von Paket 1 nicht gebaut (N-S-2 wartet mit) |
+| §6 Nr. 6, 7 — G-1, M-5 | Paket 3 (Risiko, Vorgabe G-1); Paket 25 (Vorgabe M-5, Risiko); 10.7 | Beide Folgen stehen in 10.7 und im Risiko des Pakets |
+| §6 Nr. 8 — Grenzen, die als „zurückgestellt“ stehen bleiben | 4.10 (Nr. 6, 14, 15, 27, 34, 39, 42, 43 und neuer Absatz unter der Tabelle); 10.3 b) E-F5, E-F26, E-F27, E-F28; Paket 28; 10.5 E-B9 bis E-B16; 10.7 | Je Grenze eine Zeile „bauen oder einen der sechs Gründe aus Grundsatz 6 nennen“, mit der Empfehlung und dem Aufwand des jeweiligen Papiers (Abschnitt 4 und 5 der Papiere 1 bis 5); wo das Papier keine Bauempfehlung gibt (Nr. 27): „dem Auftraggeber vorgelegt — ohne Empfehlung“. In 4.10 und in E-F5/27/28 der Satz „ohne gültigen Grund nach Grundsatz 6 — Entscheidung nötig (E-B…)“ |
+| §6 Nr. 9 — E-Z11 | 10.1 E-Z11; 10.4 (Zeile Z-11); Paket 21, Voraussetzung | Zusatz: K-9 fragt auch, ob die Einstellung so angeboten werden soll — die Entscheidung kann sich nach der Auskunft noch ändern |
+| §6 Nr. 10 — E-F6 | 10.3 b) E-F6; Paket 21, Voraussetzung; 10.5 E-B6 | Offen ist die Hälfte „Pflicht“: der Stand (`docs/stand-2026-10-03.md`, Zeile „Benutzerakte: leerer Eintritt wird beim Speichern ‚heute‘“) fragt, „ob das Feld dann leer bleibt und Pflicht wird“; „nicht Pflicht“ war eigene Abwägung (oben C.6). Als E-B6 vorgelegt; Schritt (i) wartet nicht |
+| §4 — Bericht 4, letzte Zeile der Tabelle zu G-1 | Paket 3, Vorgabe G-1 | Nachgetragen: Abbuchung an einen Lieferanten als „offen“ statt „fremd“ — kann mit G-1 erledigt werden |
+| §5 — Paket 6: Schritt „M-3“ knapp | Paket 6, Schritte | Ausgeschrieben, wie die Datenbank „von Hand mit Rückfrage“ von „alte App“ unterscheidet (eigene Funktion mit Bestätigung, direkter `update` abgewiesen) |
+| §5 — Vorab: lokaler Stapel | „Vorab — vor Paket 1“ | Satz ergänzt: der Schritt setzt den lokalen Stapel voraus; auch die Bestätigung konnte Verdacht S-4 nicht klären |
+| §10 — nicht geprüft | 12.3 (neuer Punkt „Grenzen der Bestätigung“) | benannt, was die Bestätiger nicht geprüft haben, und welche zwei Lösungen aus dem Plan stammen und nicht nachgestellt sind (Merker für N-G-1; geänderte Empfehlung E-B1) |
+
+### F.3 Bericht 14 (Oberfläche) — die zwölf Auflagen
+
+| Auflage | Stelle im Plan | Was geändert wurde |
+|---|---|---|
+| 1 — Textregel 1 und E31 | 6.2; 6.3 Regel 1; Paket 11: Voraussetzung, Schritte 1 und 2, Vorgaben D1-T1 und D4-T1, „Prüfungen“; 1.4; 9.1; 10.2 E-T; 10.5 E-B17; 10.6 | (a) Der Teil „Beschreibung auch ab dem Tablet in die Hilfe“ ist als E-B17 neu vorgelegt, mit den Messwerten (Kopf 96 → 72 px, Inhalt 24 px höher) und den zwei Fassungen fürs Bild: dritte Zeile bleibt reserviert und leer (E31 hält) oder entfällt (E31 ändert sich). Bis zur Entscheidung bleibt der Seitenkopf ab dem Tablet, wie er ist; Prüfung „der erste Inhalt beginnt auf jeder Seite gleich hoch“. (b) Direkt eingearbeitet: die vier Seiten aus E25 behalten den Untertitel ab dem Tablet; am Handy bleibt er ausgeblendet |
+| 2 — Punktregel: Wächter und Gegenprobe | 7.2 (neuer Absatz); 7.3 (Absatz „Regel 1 gegen Regel 2 und 6“, „Wächter“); Paket 11: Schritt 5, „Prüfungen“; Paket 14, Vorgabe D1-P1; 1.4; 10.2 E-P; 10.5 E-B18; 10.6; 10.7 | (a) Gegenprobe berichtigt: rot nur an Ketten mit zwei und mehr Punkten in einer Textzeile (7 von 126 Textblöcken bei 375 px). (c) Der Quelltext-Teil verbietet auch `join(' · ')` außerhalb des Verbinders. (d) In 7.2 der Satz, was sich ändert und was nicht (`/time`: 58 von 59 Zeilen mit genau einem Punkt; die Ersatzform der Zeitliste braucht in 44 von 53 Zeilen mehr Zeilen). (b) „Regel 2 geht vor Regel 1“ ist als E-B18 neu vorgelegt; bis zur Entscheidung gilt Regel 1 |
+| 3 — Regel 5 zweimal, verschieden | 6.3 Regel 5; 7.3 Regel 5; Vorspann Stufe C; 10.2 E-T | Ein Wortlaut für beide: Name allein in der ersten Zeile; darunter Zustand, Stempel und höchstens zwei weitere Angaben, der Wert rechts in dieser zweiten Zeile; Zustand und Stempel zählen nicht zu den zwei Angaben; für 760 bis 1.199 px keine neue Form; gemessen je Zeilenart mit den langen Namen; die Baustellenzeile ist benannte Ausnahme |
+| 4 — Paket 9 und „jede Seite genau einmal“ | 9.3 (neuer Absatz und Tabelle „In Paket 9 vorab berührt“); Vorspann Stufe B; 1.2; 1.5; Paket 9: Voraussetzung, Schritte 2, 3, 8, Vorgaben D3-B15 und D4-B8; je ein Schritt „Aus Paket 9 nachzuziehen“ in den Paketen 14, 15, 16, 17, 18, 19, 20; Vorspann Stufe C | Variante (a): 9.3 nennt genau die Fenster, die Paket 9 vorab berührt, und was das Seitenpaket nachzieht (D2-B3: acht Fenster in 17 und 18; D3-B15: „+ Material“ in 16, drei weitere in 20; D4-B8: Termin, Tag-Fenster, Einsatz in 17, Plattform in 20; V-3 in 14, 15, 17). „Keine Seite wird umgebaut“ heißt jetzt „außer den in 9.3 benannten Fenstern“ |
+| 5 — Paket 18 erlaubt, was E-R1 und E-W1 ausschließen | Paket 18: Schritte „Formulare“ und „Listen“, Vorgaben A-12, D2-A8, D2-A12, D2-C5, Zellen „bleibt gleich“ D2-A8, D2-A10, D2-A12, „Prüfungen“ | Die Knöpfe der Angebots-, Wartungs- und Scheinzeile bleiben in der Zeile; die Sätze des Papiers gelten nicht; Prüfung „mit derselben Tippzahl wie heute“; feste Spalten der Angebotsliste nur, wenn sie mit den Knöpfen in der Zeile gehen (nicht gemessen — Bedingung); D2-C5 nur bei Hausverwaltung oder Unternehmen, Privatkunden und Kunden ohne Kundenart behalten die Vorbelegung; A-17 aus der Vorgabe A-12 gestrichen |
+| 6 — Regel 11 bei D1-A2 und D4-B8 | Paket 14: Voraussetzung, Schritt „Zeit“, Vorgabe D1-A2, „Prüfungen“; Paket 9: Schritt 2, Vorgabe D4-B8; Paket 20; 9.1; 9.3; 10.3 d) (neuer Absatz); 10.5 E-B19, E-B20 | Beide als neue Zeilen mit der Empfehlung „bleibt, wie es ist“ (D1-A2: U7 hat das Löschen bewusst ins Blatt gelegt; D4-B8: ein Tipp mehr, Deaktivieren ist umkehrbar). Bis zur Entscheidung wird nichts verlegt; `Fensteraktionen` bleibt, soweit er keine Aktion verlegt |
+| 7 — E-M genauer fassen | 10.2 E-M; Paket 17: Ziel, Voraussetzung, Schritt „Woche und Monat“, Vorgabe D4-A10, Zelle „bleibt gleich“ D4-A10; 10.6; 10.7 | „Von 760 bis 1.199 px“; die Namensspalte klebt; „heute“ beim Öffnen im Bild; Pfeiltasten und Ziehen wie heute; der Verlust im Klartext mit den Messwerten (am Tablet 12 bis 20 von 30 Tagen; ab 1.200 px Spalten von 23 bis 31 px); der Satz des Papiers ist als „durch E-M entschieden“ gekennzeichnet |
+| 8 — Entscheidungen gegen das Regelwerk sagen das nicht | 10.3 c) E-R4; 10.2 E-N; Liste 8.3 (A-17, D2-A9, D4-B15); Paket 11, Schritt 1; Paket 9, Wächter-Tabelle; 10.5 E-B21; 10.7 | E-R4: der Satz „damit bleibt ein ⋯ außerhalb des Seitenkopfs stehen“; die Ausnahme kommt in `style.md`. E-N bleibt bei „E76 bleibt unverändert“, mit dem Satz zu den zwei gefüllten Aktionen im Tagesfenster und den zwei gleichen „+“, und dass die Berichte 0 und 12 die erste Fassung nicht beanstandet hatten. Ob `CLAUDE.md` einen Verweis auf benannte Ausnahmen bekommt: E-B21 (zusammen mit E-B4) |
+| 9 — „bleibt gleich laut Papier“ mit widerlegten Sätzen | Paket 15 (D3-C11); Paket 14 (D1-A4, D1-A5); Paket 9 (D2-A1); Paket 20 (D3-P12); Paket 10 (D1-A22; Schritt 3) | Die Zellen sind mit „gilt nicht — siehe Vorgabe“ gekennzeichnet; der in D1-A22 hineingerutschte Absatz „Dunkler Satz …“ ist entfernt; `ErrorBoundary.tsx:133` ist aus Schritt 3 von Paket 10 gestrichen (dort steht schon „Deine gespeicherten Daten“ — am Code nachgesehen) |
+| 10 — offene Wahl in Vorgaben | Vorgaben V-5, V-15, D2-A3 (Paket 9), D3-1 (Paket 15), D4-C2 (Paket 17): folgen dem Schritt; D4-P2, D1-B10 (Paket 13), D2-P5, D2-I4, D2-A18 b (Paket 18), D3-P12, D4-I2 (Paket 20): Verweis auf 10.6 | Wo ein Schritt desselben Pakets die Wahl schon trifft, folgt die Vorgabe dem Schritt (V-5: Muster `-my-3 py-3`; V-15: alle vier Akten; D2-A3: `flex: 1` an der heutigen Stelle; D3-1: gestapelt bis 1.199 px; D4-C2: „Tag ansehen“). Alles Übrige steht in 10.6 — keine stille eigene Festlegung |
+| 11 — 12.2 und Paket 8 decken nicht, was Stufe C umbaut | Paket 8, Schritt 1; Voraussetzung der Pakete 13 und 20; 12.2 (zwei neue Punkte) | Attrappe oder anderer Weg für Verbindungsband, „Neue Fassung“-Leiste, Supporteinblick mit Rolle, „Willkommen“, erstes Passwort, Wiederherstellungscodes, Fehlertafel, Papierkorb mit Inhalt, Projektleiter mit `rechnungenLesen`; in 12.2 die fehlenden Einträge aus den Papieren |
+| 12 — kleine Berichtigungen | (a) Paket 9, Schritt 10; Paket 11, Schritt 4; Paket 20. (b) Paket 17, Schritt und Vorgabe N-D4-2; 10.3 c) E-R8. (c) Paket 9, Wächter-Tabelle (`raster.spec.ts`). (d) Paket 9, Vorgabe D1-A17; Paket 13, Vorgabe D1-I3 | (a) die neuen Bausteine stehen auf `/_muster`. (b) „in der Zeile oder am Tag zweimal“. (c) die Testdaten des Durchklicks brauchen beide Arbeitskarten der Rechnungen. (d) Reihenfolge an `KopfTitel.tsx`: D1-A17 in Paket 9 zuerst, D1-I3 in Paket 13 darauf |
+
+### F.4 Bericht 14 — weitere Punkte (Abschnitte 4 bis 8)
+
+| Punkt des Berichts | Stelle im Plan | Was geändert wurde |
+|---|---|---|
+| §4 — V-B7 braucht in `style.md` eine Rolle neben den vier | Paket 11, Schritt 1 | ergänzt |
+| §5 — der ⋯-Wächter hat keine rote Fundstelle | Paket 9, Wächter-Tabelle | benannt |
+| §5 — D4-I2 am Handy: Tippzahl nennen | Paket 20, Vorgabe D4-I2; 10.3 d); 10.6 | „vorher n, nachher m Tipps“ gehört in den PR; die Form am Tablet steht in 10.6 |
+| §6 — zwei fehlende „bleibt“-Sätze in 6.4 | 6.4 | Rüstliste mit ihren zwei Aussagen (D1-T3, D1-I16) und „Zwischenstand“ an der Zahl der Nachkalkulation (D3-T19) nachgetragen |
+| §6 — Ausnahmeliste in 7.3 | 7.3 „Der Punkt bleibt“ | Legendenzeile des Monats (`MonatsAnsicht.tsx:625`, am Code nachgesehen) und Belegzeile aus E99 nachgetragen. „Rolle · Betrieb“ steht in Fassung 2 an keiner Stelle des Plans — nichts zu streichen |
+| §6 — Nachbau der drei Ersatzformen | 7.3 Regel 5; Paket 13, Vorgabe D4-P2; Paket 14, Vorgabe D1-P1 | Ergebnisse genannt (Zeitliste trägt nicht; Startseite 8 von 9; Wartung trägt) |
+| §7 Nr. 6 — E-F13 und E-F30 | Liste 8.4 (D4-A6, N-D4-1); 10.3 b) E-F13, E-F30; Paket 9 (Voraussetzung, Schritte 1 und 2, Vorgabe V-13); Paket 20; 10.5 E-B22, E-B23 | Beide neu vorgelegt. E-B22: es gilt E95 (Petrol), `style.md` wird berichtigt, eine Farbe für die drei Fokusformen, gebaut mit V-13. E-B23: zuerst klären, warum die Speicherleiste ab 1.200 px `position: static` ist; je nach Ergebnis klebt sie oder der Satz in `style.md` U1 wird berichtigt. In `src/index.css` und in der Geschichte der Datei wurde dafür nicht nachgesehen — das ist der Auftrag an das Paket |
+| §7 Nr. 7 — D4-I2, Form am Tablet | 10.6; Paket 20 | in 10.6 |
+| §7 Nr. 8 — Wortlaute der Hinweise E-F19 bis E-F21 | 10.3 b) E-F19; 10.6; E-B5; K-8 | E-F19: Wortlaut in 10.6; E-F20: an die Kanzlei; E-F21: mit E-B5 |
+| §8 — Abdeckung | 12.2; Paket 8 | siehe Auflage 11 |
+
+### F.5 Die neuen Abschnitte 10.5, 10.6 und 10.7
+
+**10.5 — nicht entschieden (23 Zeilen).** E-B1 Satz in abgeschlossenen Monaten (E-F22, Empfehlung
+geändert) · E-B2 Abschluss der Pauschalbaustelle nennt Dazugekommenes (A-1/P-10) · E-B3
+Rechnungskorrektur als Beleg (G-10 Teil 2, nach K-10) · E-B4 Regel „nie in GitHub-Secrets“ (S-9)
+· E-B5 entfernte Stundenposition (E-F21, Empfehlung des Plans) · E-B6 Eintritt und Saldo-Start
+als Pflicht (E-F6, zweite Hälfte) · E-B7 „überfällig“ beim Lesen rechnen (N-G-6) · E-B8 Höhe der
+Obergrenze der UID-Prüfung (N-S-5) · E-B9 bis E-B16 acht Grenzen ohne gültigen Grund (4.10 Nr.
+15, 27, 39, 42, 6, 14, 34, 43) · E-B17 Seitenkopf ab dem Tablet und E31 · E-B18 Punkt oder fester
+Abstand · E-B19 „Eintrag löschen“ bleibt im Blatt · E-B20 „Deaktivieren“ bleibt · E-B21 Halbsatz
+in `CLAUDE.md` zu benannten Ausnahmen · E-B22 Farbe des Fokusrings (E-F13) · E-B23 Speicherleiste
+ab 1.200 px (E-F30).
+
+**10.6 — vor dem PR im Bild vorzulegen (13 Zeilen).** Seitenkopf ab dem Tablet (E-B17) · Punkt
+oder fester Abstand (E-B18) · Farbe des Fokusrings (E-B22) · Monat von 760 bis 1.199 px (E-M) ·
+Startseite, Zeilen der Themen (D4-P2) · Timer-Leiste und Inseln (D1-B10) · Angebotszeile am
+Tablet (D2-P5) · Angebotsformular am Tablet (D2-I4) · Hilfe und ⋯ in die Ortszeile (D2-A18 b) ·
+Mahnspesen-Raster, Reihenfolge beim Tabben (D3-P12) · Einstellungen gegliedert (D4-I2) · Wortlaut
+„Baustelle ist abgeschlossen“ (E-F19) · Wortlaut beim Entfernen einer Stundenposition (E-F21).
+
+**10.7 — Folgen entschiedener Punkte (7 Zeilen).** G-1 (Teilzahlungen ohne Vorsatz nicht mehr
+vorgewählt) · M-5 (Altpreise gelten als „fest“) · E-M (am Tablet nicht mehr der ganze Monat) ·
+E-R4 (zweites ⋯ gegen `CLAUDE.md`) · E-N (zwei gefüllte Aktionen, zwei gleiche „+“) · E-P (die
+einzelnen Punkte bleiben) · acht Grenzen ohne gültigen Grund.
+
+### F.6 Zahlen und Verweise, die sich geändert haben
+
+| Angabe | Vorher | Nachher |
+|---|---|---|
+| Titel und Kopf des Plans | „Fassung 2, nach der Gegenprüfung“ | „Fassung 2 mit den Auflagen der Bestätigung“; dazu die zwei Urteile in 1.1 |
+| Abschnitt 10, Teil 1 / Teil 2 / Teil 3 a, b, c, d | 6 / 9 / 5, 33, 18, 12 | unverändert (keine Zeile gestrichen oder hinzugefügt; geänderte Zeilen tragen den Zusatz oder den Verweis) |
+| 10.4, Zeilen | 10 | 12 (neu: N-A-1 Wortlaut unter K-8; G-10 Teil 2 unter K-10) |
+| Fragen an die Kanzlei | K-1 bis K-9 | K-1 bis K-10 (K-6 und K-8 neu gefasst, K-10 neu) |
+| 10.5 / 10.6 / 10.7 | — | 23 / 13 / 7 Zeilen |
+| 1.6 „Offen bleibt“ | sechs Punkte; „zehn Punkte … neun Fragen“ | sieben Punkte; „zwölf Punkte … zehn Fragen“; neu (7) die Zeilen in 10.5 und 10.6 |
+| Kürzel je Paket (Punkte-Zeilen) | wie in Abschnitt E | unverändert (nachgezählt: 1: 18 … 29: 6) |
+| Aufwände je Paket und Summe | wie in 1.5 | unverändert; beim Paket 24 der Satz, dass G-10 Teil 2 noch mitgezählt ist |
+| Schritte je Paket | — | Paket 9 hat einen Schritt 10 (Musterseite); die Pakete 14 bis 20 je einen ersten Punkt „Aus Paket 9 nachzuziehen“; sonst keine neue Nummerierung |
+| Umfang des Plans | 3.819 Zeilen | 4.461 Zeilen |
+
+Geprüft am Ende: jede Nummer E-B1 bis E-B23 kommt außer in 10.5 an mindestens einer weiteren
+Stelle vor (alte Zeile oder Paket); `K-10` steht in 10.4 und in Abschnitt 11; in keiner Tabelle
+weicht die Spaltenzahl einer Zeile vom Tabellenkopf ab.
+
+### F.7 Was am Repository nachgesehen wurde — und was eigene Festlegung ist
+
+**Nachgesehen (nur gelesen):** `lager_liste` und `inventur_anlegen` am Endstand der
+Wegwerf-Datenbank (`strpos` gegen `ilike`); `beleg_versand_vorbereiten` am Endstand (30 je Person
+und Stunde, 100 je Betrieb und Stunde, 400 je Betrieb und Tag) als Vorbild für E-B8;
+`rechnung_ausstellen` am Endstand (läuft mit den Rechten des Aufrufers, zieht die Nummer über
+`app.rechnungsnummer_ziehen`, ruft `rechnung_anlegen`); acht Dateien unter `tests/supabase`
+nennen `rechnung_anlegen`; `src/app/ErrorBoundary.tsx:132–133`; `MonatsAnsicht.tsx:625`;
+`docs/stand-2026-10-03.md` (zwei Zeilen „Benutzerakte: leerer Eintritt …“); die Zeilen der
+Grenzen in Abschnitt 4 und die Ideen in Abschnitt 5 der Papiere 1 bis 5.
+
+**Festlegungen des Koordinators, die in keinem Bericht stehen** (im Plan als solche erkennbar):
+die Lösung mit dem Merker für N-G-1 (Paket 3 — „aus dem Plan, von keinem Prüfer nachgestellt“);
+die geänderte Empfehlung in E-B1; die Empfehlungen in E-B2, E-B4, E-B7, E-B8, E-B18, E-B19,
+E-B20, E-B21, E-B22, E-B23. Sie stehen alle in 10.5 und gelten nicht als entschieden — außer der
+Bauweise für N-G-1, G-5 und G-16 (4), die Auflage 4 als Festlegung verlangt hat.
+
+**Eigene Formulierung, wo der Bericht nur den Fall nennt:** in den Tabellen „Neue Befunde …“ ist
+die Prüfung je Zeile aus dem im Bericht nachgestellten Fall abgeleitet („der nachgestellte Fall
+… heute …“); eine Prüfdatei ist dort nicht erfunden — es steht „vor dem Bau festzulegen“.
+Ebenso abgeleitet: in 9.3 die Spalte „Was das Seitenpaket aus Paket 9 nachzieht“ und die
+Zuordnung „V-15: Kunden-, Angebots-, Baustellenakte in Paket 18, Benutzerakte in Paket 19“.
+
+**Nicht geändert:** die Papiere, die Prüfberichte, `CLAUDE.md`, `style.md` und jeder Code. Die
+Abschnitte A bis E dieses Protokolls sind unverändert; wo sie etwas sagen, das Abschnitt F
+überholt (A.3.2 zu P-1 und der Kanzlei; D.3 zu E-F21, E-F22, E-F27; D.6 mit zehn Zeilen und
+neun Fragen), gilt Abschnitt F.
