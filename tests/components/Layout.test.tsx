@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -121,12 +122,15 @@ describe('Wessen Marke in der Hülle steht', () => {
     expect(folgt).toBeTruthy();
 
     /* Die feste Bildhöhe bleibt kleiner als die Betriebsmarke darüber.
-       Die Produktmarke ist jetzt eine Pfad-SVG, kein separat gesetzter Text. */
+       Die Produktmarke ist jetzt eine Pfad-SVG, kein separat gesetzter Text.
+       Die Höhe der Betriebsmarke steht seit E100 im Stil (`--marke-leiste-hoehe`),
+       nicht mehr am Element — jsdom lädt keinen Stil, also von dort gelesen. */
     const betriebsname = within(seitenleiste!).getByText('Perl Installationen');
-    const gross = Number.parseFloat(
-      (betriebsname.parentElement as HTMLElement).style.minHeight,
-    );
+    expect(betriebsname.parentElement).toHaveClass('marke-leiste');
+    const leiste = /--marke-leiste-hoehe:\s*([\d.]+)rem/.exec(readFileSync('src/styles/lot.css', 'utf8'));
+    const gross = Number.parseFloat(leiste![1]) * 16;
     const klein = Number.parseFloat((marke as HTMLElement).style.height);
+    expect(klein).toBeGreaterThan(0);
     expect(klein).toBeLessThan(gross);
   });
 

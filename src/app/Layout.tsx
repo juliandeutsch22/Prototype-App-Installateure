@@ -438,9 +438,9 @@ export default function Layout({ children }: { children: ReactNode }) {
     lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
     Kopfleiste.
   */
-  // V10: am Handy sitzt die Marke in der hellen Kopfinsel — Tinte statt Weiß.
-  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-ink-deep" />;
-  const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
+  // Größe und Farbe je Ort stehen im Stil (`.marke-kopf`, `.marke-leiste`, E100).
+  const BrandMarkMobile = <BrandLogo ort="kopf" />;
+  const BrandMarkSidebar = <BrandLogo ort="leiste" />;
 
   const unterGruppen = groups.filter((g) => g.group !== 'Einstellungen');
   const einstellungen = groups.find((g) => g.group === 'Einstellungen')?.items ?? [];

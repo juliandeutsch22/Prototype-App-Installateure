@@ -479,6 +479,37 @@
     .huelle::before { content: ''; position: fixed; inset: 0 0 auto; z-index: 29; height: var(--sicher-oben); background: var(--bg); }
   }
   @media (min-width: 760px) { .kopfzeile { display: none; } }
+  /*
+    DAS ZEICHEN DES BETRIEBS, JE ORT EINE GRÖSSE (E100, 23.11.2026; Auftrag:
+    „der Firmenname bzw. auch das hinterlegte Logo im Header erscheinen zu
+    klein“). Gemessen am Handy: Logo 28 px hoch, Name 11 px — gerechnet als
+    0,4 × Logohöhe, kleiner als der Seitentitel (16 px), der beim Rollen an
+    dieselbe Stelle tritt. Jetzt steht hier, was gilt, statt einer Formel:
+    der Name in der Größe eines Titels, das Logo so hoch, wie die Insel es
+    neben Suche und Initialen trägt. Den Rand eines Logos schneidet
+    `logoRand.ts` ab — sonst füllte es diese Höhe nicht.
+  */
+  :root { --marke-kopf-hoehe: 2.25rem; --marke-leiste-hoehe: 2.5rem; }
+  .marke { display: flex; align-items: center; min-width: 0; }
+  .marke-kopf { flex: 1 1 auto; min-height: var(--marke-kopf-hoehe); color: var(--ink-deep); }
+  .marke-leiste { min-height: var(--marke-leiste-hoehe); }
+  .marke-platz { display: block; }
+  .marke-bild { display: block; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+  .marke-kopf .marke-bild { height: var(--marke-kopf-hoehe); }
+  .marke-leiste .marke-bild { height: var(--marke-leiste-hoehe); }
+  .marke-name { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; font-size: 1rem; line-height: 1.25rem; hyphens: auto; overflow-wrap: anywhere; }
+  .marke-kopf .marke-name { -webkit-line-clamp: 2; }
+  .marke-leiste .marke-name { -webkit-line-clamp: 3; }
+  /*
+    DIE VORSCHAU IN DEN FIRMENDATEN (E100) zeigt die Insel des Kopfs in der
+    Breite eines Handys, mit Suche und Initialen daneben — so sieht man, wie
+    viel Platz Name oder Logo dort wirklich haben. Ohne Schatten: hier
+    schwebt sie nicht, sie liegt im Blatt.
+  */
+  .logo-vorschauen { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem 1.5rem; }
+  .logo-vorschau { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; flex: 0 1 23.375rem; }
+  .logo-vorschau-beleg { flex: 0 0 auto; }
+  .marke-probe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; padding: 0.125rem 0.375rem 0.125rem 0.875rem; background: var(--surface-2); border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); }
   .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); animation: kopf-titel-ein 180ms ease-out; }
   @keyframes kopf-titel-ein { from { opacity: 0; transform: translateY(0.375rem); } }
   @media (prefers-reduced-motion: reduce) { .kopfzeile-titel { animation: none; } }

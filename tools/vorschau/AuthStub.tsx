@@ -18,9 +18,17 @@ const ROLLE = new URLSearchParams(location.search).get('rolle') ?? 'Administrato
  * ohne die Beispielfirma für alle anderen Aufnahmen zu ändern.
  */
 const MODULE = (new URLSearchParams(location.search).get('module') ?? '').split(',').filter(Boolean);
-const FIRMA = MODULE.length
-  ? { ...firma, modules: { ...firma.modules, ...Object.fromEntries(MODULE.map((m) => [m, true])) } }
-  : firma;
+/*
+ * EIN LOGO FÜR DIE PRÜFUNG (`?logo=data:image/png;base64,…`, E100): so
+ * zeigt die Vorschau den Kopf mit hinterlegtem Logo, ohne die Beispielfirma
+ * für alle anderen Aufnahmen zu ändern.
+ */
+const LOGO = new URLSearchParams(location.search).get('logo');
+const FIRMA = {
+  ...firma,
+  ...(MODULE.length ? { modules: { ...firma.modules, ...Object.fromEntries(MODULE.map((m) => [m, true])) } } : {}),
+  ...(LOGO ? { logoUrl: LOGO } : {}),
+};
 
 const WERT = {
   user: { uid: 'u1', name: benutzer[0].name, email: benutzer[0].email, role: ROLLE, companyId: 'perl' },

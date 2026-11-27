@@ -7,6 +7,9 @@ import { istZeichenbar } from '@/lib/pdfBriefkopf';
 import { urteil } from '@/lib/kontrast';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import BrandLogo from '@/components/BrandLogo';
+import Icon from '@/components/Icon';
+import Avatar from '@/components/Avatar';
 import LotZeichnung from '@/components/LotZeichnung';
 import { einrichtungsstand } from './EinstellungenUebersicht';
 import PageHeader from '@/components/PageHeader';
@@ -371,21 +374,45 @@ export default function FirmendatenView() {
           title="Logo"
           hint={
             <>
-              Erscheint oben rechts auf allen drei Belegen. Das Bild wird beim Auswählen
+              Erscheint oben rechts auf allen drei Belegen und im Kopf der App — am Handy oben in
+              der Kopfleiste, am Schreibtisch oben in der Seitenleiste. Das Bild wird beim Auswählen
               verkleinert und in das Briefkopf-Format eingepasst — es behält seine Form und wird
-              nicht beschnitten. PNG mit durchsichtigem Grund sieht am besten aus.
+              nicht beschnitten. In der App wird leerer Rand um das Logo nicht angezeigt; so steht
+              es dort in voller Höhe. Ohne Logo steht dort der Firmenname. PNG mit durchsichtigem
+              Grund sieht am besten aus.
             </>
           }
         >
-          {istZeichenbar(logoUrl) ? (
-            <div className="space-y-3">
-              {/*
-                Vorschau auf hellem Grund und im Seitenverhältnis des
-                Briefkopfs: so sieht man vorher, was auf dem Beleg landet.
-              */}
-              <div className="inline-flex items-center justify-center rounded border border-line bg-white p-2">
-                <img src={logoUrl} alt="Logo des Betriebs" className="h-12 w-auto" />
+          {/*
+            ZWEI VORSCHAUEN, WEIL DAS LOGO AN ZWEI ORTEN STEHT (E100). Der Beleg
+            zeigt es im Briefkopf-Format, die App ohne Rand in der Höhe des
+            Kopfs — und ohne Logo den Namen aus diesem Formular. Was hier steht,
+            ist das, was nach dem Speichern oben in der App zu sehen ist.
+          */}
+          <div className="logo-vorschauen">
+            {istZeichenbar(logoUrl) && (
+              <figure className="logo-vorschau logo-vorschau-beleg">
+                <figcaption className="text-meta text-ink-muted">Auf den Belegen</figcaption>
+                {/* Auf hellem Grund und im Seitenverhältnis des Briefkopfs: so sieht man vorher, was auf dem Beleg landet. */}
+                <div className="inline-flex items-center justify-center self-start rounded border border-line bg-white p-2">
+                  <img src={logoUrl} alt="Logo des Betriebs" className="h-12 w-auto" />
+                </div>
+              </figure>
+            )}
+            <figure className="logo-vorschau" data-testid="vorschau-kopf">
+              <figcaption className="text-meta text-ink-muted">Im Kopf der App</figcaption>
+              <div className="marke-probe">
+                <BrandLogo ort="kopf" vorschau={{ name: name.trim() || (company?.name ?? ''), logoUrl }} />
+                <span className="kopfzeile-suche" aria-hidden="true"><Icon name="lupe" size={22} /></span>
+                <span className="flex min-h-touch min-w-touch items-center justify-center" aria-hidden="true">
+                  <Avatar name={user?.name ?? ''} size={32} />
+                </span>
               </div>
+            </figure>
+          </div>
+
+          {istZeichenbar(logoUrl) ? (
+            <div className="mt-3 space-y-3">
               <p className="text-meta text-ink-muted">
                 Rund <span>{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
               </p>
@@ -394,10 +421,10 @@ export default function FirmendatenView() {
               </Button>
             </div>
           ) : (
-            <p className="text-meta text-ink-muted">
+            <p className="mt-3 text-meta text-ink-muted">
               {logoUrl
                 ? 'Hier steht eine Adresse statt eines Bildes. Für die Oberfläche reicht das, für das PDF nicht — dort muss das Bild selbst hinterlegt sein. Bitte die Datei auswählen.'
-                : 'Noch kein Logo hinterlegt. Die Belege tragen dann nur den Firmennamen.'}
+                : 'Noch kein Logo hinterlegt. Die Belege und der Kopf der App tragen dann den Firmennamen.'}
             </p>
           )}
 

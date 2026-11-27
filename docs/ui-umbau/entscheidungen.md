@@ -4436,3 +4436,52 @@ WebKit kennen die Sicherheitszone nicht (Grund: Gerät). Eine Ist-Beschriftung,
 die breiter ist als ihre ganze Linie, bleibt einzeilig; in der App kommt das
 nicht vor (die schmalen Linien der Listen tragen kurze Texte), die
 Prüfung auf der Musterseite würde es zeigen.
+
+**E100 — Das Zeichen des Betriebs in voller Größe: Größe je Ort im Stil, das Logo ohne Rand, eine Vorschau in den Firmendaten (23.11.2026).**
+
+Auftrag vom 23.11.2026 mit einem Bildschirmfoto vom iPhone: „der Firmenname
+bzw. auch das hinterlegte Logo im Header erscheinen zu klein. Kannst du dir
+überlegen wie man das am besten nachhaltig umsetzen könnte“.
+
+**Gemessen.** Am Handy war das Logo 28 px hoch und der Name 11 px — gerechnet
+als 0,4 × Logohöhe, kleiner als der Seitentitel (16 px), der beim Rollen an
+dieselbe Stelle tritt. Dazu kam das Format: `logoAufbereiten.ts` passt jedes
+Logo für den PDF-Briefkopf in 400 × 188 px ein. Ein quadratisches Zeichen
+stand darin mit je über 100 px leerem Rand links und rechts, ein breiter
+Schriftzug mit Rand oben und unten — im Kopf war das eigentliche Logo so oft
+nur 12 bis 20 px hoch.
+
+**Entschieden — drei Teile, jeder an seiner Stelle:**
+
+- **Größe je Ort im Stil, nicht je Aufruf.** `BrandLogo` nimmt `ort`
+  (`kopf` am Handy, `leiste` am Schreibtisch) statt einer Pixelhöhe; die
+  Maße stehen als `--marke-kopf-hoehe` (36 px) und `--marke-leiste-hoehe`
+  (40 px) in `lot.css`. Der Name steht in der Größe eines Titels (16 px,
+  600 — die Ausnahme für den Firmennamen), im Kopf bis zwei Zeilen, in der
+  Leiste bis drei. Die Insel des Kopfs bleibt 54 px hoch; Suche und Initialen
+  stehen, wo sie standen.
+- **Das Logo ohne Rand, beim Anzeigen.** `logoRand.ts` schneidet
+  durchsichtigen und einfarbigen Rand ab (alle vier Ecken gleich, mit
+  Spielraum für JPEG-Rauschen) und merkt sich das Ergebnis je Logo. Beim
+  Anzeigen, nicht beim Hochladen: so gilt es für jedes schon hinterlegte
+  Logo, ohne dass Daten umgeschrieben werden, und das PDF behält sein
+  Format. Solange zugeschnitten wird, hält der Kopf den Platz frei — sonst
+  stünde das Logo erst mit Rand, dann ohne da. Ein Bild mit uneinigen Ecken
+  (Foto, Verlauf) bleibt, wie es ist.
+- **Eine Vorschau in den Firmendaten.** Die Karte „Logo“ zeigt neben dem
+  Beleg den Kopf der App mit Suche und Initialen, mit dem Namen aus dem
+  Formular, wenn kein Logo da ist. Ohne Schatten: dort schwebt die Insel
+  nicht, sie liegt im Blatt.
+
+Verworfen: das Logo beim Hochladen zweimal abzulegen (einmal für den
+Briefkopf, einmal ohne Rand) — das hätte die schon hinterlegten Logos nicht
+erfasst und das Firmendokument, das jede Sitzung lädt, verdoppelt. Ebenso
+eine Größe, die der Betrieb einstellt: die Höhe ist durch die Insel
+begrenzt, und ein größerer Wert hätte Suche und Initialen verdrängt.
+
+**Benannte Grenze:** ein Logo unter einer fremden Adresse ohne CORS (aus der
+Zeit vor dem Hochladen als Bild) lässt sich im Browser nicht vermessen; es
+steht weiter mit seinem Rand da (Grund: Sicherheit des Browsers). In der
+Vorschau ist die Insel am Handy so breit, wie das Blatt es zulässt (326 statt
+374 px) — ein langer Name bricht dort früher um als oben im Kopf (Grund:
+fachlich, die Vorschau liegt im Blatt).
